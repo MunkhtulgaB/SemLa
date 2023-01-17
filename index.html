@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>title</title>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pleasejs/0.4.2/Please.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.6.1/randomColor.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+  </head>
+  <body>
+    <!-- page content -->
+
+    <label for="show-errors">Show misclassifications only</label>
+    <input type="checkbox" id="show-errors" name="show-errors">
+   
+
+    <div>
+      <label for="group-by">Colour by</label>
+      <select name="group-by" id="group-by">
+        <option value="ground_truth">Ground truth</option>
+        <option value="prediction">Prediction</option>
+      </select>
+    </div>
+
+    <br>
+    <div>
+      <label for="filter">Filter datapoints by index</label>
+      <input name="filter" id="filter"></input>
+      <button id="clear-filter">Clear</button>
+    </div>
+    <div id="container">
+      <svg width="600" height="400">
+      <g>
+        <line style="visibility: hidden" id="drag-line-0" x1="0" y1="80" x2="100" y2="20" stroke="rgba(255, 112, 112, 0.8)" stroke-width="3" />
+      </g>
+      </svg>
+    </div>
+    
+
+    <script>
+      // set the dimensions and margins of the graph
+      var margin = {top: 10, right: 30, bottom: 30, left: 60},
+          width = 1200 - margin.left - margin.right,
+          height = 1000 - margin.top - margin.bottom;
+      
+      // // append the SVG object to the body of the page
+      var SVG = d3.select("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .select("g")
+            .attr("transform",
+                  "translate(" + margin.left + "," + margin.top + ")");
+      
+      //Read the data
+      d3.json("viz-data.json", function(data) {
+          // Identify errors
+          errors = [];
+          corrects = [];
+          data.forEach((dp, idx) => {
+            if (dp["ground_truth"] != dp["prediction"]) {
+              errors.push(dp);
+            } else {
+              corrects.push(dp);
+            }
+          });
+
+          // Set up the filter feature
+          $(document).ready(function(){
+            groupby_option = $("#group-by");
+            is_to_show_errors_only = $("#show-errors")
+            filter_input = $("#filter");
+            clear_btn = $("#clear-filter");
+
+            // Group-by option
+            groupby_option.on("change", function() {
+              const groupby_attr = this.value; // TO REFACTOR: use const and let instead of var or vice versa consistently
+
+              d3.selectAll("circle")
+                .style("fill", function(d) {
+                  const idx = parseInt(d[groupby_attr]);
+                  return colors[idx];
+                })
+
+            });
+
+            // // Show errors only?
+            // is_to_show_errors_only.on("change", function() {
+            //   if ($(this).is(":checked")) {
+            //     filterChart(errors);
+            //   } else {
+            //     filterChart(Array.from(Array(data.length).keys()))
+            //   }
+            // })
+
+            // Drag line
+            d3.select("#drag-line-0")
+              .data([{"x1": 0, "y1": 0, "x2": 0, "y2": 0}]);
+
+            // Filter input
+            filter_input.on("input", function(e) {
+              filter_value = e.target.value;
+              filter_indices_str = filter_value.split(",");
+              
+              filter_indices = []
+              filter_indices_str.forEach(idx => {
+                idx_int = parseInt(idx)
+                if (Number.isInteger(idx_int)) {
+                  filter_indices.push(idx_int)
+                }
+              })
+              
+              filterChart(filter_indices)
+            });
+
+            // Clear button
+            clear_btn.on("click", function(e) {
+              clear();
+            })
+          }).keyup(function(e) {
+              if (e.key === "Escape") { // escape key maps to keycode `27`
+                clear();
+              }
+          });
+
+          // Set the zoom and Pan features: how much you can zoom, on which part, and what to do when there is a zoom
+          var zoom = d3.zoom()
+              .scaleExtent([.8, 100])  // This control how much you can unzoom (x0.5) and zoom (x20)
+              .extent([[0, 0], [width, height]])
+              .on("zoom", updateChart);
+
+          // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
+          SVG.append("rect")
+              .attr("width", width)
+              .attr("height", height)
+              .style("fill", "none")
+              .style("pointer-events", "all")
+              .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+              .call(zoom);
+          // now the user can zoom and it will trigger the function called updateChart
+
+
+          const colors = generateColors(150);
+
+          xMin = Math.min(...data.map(d => d["umap-dim0"]));
+          xMax = Math.max(...data.map(d => d["umap-dim0"]));
+          xRange = xMax - xMin;
+
+          yMin = Math.min(...data.map(d => d["umap-dim1"]));
+          yMax = Math.max(...data.map(d => d["umap-dim1"]));
+          yRange = yMax - yMin;
+
+
+          // Add X axis
+          var x = d3.scaleLinear()
+          .domain([xMin - 0.1 * xRange, xMax + 0.1 * xRange])
+          .range([ 0, width ]);
+          var xAxis = SVG.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x));
+
+          // Add Y axis
+          var y = d3.scaleLinear()
+          .domain([yMin - 0.1 * yRange, yMax + 0.1 * yRange])
+          .range([ height, 0]);
+          var yAxis = SVG.append("g")
+          .call(d3.axisLeft(y));
+
+          // Add a clipPath: everything out of this area won't be drawn.
+          var clip = SVG.append("defs").append("SVG:clipPath")
+              .attr("id", "clip")
+              .append("SVG:rect")
+              .attr("width", width )
+              .attr("height", height )
+              .attr("x", 0)
+              .attr("y", 0);
+
+          // Create the scatter variable: where both the circles and the brush take place
+          var scatter = SVG.append('g')
+          .attr("clip-path", "url(#clip)")
+
+          // Create a drag behaviour
+          var drag = d3.drag()
+              .on("start", function(d) {
+                // TO REFACTOR: access the cx and cy attrs in consistent ways
+                d3.select("#drag-line-0")
+                  .style("visibility", "visible")
+                  .attr("x1", this.cx.baseVal.value)
+                  .attr("y1", this.cy.baseVal.value)
+                  .attr("x2", this.cx.baseVal.value)
+                  .attr("y2", this.cy.baseVal.value);
+              })
+              .on("drag", function(d) {
+                d3.select("#drag-line-0")
+                  .attr("x2", d3.event.x)
+                  .attr("y2", d3.event.y);
+              })
+              .on("end", function(d) {
+                mouseover_circle = d3.select(".ismouseover")
+                if (mouseover_circle.empty()) {
+                  d3.select("#drag-line-0").style("visibility", "hidden");
+                } else {
+                  mouseover_circle_data = mouseover_circle.data();
+                  d3.select("#drag-line-0")
+                  .attr("x2", mouseover_circle.attr("cx"))
+                  .attr("y2", mouseover_circle.attr("cy"))
+                  .data([{
+                    "x1": d["umap-dim0"],
+                    "y1": d["umap-dim1"],
+                    "x2": mouseover_circle_data[0]["umap-dim0"],
+                    "y2": mouseover_circle_data[0]["umap-dim1"],
+                  }]);
+                }
+              });
+
+          // Add circles
+          scatter
+          .selectAll("circle")
+          .data(corrects)
+          .enter()
+          .append("circle")
+              .attr("cx", function (d) { return x(d["umap-dim0"]); } )
+              .attr("cy", function (d) { return y(d["umap-dim1"]); } )
+              .attr("r", 8)
+              .style("fill", function (d) {
+                var label = parseInt(d["ground_truth"])
+                return colors[label]; 
+              })
+              .style("opacity", 0.5)
+              .on("mouseover", function(d) { 
+                $(this).addClass("ismouseover");
+                tooltip_html = Object.entries(d).reduce(
+                  (acc, current) => acc + `<p><b>${ current[0] }</b>: ${ current[1] }</p>`,
+                  ""
+                );
+                tooltip.html(tooltip_html);
+                return tooltip.style("visibility", "visible");
+              })
+              .on("mousemove", function(){ return tooltip.style("top", (event.pageY + 20)+"px").style("left",(event.pageX + 20)+"px");})
+              .on("mouseout", function(){ 
+                $(this).removeClass("ismouseover");
+                return tooltip.style("visibility", "hidden");
+              })
+              .on("click", function(d) {
+                filterChart(d["support_set"].concat([d["idx"]]));
+                $(this).attr("stroke", "red")
+                       .attr("stroke-width","5px");
+               })
+              .call(drag);
+          
+          // Add triangles
+          var triangle = d3.symbol().type(d3.symbolTriangle).size(100);
+
+          scatter.selectAll('path')
+            .data(errors)
+            .enter()
+            .append('path')
+            .attr('d', triangle)
+            .attr('fill',  function (d) {
+              var label = parseInt(d["ground_truth"])
+              return colors[label]; 
+            })
+            .attr('transform', function(d) {
+              translation = "translate(" + x(d["umap-dim0"])
+                   + "," + y(d["umap-dim1"]) + ")";
+              return translation;
+            });
+
+          // create a tooltip
+          var tooltip = d3.select("#container")
+            .append("div")
+              .style("position", "absolute")
+              .style("visibility", "hidden")
+              .style("background-color", "white")
+              .style("border", "2px solid black")
+              .style("padding", "10px")
+
+
+          // A function that updates the chart when the user zoom and thus new boundaries are available
+          function updateChart() {
+
+              // recover the new scale
+              var newX = d3.event.transform.rescaleX(x);
+              var newY = d3.event.transform.rescaleY(y);
+
+              // update axes with these new boundaries
+              xAxis.call(d3.axisBottom(newX))
+              yAxis.call(d3.axisLeft(newY))
+
+              // update circle position
+              scatter
+                  .selectAll("circle")
+                  .attr('cx', function(d) { return newX(d["umap-dim0"])} )
+                  .attr('cy', function(d) { return newY(d["umap-dim1"])} );
+
+              scatter
+                  .selectAll("path")
+                  .attr('transform', function(d) {
+                    translation = "translate(" + newX(d["umap-dim0"])
+                        + "," + newY(d["umap-dim1"]) + ")";
+                    return translation;
+                  })
+
+              var drag_link = d3.select("#drag-line-0");
+              if (!drag_link.empty()) {
+                drag_link
+                .attr("x1", function(d) { return newX(d.x1) })
+                .attr("y1", function(d) { return newY(d.y1) })
+                .attr("x2", function(d) { return newX(d.x2) })
+                .attr("y2", function(d) { return newY(d.y2) });
+              }    
+          }
+
+          function filterChart(idxs) {
+            scatter.selectAll("circle")
+              .attr("visibility", function(d) {
+                d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
+                
+                if (idxs.length == 0) {
+                  return "visible";
+                }
+                
+                if (idxs.includes(d_idx)) {
+                  return "visible";
+                } else {
+                  return "hidden";
+                }
+              })
+              .attr("stroke", "");
+          }
+
+          function clear() {
+            filter_input.val("");
+            if ($("#show-errors").is(":checked")) {
+              filterChart(errors);
+            } else {
+              filterChart([]);
+            }
+            
+            d3.select("#drag-line-0").style("visibility", "hidden");
+          }
+      })
+
+      function generateColors(N) {
+        /*
+        // Uncomment to use an alternative library
+        const pleasing_colors = Please.make_color({
+          colors_returned: N,
+          saturation: 90,
+          value: 1,
+          format: 'hex',
+        });
+        */
+
+        const random_colors = randomColor({
+          count: N,
+          format: "rgba",
+          luminosity: "bright",
+          alpha: 1,
+        });
+        return random_colors;
+      }
+    </script>
+  </body>
+</html>
