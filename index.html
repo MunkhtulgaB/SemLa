@@ -14,19 +14,16 @@
     <label for="show-errors">Show misclassifications only</label>
     <input type="checkbox" id="show-errors" name="show-errors">
    
+    &nbsp; | &nbsp;
+    <label for="group-by">Colour by</label>
+    <input type="radio" name="group-by" value="ground_truth" checked>Ground truth</input>
+    <input type="radio" name="group-by" value="prediction">Prediction</input>
+    
+    &nbsp; | &nbsp;
+    <label for="filter">Filter datapoints by index</label>
+    <input name="filter" id="filter"></input>
+    <button id="clear-filter">Clear</button>
 
-    <div>
-      <label for="group-by">Colour by</label>
-      <input type="radio" name="group-by" value="ground_truth" checked>Ground truth</input>
-      <input type="radio" name="group-by" value="prediction">Prediction</input>
-    </div>
-
-    <br>
-    <div>
-      <label for="filter">Filter datapoints by index</label>
-      <input name="filter" id="filter"></input>
-      <button id="clear-filter">Clear</button>
-    </div>
     <div id="container">
       <svg width="600" height="400">
       <g>
@@ -229,11 +226,7 @@
               .on("mouseover", show_tooltip)
               .on("mousemove", move_tooltip_to_cursor)
               .on("mouseout", hide_tooltip)
-              .on("click", function(d) {
-                filterChart(d["support_set"].concat([d["idx"]]));
-                $(this).attr("stroke", "red")
-                       .attr("stroke-width","5px");
-               })
+              .on("click", onclick)
               .call(drag);
           
           // Add triangles
@@ -257,11 +250,7 @@
             .on("mouseover", show_tooltip)
             .on("mousemove", move_tooltip_to_cursor)
             .on("mouseout", hide_tooltip)
-            .on("click", function(d) {
-              filterChart(d["support_set"].concat([d["idx"]]));
-              $(this).attr("stroke", "red")
-                      .attr("stroke-width","5px");
-              })
+            .on("click", onclick)
             .call(drag);
 
           // create a tooltip
@@ -366,6 +355,12 @@
               return [dp_element.transform.baseVal[0].matrix.e,
                       dp_element.transform.baseVal[0].matrix.f];
             }
+          }
+
+          function onclick(d) {
+            filterChart(d["support_set"].concat([d["idx"]]));
+            $(this).attr("stroke", "red")
+                    .attr("stroke-width","3px");
           }
       })
 
