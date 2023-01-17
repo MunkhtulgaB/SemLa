@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>title</title>
+    <title>Visual Analytics for Metric-Based Intent Recognition</title>
     <script src="https://d3js.org/d3.v4.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pleasejs/0.4.2/Please.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.6.1/randomColor.min.js"></script>
@@ -17,10 +17,8 @@
 
     <div>
       <label for="group-by">Colour by</label>
-      <select name="group-by" id="group-by">
-        <option value="ground_truth">Ground truth</option>
-        <option value="prediction">Prediction</option>
-      </select>
+      <input type="radio" name="group-by" value="ground_truth" checked>Ground truth</input>
+      <input type="radio" name="group-by" value="prediction">Prediction</input>
     </div>
 
     <br>
@@ -32,7 +30,6 @@
     <div id="container">
       <svg width="600" height="400">
       <g>
-        <line style="visibility: hidden" id="drag-line-0" x1="0" y1="80" x2="100" y2="20" stroke="rgba(255, 112, 112, 0.8)" stroke-width="3" />
       </g>
       </svg>
     </div>
@@ -60,15 +57,24 @@
           .attr("height", height )
           .attr("x", 0)
           .attr("y", 0);
+    
+      var drag_line = SVG.append("line")
+          .attr("clip-path", "url(#clip)")
+          .attr("id", "drag-line-0")
+          .style("visibility", "hidden")
+          .attr("stroke", "rgba(255, 112, 112, 0.8)")
+          .attr("stroke-width", "3");
 
       //Read the data
       d3.json("viz-data.json", function(data) {
           // Identify errors
           errors = [];
+          errors_idxs = [];
           corrects = [];
           data.forEach((dp, idx) => {
             if (dp["ground_truth"] != dp["prediction"]) {
               errors.push(dp);
+              errors_idxs.push(idx);
             } else if (dp["ground_truth"] == dp["prediction"]) {
               corrects.push(dp);
             }
@@ -76,31 +82,23 @@
 
           // Set up the filter feature
           $(document).ready(function(){
-            groupby_option = $("#group-by");
+            groupby_option = $('input[name="group-by"]');
             is_to_show_errors_only = $("#show-errors")
             filter_input = $("#filter");
             clear_btn = $("#clear-filter");
 
-            // Group-by option
-            groupby_option.on("change", function() {
-              const groupby_attr = this.value; // TO REFACTOR: use const and let instead of var or vice versa consistently
-
-              d3.selectAll("circle")
+            // Group-by (colour-by) option
+            groupby_option.change(function() {
+              const groupby_attr = $('input[name="group-by"]:checked').val(); // TO REFACTOR: use const and let instead of var or vice versa consistently
+              d3.selectAll("path.datapoint")
                 .style("fill", function(d) {
                   const idx = parseInt(d[groupby_attr]);
                   return colors[idx];
-                })
-
+                });
             });
 
-            // // Show errors only?
-            // is_to_show_errors_only.on("change", function() {
-            //   if ($(this).is(":checked")) {
-            //     filterChart(errors);
-            //   } else {
-            //     filterChart(Array.from(Array(data.length).keys()))
-            //   }
-            // })
+            // Show errors only?
+            is_to_show_errors_only.on("change", clear);
 
             // Drag line
             d3.select("#drag-line-0")
@@ -200,7 +198,6 @@
                 if (mouseover_dp.empty()) {
                   d3.select("#drag-line-0").style("visibility", "hidden");
                 } else {
-                  console.log(mouseover_dp)
                   const [x2, y2] = get_position(mouseover_dp.node());
                   mouseover_dp_data = mouseover_dp.data();
                   d3.select("#drag-line-0")
@@ -221,6 +218,7 @@
           .data(corrects)
           .enter()
           .append("circle")
+              .attr("class", "datapoint")
               .attr("cx", function (d) { return x(d["umap-dim0"]); } )
               .attr("cy", function (d) { return y(d["umap-dim1"]); } )
               .attr("r", 8)
@@ -245,6 +243,7 @@
             .data(errors)
             .enter()
             .append('path')
+            .attr("class", "datapoint")
             .attr('d', triangle)
             .attr('fill',  function (d) {
               var label = parseInt(d["ground_truth"])
@@ -277,7 +276,6 @@
 
           // A function that updates the chart when the user zoom and thus new boundaries are available
           function updateChart() {
-
               // recover the new scale
               var newX = d3.event.transform.rescaleX(x);
               var newY = d3.event.transform.rescaleY(y);
@@ -291,15 +289,14 @@
                   .selectAll("circle")
                   .attr('cx', function(d) { return newX(d["umap-dim0"])} )
                   .attr('cy', function(d) { return newY(d["umap-dim1"])} );
-
               scatter
-                  .selectAll("path")
+                  .selectAll("path.datapoint")
                   .attr('transform', function(d) {
                     translation = "translate(" + newX(d["umap-dim0"])
                         + "," + newY(d["umap-dim1"]) + ")";
                     return translation;
                   })
-
+                  
               var drag_link = d3.select("#drag-line-0");
               if (!drag_link.empty()) {
                 drag_link
@@ -311,7 +308,8 @@
           }
 
           function filterChart(idxs) {
-            var filter_fn = function(d) {
+            scatter.selectAll(".datapoint")
+              .attr("visibility", function(d) {
                 d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
                 
                 if (idxs.length == 0) {
@@ -323,20 +321,14 @@
                 } else {
                   return "hidden";
                 }
-              };
-
-            scatter.selectAll("circle")
-              .attr("visibility", filter_fn)
-              .attr("stroke", "");
-            scatter.selectAll("path")
-              .attr("visibility", filter_fn)
+              })
               .attr("stroke", "");
           }
 
           function clear() {
             filter_input.val("");
             if ($("#show-errors").is(":checked")) {
-              filterChart(errors);
+              filterChart(errors_idxs);
             } else {
               filterChart([]);
             }
