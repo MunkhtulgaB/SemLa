@@ -52,6 +52,15 @@
             .attr("transform",
                   "translate(" + margin.left + "," + margin.top + ")");
       
+      // Add a clipPath: everything out of this area won't be drawn.
+      var clip = SVG.append("defs").append("SVG:clipPath")
+          .attr("id", "clip")
+          .append("SVG:rect")
+          .attr("width", width )
+          .attr("height", height )
+          .attr("x", 0)
+          .attr("y", 0);
+
       //Read the data
       d3.json("viz-data.json", function(data) {
           // Identify errors
@@ -60,7 +69,7 @@
           data.forEach((dp, idx) => {
             if (dp["ground_truth"] != dp["prediction"]) {
               errors.push(dp);
-            } else {
+            } else if (dp["ground_truth"] == dp["prediction"]) {
               corrects.push(dp);
             }
           });
@@ -166,15 +175,6 @@
           var yAxis = SVG.append("g")
           .call(d3.axisLeft(y));
 
-          // Add a clipPath: everything out of this area won't be drawn.
-          var clip = SVG.append("defs").append("SVG:clipPath")
-              .attr("id", "clip")
-              .append("SVG:rect")
-              .attr("width", width )
-              .attr("height", height )
-              .attr("x", 0)
-              .attr("y", 0);
-
           // Create the scatter variable: where both the circles and the brush take place
           var scatter = SVG.append('g')
           .attr("clip-path", "url(#clip)")
@@ -182,13 +182,13 @@
           // Create a drag behaviour
           var drag = d3.drag()
               .on("start", function(d) {
-                // TO REFACTOR: access the cx and cy attrs in consistent ways
+                const [x, y] = get_position(this);
                 d3.select("#drag-line-0")
-                  .style("visibility", "visible")
-                  .attr("x1", this.cx.baseVal.value)
-                  .attr("y1", this.cy.baseVal.value)
-                  .attr("x2", this.cx.baseVal.value)
-                  .attr("y2", this.cy.baseVal.value);
+                  .attr("x1", x)
+                  .attr("y1", y)
+                  .attr("x2", x)
+                  .attr("y2", y)
+                  .style("visibility", "visible");
               })
               .on("drag", function(d) {
                 d3.select("#drag-line-0")
@@ -196,19 +196,21 @@
                   .attr("y2", d3.event.y);
               })
               .on("end", function(d) {
-                mouseover_circle = d3.select(".ismouseover")
-                if (mouseover_circle.empty()) {
+                mouseover_dp = d3.select(".ismouseover")
+                if (mouseover_dp.empty()) {
                   d3.select("#drag-line-0").style("visibility", "hidden");
                 } else {
-                  mouseover_circle_data = mouseover_circle.data();
+                  console.log(mouseover_dp)
+                  const [x2, y2] = get_position(mouseover_dp.node());
+                  mouseover_dp_data = mouseover_dp.data();
                   d3.select("#drag-line-0")
-                  .attr("x2", mouseover_circle.attr("cx"))
-                  .attr("y2", mouseover_circle.attr("cy"))
+                  .attr("x2", x2)
+                  .attr("y2", y2)
                   .data([{
                     "x1": d["umap-dim0"],
                     "y1": d["umap-dim1"],
-                    "x2": mouseover_circle_data[0]["umap-dim0"],
-                    "y2": mouseover_circle_data[0]["umap-dim1"],
+                    "x2": mouseover_dp_data[0]["umap-dim0"],
+                    "y2": mouseover_dp_data[0]["umap-dim1"],
                   }]);
                 }
               });
@@ -226,21 +228,9 @@
                 var label = parseInt(d["ground_truth"])
                 return colors[label]; 
               })
-              .style("opacity", 0.5)
-              .on("mouseover", function(d) { 
-                $(this).addClass("ismouseover");
-                tooltip_html = Object.entries(d).reduce(
-                  (acc, current) => acc + `<p><b>${ current[0] }</b>: ${ current[1] }</p>`,
-                  ""
-                );
-                tooltip.html(tooltip_html);
-                return tooltip.style("visibility", "visible");
-              })
-              .on("mousemove", function(){ return tooltip.style("top", (event.pageY + 20)+"px").style("left",(event.pageX + 20)+"px");})
-              .on("mouseout", function(){ 
-                $(this).removeClass("ismouseover");
-                return tooltip.style("visibility", "hidden");
-              })
+              .on("mouseover", show_tooltip)
+              .on("mousemove", move_tooltip_to_cursor)
+              .on("mouseout", hide_tooltip)
               .on("click", function(d) {
                 filterChart(d["support_set"].concat([d["idx"]]));
                 $(this).attr("stroke", "red")
@@ -264,7 +254,16 @@
               translation = "translate(" + x(d["umap-dim0"])
                    + "," + y(d["umap-dim1"]) + ")";
               return translation;
-            });
+            })
+            .on("mouseover", show_tooltip)
+            .on("mousemove", move_tooltip_to_cursor)
+            .on("mouseout", hide_tooltip)
+            .on("click", function(d) {
+              filterChart(d["support_set"].concat([d["idx"]]));
+              $(this).attr("stroke", "red")
+                      .attr("stroke-width","5px");
+              })
+            .call(drag);
 
           // create a tooltip
           var tooltip = d3.select("#container")
@@ -312,8 +311,7 @@
           }
 
           function filterChart(idxs) {
-            scatter.selectAll("circle")
-              .attr("visibility", function(d) {
+            var filter_fn = function(d) {
                 d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
                 
                 if (idxs.length == 0) {
@@ -325,7 +323,13 @@
                 } else {
                   return "hidden";
                 }
-              })
+              };
+
+            scatter.selectAll("circle")
+              .attr("visibility", filter_fn)
+              .attr("stroke", "");
+            scatter.selectAll("path")
+              .attr("visibility", filter_fn)
               .attr("stroke", "");
           }
 
@@ -338,6 +342,38 @@
             }
             
             d3.select("#drag-line-0").style("visibility", "hidden");
+          }
+
+          function show_tooltip(d) { // TO REFACTOR: use either camelCase or snake_case but not both
+            move_tooltip_to_cursor();
+            $(this).addClass("ismouseover");
+            tooltip_html = Object.entries(d).reduce(
+              (acc, current) => acc + `<p><b>${ current[0] }</b>: ${ current[1] }</p>`,
+              ""
+            );
+            tooltip.html(tooltip_html);
+            return tooltip.style("visibility", "visible");
+          }
+
+          function move_tooltip_to_cursor() { 
+            return tooltip.style("top", (event.pageY + 20)+"px").style("left",(event.pageX + 20)+"px");
+          }
+
+          function hide_tooltip(){ 
+            $(this).removeClass("ismouseover");
+            return tooltip.style("visibility", "hidden");
+          }
+
+          /*
+          Return the position of the given circle/triangle
+          */
+          function get_position(dp_element) {
+            if (dp_element.cx) { 
+              return [dp_element.cx.baseVal.value, dp_element.cy.baseVal.value];
+            } else {
+              return [dp_element.transform.baseVal[0].matrix.e,
+                      dp_element.transform.baseVal[0].matrix.f];
+            }
           }
       })
 
@@ -356,7 +392,7 @@
           count: N,
           format: "rgba",
           luminosity: "bright",
-          alpha: 1,
+          alpha: 0.5,
         });
         return random_colors;
       }
