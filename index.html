@@ -207,7 +207,7 @@
           var yAxis = SVG.append("g")
           .call(d3.axisLeft(y));
 
-          // Create the scatter variable: where both the circles and the brush take place
+          // Create the scatter variable
           var scatter = SVG.append('g')
           .attr("clip-path", "url(#clip)")
 
@@ -246,36 +246,35 @@
                 }
               });
 
-          // Add circles
-          scatter
-          .selectAll("circle")
-          .data(corrects)
-          .enter()
-          .append("circle")
-              .attr("class", "datapoint")
-              .attr("cx", function (d) { return x(d[`${dim_reduction}-dim0`]); } )
-              .attr("cy", function (d) { return y(d[`${dim_reduction}-dim1`]); } )
-              .attr("r", 8)
-              .attr("stroke", "darkgrey")
-              .style("fill", function (d) {
-                var label = parseInt(d["intent_cluster"])
-                return colors[label]; 
-              })
-              .on("mouseover", show_tooltip)
-              .on("mousemove", move_tooltip_to_cursor)
-              .on("mouseout", hide_tooltip)
-              .on("click", onclick)
-              .call(drag);
-          
           // Add triangles
-          var triangle = d3.symbol().type(d3.symbolTriangle).size(100);
+          const symbolNames = ["Circle", "Cross", "Diamond",
+                             "Square", "Star", "Triangle", "Wye"]
+
+          const symbols = symbolNames.map(name => d3.symbol().type(d3[`symbol${name}`]).size(150))
+          
+          var customSymbolDownTriangle = { 
+              draw: function(context, size){
+                  let s = Math.sqrt(size);
+                  context.moveTo(0,s/2);
+                  context.lineTo(s,-s);
+                  context.lineTo(-s,-s);
+                  // context.lineTo(-s,s);
+                  context.closePath();
+              }
+          }
+     
+          symbols.push(d3.symbol().type(customSymbolDownTriangle).size(100));
 
           scatter.selectAll('path')
-            .data(errors)
+            .data(data)
             .enter()
             .append('path')
             .attr("class", "datapoint")
-            .attr('d', triangle)
+            .attr('d', function(d) {
+              console.log(  )
+              const cluster = d["intent_cluster"] % symbols.length
+              return symbols[cluster](d)
+            })
             .attr("stroke", "darkgrey")
             .attr('fill',  function (d) {
               var label = parseInt(d["intent_cluster"])
@@ -291,6 +290,9 @@
             .on("mouseout", hide_tooltip)
             .on("click", onclick)
             .call(drag);
+
+          // Initialise a variable for keeping track of currently visible datapoints
+          var currently_visible_dps = scatter.selectAll(".datapoint");
 
           // create a tooltip
           var tooltip = d3.select("#container")
@@ -349,51 +351,61 @@
 
           function updatePositions(xScale, yScale) {
             // update positions
-            var circles = scatter
-                .selectAll("circle")
-                .attr('cx', function(d) { return xScale(d[`${dim_reduction}-dim0`])} )
-                .attr('cy', function(d) { return yScale(d[`${dim_reduction}-dim1`])} );
-            var triangles = scatter
-                .selectAll("path.datapoint")
-                .attr('transform', function(d) {
-                  translation = "translate(" + xScale(d[`${dim_reduction}-dim0`])
-                      + "," + yScale(d[`${dim_reduction}-dim1`]) + ")";
-                  return translation;
-                });
+            scatter
+              .selectAll("path.datapoint")
+              .attr('transform', function(d) {
+                translation = "translate(" + xScale(d[`${dim_reduction}-dim0`])
+                    + "," + yScale(d[`${dim_reduction}-dim1`]) + ")";
+                return translation;
+              });
           }
 
           function updateCategories() {
-            visible_dps = getVisibleDatapoints();
+            var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
+
+            currently_visible_dps = visibles;
+            // console.log(currently_visible_dps.size())
+            // console.log(gold_intent_set)
+            // console.log(predicted_intent_set)
           }
 
           function getVisibleDatapoints() {
-            // console.log("getVisibleDatapoints")
-            // cxs = []
-            // cys = []
-            // scatter.selectAll("circle").each(function(d) {
-            //   console.log(d)
-            //   console.log(this);
-            // })
-            // console.log(cxs)
+            var gold_intents = [];
+            var predicted_intents = [];
 
-            d3.select()
+            visibles = scatter.selectAll(".datapoint").filter(function(d) {
+              var x = this.transform.baseVal[0].matrix.e;
+              var y = this.transform.baseVal[0].matrix.f;
+
+              is_visible = 0 < x && x < width && 0 < y && y < height;
+              if (is_visible) {
+                gold_intents.push(d["ground_truth"])
+                predicted_intents.push(d["prediction"])
+              }
+              return is_visible;
+            });
+
+            var gold_intent_set = [...new Set(gold_intents)];
+            var predicted_intent_set = [...new Set(predicted_intents)];
+
+            return [visibles, gold_intent_set, predicted_intent_set];
           }
 
           function filterChart(idxs) {
               scatter.selectAll(".datapoint")
-              .attr("visibility", function(d) {
-                d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
-                
-                if (idxs.length == 0) {
-                  return "visible";
-                }
-                
-                if (idxs.includes(d_idx)) {
-                  return "visible";
-                } else {
-                  return "hidden";
-                }
-              });
+                .attr("visibility", function(d) {
+                  d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
+                  
+                  if (idxs.length == 0) {
+                    return "visible";
+                  }
+                  
+                  if (idxs.includes(d_idx)) {
+                    return "visible";
+                  } else {
+                    return "hidden";
+                  }
+                });
           }
 
           function clear() {
@@ -404,7 +416,10 @@
               filterChart([]);
             }
 
-            $(".selected-dp").attr("stroke", "").removeClass("selected-dp");
+            $(".selected-dp")
+              .attr("stroke", "darkgrey")
+              .attr("stroke-width", "1px")
+              .removeClass("selected-dp");
             d3.select("#drag-line-0").style("visibility", "hidden");
           }
 
@@ -432,16 +447,15 @@
           Return the position of the given circle/triangle
           */
           function get_position(dp_element) {
-            if (dp_element.cx) { 
-              return [dp_element.cx.baseVal.value, dp_element.cy.baseVal.value];
-            } else {
-              return [dp_element.transform.baseVal[0].matrix.e,
-                      dp_element.transform.baseVal[0].matrix.f];
-            }
+            return [dp_element.transform.baseVal[0].matrix.e,
+                    dp_element.transform.baseVal[0].matrix.f];
           }
 
           function onclick(d) {
-            $(".selected-dp").removeClass("selected-dp");
+            $(".selected-dp")
+              .removeClass("selected-dp")
+              .attr("stroke", "darkgrey")
+              .attr("stroke-width", "1px");
             filter_by_dp_attr(d);
             $(this).attr("stroke", "red")
                   .attr("stroke-width","3px")
