@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <title>Visual Analytics for Metric-Based Intent Recognition</title>
     <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic@3"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pleasejs/0.4.2/Please.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.6.1/randomColor.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
@@ -13,17 +16,32 @@
 
     <label for="show-errors">Show misclassifications only</label>
     <input type="checkbox" id="show-errors" name="show-errors">
-   
+    
+    &nbsp; | &nbsp;
+    <label for="dim-reduction">Position by (dimension reduction)</label>
+    <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
+    <input type="radio" name="dim-reduction" value="umap">umap</input>
+
+
     &nbsp; | &nbsp;
     <label for="group-by">Colour by</label>
-    <input type="radio" name="group-by" value="ground_truth" checked>Ground truth</input>
-    <input type="radio" name="group-by" value="prediction">Prediction</input>
+    <!-- <input type="radio" name="group-by" value="ground_truth_label_idx" checked>Ground truth</input>
+    <input type="radio" name="group-by" value="prediction_label_idx">Prediction</input> -->
+    <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
+    <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
     
+
     &nbsp; | &nbsp;
     <label for="filter">Filter datapoints by index</label>
     <input name="filter" id="filter"></input>
     <button id="clear-filter">Clear</button>
 
+    &nbsp; | &nbsp;
+    <label for="group-by">Upon select, filter by</label>
+    <input type="radio" name="filter-by" value="support_set">Support set</input>
+    <input type="radio" name="filter-by" value="ground_truth" checked>Ground-truth</input>
+    <input type="radio" name="filter-by" value="prediction">Prediction</input>
+    
     <div id="container">
       <svg width="600" height="400">
       <g>
@@ -35,7 +53,7 @@
     <script>
       // set the dimensions and margins of the graph
       var margin = {top: 10, right: 30, bottom: 30, left: 60},
-          width = 1200 - margin.left - margin.right,
+          width = 1400 - margin.left - margin.right,
           height = 1000 - margin.top - margin.bottom;
       
       // // append the SVG object to the body of the page
@@ -62,6 +80,8 @@
           .attr("stroke", "rgba(255, 112, 112, 0.8)")
           .attr("stroke-width", "3");
 
+      var dim_reduction = "tsne"; // default is umap
+
       //Read the data
       d3.json("viz-data.json", function(data) {
           // Identify errors
@@ -69,29 +89,45 @@
           errors_idxs = [];
           corrects = [];
           data.forEach((dp, idx) => {
-            if (dp["ground_truth"] != dp["prediction"]) {
+            if (dp["ground_truth_label_idx"] != dp["prediction_label_idx"]) {
               errors.push(dp);
               errors_idxs.push(idx);
-            } else if (dp["ground_truth"] == dp["prediction"]) {
+            } else if (dp["ground_truth_label_idx"] == dp["prediction_label_idx"]) {
               corrects.push(dp);
             }
           });
 
           // Set up the filter feature
           $(document).ready(function(){
+            dim_reduction_option = $('input[name="dim-reduction"]');
             groupby_option = $('input[name="group-by"]');
+            filterby_option = $('input[name="filter-by"]');
             is_to_show_errors_only = $("#show-errors")
             filter_input = $("#filter");
             clear_btn = $("#clear-filter");
 
+            // Dimension reduction method
+            dim_reduction_option.change(function() {
+              const dim_reduction_attr = $('input[name="dim-reduction"]:checked').val(); // TO REFACTOR: use const and let instead of var or vice versa consistently
+              dim_reduction = dim_reduction_attr;
+              const [x,y] = getXYScales(data);
+              updatePositions(x, y);
+            });
+
             // Group-by (colour-by) option
             groupby_option.change(function() {
               const groupby_attr = $('input[name="group-by"]:checked').val(); // TO REFACTOR: use const and let instead of var or vice versa consistently
-              d3.selectAll("path.datapoint")
+              d3.selectAll(".datapoint")
                 .style("fill", function(d) {
                   const idx = parseInt(d[groupby_attr]);
                   return colors[idx];
                 });
+            });
+
+            // Filter-by (filter-by) option
+            filterby_option.change(function() {
+              d = d3.select(".selected-dp").data();
+              filter_by_dp_attr(d[0]);
             });
 
             // Show errors only?
@@ -131,7 +167,8 @@
           var zoom = d3.zoom()
               .scaleExtent([.8, 100])  // This control how much you can unzoom (x0.5) and zoom (x20)
               .extent([[0, 0], [width, height]])
-              .on("zoom", updateChart);
+              .on("zoom", updateChart)
+              .on("end", updateCategories);
 
           // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
           SVG.append("rect")
@@ -146,12 +183,12 @@
 
           const colors = generateColors(150);
 
-          xMin = Math.min(...data.map(d => d["umap-dim0"]));
-          xMax = Math.max(...data.map(d => d["umap-dim0"]));
+          xMin = Math.min(...data.map(d => d["tsne-dim0"]));
+          xMax = Math.max(...data.map(d => d["tsne-dim0"]));
           xRange = xMax - xMin;
 
-          yMin = Math.min(...data.map(d => d["umap-dim1"]));
-          yMax = Math.max(...data.map(d => d["umap-dim1"]));
+          yMin = Math.min(...data.map(d => d["tsne-dim1"]));
+          yMax = Math.max(...data.map(d => d["tsne-dim1"]));
           yRange = yMax - yMin;
 
 
@@ -201,10 +238,10 @@
                   .attr("x2", x2)
                   .attr("y2", y2)
                   .data([{
-                    "x1": d["umap-dim0"],
-                    "y1": d["umap-dim1"],
-                    "x2": mouseover_dp_data[0]["umap-dim0"],
-                    "y2": mouseover_dp_data[0]["umap-dim1"],
+                    "x1": d[`${dim_reduction}-dim0`],
+                    "y1": d[`${dim_reduction}-dim1`],
+                    "x2": mouseover_dp_data[0][`${dim_reduction}-dim0`],
+                    "y2": mouseover_dp_data[0][`${dim_reduction}-dim1`],
                   }]);
                 }
               });
@@ -216,11 +253,12 @@
           .enter()
           .append("circle")
               .attr("class", "datapoint")
-              .attr("cx", function (d) { return x(d["umap-dim0"]); } )
-              .attr("cy", function (d) { return y(d["umap-dim1"]); } )
+              .attr("cx", function (d) { return x(d[`${dim_reduction}-dim0`]); } )
+              .attr("cy", function (d) { return y(d[`${dim_reduction}-dim1`]); } )
               .attr("r", 8)
+              .attr("stroke", "darkgrey")
               .style("fill", function (d) {
-                var label = parseInt(d["ground_truth"])
+                var label = parseInt(d["intent_cluster"])
                 return colors[label]; 
               })
               .on("mouseover", show_tooltip)
@@ -238,13 +276,14 @@
             .append('path')
             .attr("class", "datapoint")
             .attr('d', triangle)
+            .attr("stroke", "darkgrey")
             .attr('fill',  function (d) {
-              var label = parseInt(d["ground_truth"])
+              var label = parseInt(d["intent_cluster"])
               return colors[label]; 
             })
             .attr('transform', function(d) {
-              translation = "translate(" + x(d["umap-dim0"])
-                   + "," + y(d["umap-dim1"]) + ")";
+              translation = "translate(" + x(d[`${dim_reduction}-dim0`])
+                   + "," + y(d[`${dim_reduction}-dim1`]) + ")";
               return translation;
             })
             .on("mouseover", show_tooltip)
@@ -272,22 +311,11 @@
               // update axes with these new boundaries
               xAxis.call(d3.axisBottom(newX))
               yAxis.call(d3.axisLeft(newY))
+              
+              updatePositions(newX, newY);
 
-              // update circle position
-              scatter
-                  .selectAll("circle")
-                  .attr('cx', function(d) { return newX(d["umap-dim0"])} )
-                  .attr('cy', function(d) { return newY(d["umap-dim1"])} );
-              scatter
-                  .selectAll("path.datapoint")
-                  .attr('transform', function(d) {
-                    translation = "translate(" + newX(d["umap-dim0"])
-                        + "," + newY(d["umap-dim1"]) + ")";
-                    return translation;
-                  })
-                  
               var drag_link = d3.select("#drag-line-0");
-              if (!drag_link.empty()) {
+              if (!drag_link.empty() && drag_link.style("visibility") == "visible") {
                 drag_link
                 .attr("x1", function(d) { return newX(d.x1) })
                 .attr("y1", function(d) { return newY(d.y1) })
@@ -296,8 +324,63 @@
               }    
           }
 
+          function getXYScales(data) { // TO REFACTOR: use this instead of repetition
+            xMin = Math.min(...data.map(d => d[`${dim_reduction}-dim0`]));
+            xMax = Math.max(...data.map(d => d[`${dim_reduction}-dim0`]));
+            xRange = xMax - xMin;
+
+            yMin = Math.min(...data.map(d => d[`${dim_reduction}-dim1`]));
+            yMax = Math.max(...data.map(d => d[`${dim_reduction}-dim1`]));
+            yRange = yMax - yMin;
+
+
+            // Add X axis
+            var x = d3.scaleLinear()
+            .domain([xMin - 0.1 * xRange, xMax + 0.1 * xRange])
+            .range([ 0, width ]);
+
+            // Add Y axis
+            var y = d3.scaleLinear()
+            .domain([yMin - 0.1 * yRange, yMax + 0.1 * yRange])
+            .range([ height, 0]);
+
+            return [x, y];
+          }
+
+          function updatePositions(xScale, yScale) {
+            // update positions
+            var circles = scatter
+                .selectAll("circle")
+                .attr('cx', function(d) { return xScale(d[`${dim_reduction}-dim0`])} )
+                .attr('cy', function(d) { return yScale(d[`${dim_reduction}-dim1`])} );
+            var triangles = scatter
+                .selectAll("path.datapoint")
+                .attr('transform', function(d) {
+                  translation = "translate(" + xScale(d[`${dim_reduction}-dim0`])
+                      + "," + yScale(d[`${dim_reduction}-dim1`]) + ")";
+                  return translation;
+                });
+          }
+
+          function updateCategories() {
+            visible_dps = getVisibleDatapoints();
+          }
+
+          function getVisibleDatapoints() {
+            // console.log("getVisibleDatapoints")
+            // cxs = []
+            // cys = []
+            // scatter.selectAll("circle").each(function(d) {
+            //   console.log(d)
+            //   console.log(this);
+            // })
+            // console.log(cxs)
+
+            d3.select()
+          }
+
           function filterChart(idxs) {
-            scatter.selectAll(".datapoint")
+              scatter.selectAll(".datapoint")
               .attr("visibility", function(d) {
                 d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
                 
@@ -310,8 +393,7 @@
                 } else {
                   return "hidden";
                 }
-              })
-              .attr("stroke", "");
+              });
           }
 
           function clear() {
@@ -321,7 +403,8 @@
             } else {
               filterChart([]);
             }
-            
+
+            $(".selected-dp").attr("stroke", "").removeClass("selected-dp");
             d3.select("#drag-line-0").style("visibility", "hidden");
           }
 
@@ -358,9 +441,30 @@
           }
 
           function onclick(d) {
-            filterChart(d["support_set"].concat([d["idx"]]));
+            $(".selected-dp").removeClass("selected-dp");
+            filter_by_dp_attr(d);
             $(this).attr("stroke", "red")
-                    .attr("stroke-width","3px");
+                  .attr("stroke-width","3px")
+                  .addClass("selected-dp");
+          }
+
+          function filter_by_dp_attr(d) {
+            if (!d) {
+              return;
+            }
+
+            const filter_by = $('input[name="filter-by"]:checked').val(); 
+            var idxs = [];
+            if (filter_by == "support_set") {
+              idxs = d[filter_by].concat([d["idx"]]);
+            } else {
+              data.forEach(function(dp, i) {
+                if (dp[filter_by] == d[filter_by]) {
+                  idxs.push(i);
+                }
+              });
+            }
+            filterChart(idxs);
           }
       })
 
@@ -375,13 +479,21 @@
         });
         */
 
-        const random_colors = randomColor({
-          count: N,
-          format: "rgba",
-          luminosity: "bright",
-          alpha: 0.5,
-        });
-        return random_colors;
+        // const colors = randomColor({
+        //   count: N,
+        //   format: "rgba",
+        //   luminosity: "light",
+        // });
+
+        color_scheme = d3.schemeAccent;
+        colors = [];
+        i = 0;
+        while (colors.length < N) {
+          color_idx = (i + 1) % color_scheme.length;
+          colors.push(color_scheme[color_idx])
+          i++;
+        }
+        return colors;
       }
     </script>
   </body>
