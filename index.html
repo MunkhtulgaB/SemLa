@@ -120,7 +120,7 @@
               d3.selectAll(".datapoint")
                 .style("fill", function(d) {
                   const idx = parseInt(d[groupby_attr]);
-                  return colors[idx];
+                  return cluster_to_color[idx];
                 });
             });
 
@@ -181,7 +181,16 @@
           // now the user can zoom and it will trigger the function called updateChart
 
 
-          const colors = generateColors(150);
+          const cluster_to_color = d3.schemeAccent;
+
+          const cluster_to_intent = {};
+          data.forEach(function(d) {
+            if (!cluster_to_intent[d.intent_cluster]) {
+              cluster_to_intent[d.intent_cluster] = new Set([d.ground_truth_label_idx])
+            } else {
+              cluster_to_intent[d.intent_cluster].add(d.ground_truth_label_idx);
+            }
+          })
 
           xMin = Math.min(...data.map(d => d["tsne-dim0"]));
           xMax = Math.max(...data.map(d => d["tsne-dim0"]));
@@ -270,15 +279,18 @@
             .enter()
             .append('path')
             .attr("class", "datapoint")
-            .attr('d', function(d) {
-              console.log(  )
-              const cluster = d["intent_cluster"] % symbols.length
-              return symbols[cluster](d)
-            })
+            .attr('d', d3.symbol().type(d3.symbolCircle).size(150)
+            // function(d) { 
+              // console.log(  )
+              // const cluster = d["intent_cluster"] % symbols.length
+              // return symbols[cluster](d)
+              
+            // }
+            )
             .attr("stroke", "darkgrey")
             .attr('fill',  function (d) {
               var label = parseInt(d["intent_cluster"])
-              return colors[label]; 
+              return cluster_to_color[label]; 
             })
             .attr('transform', function(d) {
               translation = "translate(" + x(d[`${dim_reduction}-dim0`])
@@ -361,17 +373,52 @@
           }
 
           function updateCategories() {
-            var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
+            var [visibles, gold_intent_set, predicted_intent_set, intent_cluster_set] = getVisibleDatapoints();
 
             currently_visible_dps = visibles;
-            // console.log(currently_visible_dps.size())
-            // console.log(gold_intent_set)
-            // console.log(predicted_intent_set)
+
+            if (gold_intent_set.length <= symbols.length) {
+              const intents_with_symbols = Object.keys(previous_intent_symbol_map)
+                                              .map(k => parseInt(k))
+                                              .filter(k => gold_intent_set.includes(k));
+              const intents_without_symbols = gold_intent_set.filter(
+                  intent => !intents_with_symbols.includes(intent)
+                );
+              const used_symbols = intents_with_symbols.map(k => previous_intent_symbol_map[k]);
+              const remaining_symbols = symbols.filter(sym =>
+                  !used_symbols.includes(sym)
+                );
+
+              if (intents_without_symbols.length > remaining_symbols.length) {
+                throw new Error("There aren't enough symbols to assign to the newly visible intents: "
+                                  + `${intents_without_symbols.length} !< ${remaining_symbols.length}`);
+              }
+
+
+              intent_to_symbol = Object.fromEntries( intents_without_symbols.map((intent, i) => [intent, remaining_symbols[i]]) );
+              currently_visible_dps
+                .attr("d", function(d) {
+                  const intent = d.ground_truth_label_idx;
+                  if (intents_with_symbols.includes(intent)) {
+                    return previous_intent_symbol_map[intent](d);
+                  } else {
+                    return intent_to_symbol[intent](d);
+                  }
+                })
+              
+              previous_intent_symbol_map = Object.assign(previous_intent_symbol_map, intent_to_symbol);
+            } else {
+              currently_visible_dps
+                .attr("d", d3.symbol().type(d3.symbolCircle).size(150));
+            }
           }
+
+          var previous_intent_symbol_map = {};
 
           function getVisibleDatapoints() {
             var gold_intents = [];
             var predicted_intents = [];
+            var intent_cluster_set = new Set([]);
 
             visibles = scatter.selectAll(".datapoint").filter(function(d) {
               var x = this.transform.baseVal[0].matrix.e;
@@ -379,8 +426,9 @@
 
               is_visible = 0 < x && x < width && 0 < y && y < height;
               if (is_visible) {
-                gold_intents.push(d["ground_truth"])
-                predicted_intents.push(d["prediction"])
+                gold_intents.push(d["ground_truth_label_idx"])
+                predicted_intents.push(d["prediction_label_idx"])
+                intent_cluster_set.add(d["intent_cluster"])
               }
               return is_visible;
             });
@@ -388,7 +436,7 @@
             var gold_intent_set = [...new Set(gold_intents)];
             var predicted_intent_set = [...new Set(predicted_intents)];
 
-            return [visibles, gold_intent_set, predicted_intent_set];
+            return [visibles, Array.from(gold_intent_set), Array.from(predicted_intent_set), Array.from(intent_cluster_set)];
           }
 
           function filterChart(idxs) {
@@ -482,33 +530,6 @@
           }
       })
 
-      function generateColors(N) {
-        /*
-        // Uncomment to use an alternative library
-        const pleasing_colors = Please.make_color({
-          colors_returned: N,
-          saturation: 90,
-          value: 1,
-          format: 'hex',
-        });
-        */
-
-        // const colors = randomColor({
-        //   count: N,
-        //   format: "rgba",
-        //   luminosity: "light",
-        // });
-
-        color_scheme = d3.schemeAccent;
-        colors = [];
-        i = 0;
-        while (colors.length < N) {
-          color_idx = (i + 1) % color_scheme.length;
-          colors.push(color_scheme[color_idx])
-          i++;
-        }
-        return colors;
-      }
     </script>
   </body>
 </html>
