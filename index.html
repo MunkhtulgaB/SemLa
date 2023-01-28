@@ -42,6 +42,12 @@
     <input type="radio" name="filter-by" value="ground_truth" checked>Ground-truth</input>
     <input type="radio" name="filter-by" value="prediction">Prediction</input>
     
+    &nbsp; | &nbsp;
+    <label for="intent_filter">Filter intents</label>
+    <select name="intent_filter" id="intent_filter">
+      <option value=""></option>
+    </select>
+
     <div id="container">
       <svg width="600" height="400">
       <g>
@@ -84,6 +90,43 @@
 
       //Read the data
       d3.json("viz-data.json", function(data) {
+          // Parse data structure
+          const cluster_to_color = d3.schemeSet3;
+          const cluster_to_intent = {};
+          
+          data.forEach(function(d) {
+            if (!cluster_to_intent[d.intent_cluster]) {
+              cluster_to_intent[d.intent_cluster] = new Set([d.ground_truth])
+            } else {
+              cluster_to_intent[d.intent_cluster].add(d.ground_truth);
+            }
+          });
+
+          const intent_filter = $("#intent_filter");
+          Object.entries(cluster_to_intent).forEach(function(entry) {
+            const [cluster, labels] = entry;
+            const intent_set = new Set(labels);
+            var optgroup_content = "";
+            intent_set.forEach(intent => optgroup_content += `<option value="${intent}">${intent}</option>`);
+            intent_filter.append(
+                `<optgroup label="Cluster #${cluster}">${optgroup_content}</optgroup>`
+              );
+          });
+
+          
+          
+          intent_filter.change(function() {
+            const value = $(this).val();
+            d3.selectAll(".datapoint")
+              .style("visibility", function(d) {
+                if (d.ground_truth == value) {
+                  return "visible";
+                } else {
+                  return "hidden";
+                }
+              })
+          })
+
           // Identify errors
           errors = [];
           errors_idxs = [];
@@ -180,18 +223,6 @@
               .call(zoom);
           // now the user can zoom and it will trigger the function called updateChart
 
-
-          const cluster_to_color = d3.schemeAccent;
-
-          const cluster_to_intent = {};
-          data.forEach(function(d) {
-            if (!cluster_to_intent[d.intent_cluster]) {
-              cluster_to_intent[d.intent_cluster] = new Set([d.ground_truth_label_idx])
-            } else {
-              cluster_to_intent[d.intent_cluster].add(d.ground_truth_label_idx);
-            }
-          })
-
           xMin = Math.min(...data.map(d => d["tsne-dim0"]));
           xMax = Math.max(...data.map(d => d["tsne-dim0"]));
           xRange = xMax - xMin;
@@ -287,7 +318,7 @@
               
             // }
             )
-            .attr("stroke", "darkgrey")
+            .attr("stroke", "lightslategrey")
             .attr('fill',  function (d) {
               var label = parseInt(d["intent_cluster"])
               return cluster_to_color[label]; 
@@ -423,8 +454,9 @@
             visibles = scatter.selectAll(".datapoint").filter(function(d) {
               var x = this.transform.baseVal[0].matrix.e;
               var y = this.transform.baseVal[0].matrix.f;
-
-              is_visible = 0 < x && x < width && 0 < y && y < height;
+              
+              is_visible = d3.select(this).style("visibility") == "visible"
+              is_visible = is_visible && 0 < x && x < width && 0 < y && y < height;
               if (is_visible) {
                 gold_intents.push(d["ground_truth_label_idx"])
                 predicted_intents.push(d["prediction_label_idx"])
