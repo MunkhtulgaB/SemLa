@@ -88,10 +88,10 @@
           .attr("stroke", "rgba(255, 112, 112, 0.8)")
           .attr("stroke-width", "3");
 
-      var dim_reduction = "tsne"; // default is umap
+      var dim_reduction = "tsne";
 
       //Read the data
-      d3.json("viz-data-12-clusters.json", function(data) {
+      d3.json("banking-viz-data-12-clusters.json", function(data) {
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
@@ -107,16 +107,28 @@
 
           // Identify errors
           errors = [];
+          confusions = {};
           errors_idxs = [];
           corrects = [];
           data.forEach((dp, idx) => {
             if (dp["ground_truth_label_idx"] != dp["prediction_label_idx"]) {
               errors.push(dp);
               errors_idxs.push(idx);
+
+              const confusion_key = dp.ground_truth + "," + dp.prediction;
+
+              if (confusion_key in confusions) {
+                confusions[confusion_key].push(dp.text)
+              } else {
+                confusions[confusion_key] = [dp.text]
+              }
+              
             } else if (dp["ground_truth_label_idx"] == dp["prediction_label_idx"]) {
               corrects.push(dp);
             }
           });
+
+          console.log(confusions);
 
           // Set up the filter feature
           $(document).ready(function() {
