@@ -30,23 +30,25 @@
     <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
     <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
     
+    <div>
+      <label for="filter">Filter datapoints by index</label>
+      <input name="filter" id="filter"></input>
+      <button id="clear-filter">Clear</button>
 
-    &nbsp; | &nbsp;
-    <label for="filter">Filter datapoints by index</label>
-    <input name="filter" id="filter"></input>
-    <button id="clear-filter">Clear</button>
+      &nbsp; | &nbsp;
+      <label for="group-by">Upon select, filter by</label>
+      <input type="radio" name="filter-by" value="support_set">Support set</input>
+      <input type="radio" name="filter-by" value="ground_truth" checked>Ground-truth</input>
+      <input type="radio" name="filter-by" value="prediction">Prediction</input>
+    </div>
 
-    &nbsp; | &nbsp;
-    <label for="group-by">Upon select, filter by</label>
-    <input type="radio" name="filter-by" value="support_set">Support set</input>
-    <input type="radio" name="filter-by" value="ground_truth" checked>Ground-truth</input>
-    <input type="radio" name="filter-by" value="prediction">Prediction</input>
-    
-    &nbsp; | &nbsp;
-    <label for="intent_filter">Filter intents</label>
-    <select name="intent_filter" id="intent_filter">
-      <option value=""></option>
-    </select>
+    <div>
+      <br>
+      <label for="intent_filter">Filter intents</label>
+      <select name="intent_filter" id="intent_filter" multiple>
+        <option value=""></option>
+      </select>
+    </div>
 
     <div id="container">
       <svg width="600" height="400">
@@ -60,7 +62,7 @@
       // set the dimensions and margins of the graph
       var margin = {top: 10, right: 30, bottom: 30, left: 60},
           width = 1400 - margin.left - margin.right,
-          height = 1000 - margin.top - margin.bottom;
+          height = 900 - margin.top - margin.bottom;
       
       // // append the SVG object to the body of the page
       var SVG = d3.select("svg")
@@ -89,7 +91,7 @@
       var dim_reduction = "tsne"; // default is umap
 
       //Read the data
-      d3.json("viz-data.json", function(data) {
+      d3.json("viz-data-12-clusters.json", function(data) {
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
@@ -102,30 +104,6 @@
             }
           });
 
-          const intent_filter = $("#intent_filter");
-          Object.entries(cluster_to_intent).forEach(function(entry) {
-            const [cluster, labels] = entry;
-            const intent_set = new Set(labels);
-            var optgroup_content = "";
-            intent_set.forEach(intent => optgroup_content += `<option value="${intent}">${intent}</option>`);
-            intent_filter.append(
-                `<optgroup label="Cluster #${cluster}">${optgroup_content}</optgroup>`
-              );
-          });
-
-          
-          
-          intent_filter.change(function() {
-            const value = $(this).val();
-            d3.selectAll(".datapoint")
-              .style("visibility", function(d) {
-                if (d.ground_truth == value) {
-                  return "visible";
-                } else {
-                  return "hidden";
-                }
-              })
-          })
 
           // Identify errors
           errors = [];
@@ -141,13 +119,38 @@
           });
 
           // Set up the filter feature
-          $(document).ready(function(){
+          $(document).ready(function() {
             dim_reduction_option = $('input[name="dim-reduction"]');
             groupby_option = $('input[name="group-by"]');
             filterby_option = $('input[name="filter-by"]');
             is_to_show_errors_only = $("#show-errors")
             filter_input = $("#filter");
             clear_btn = $("#clear-filter");
+            intent_filter = $("#intent_filter");
+
+            // Intent filter
+            Object.entries(cluster_to_intent).forEach(function(entry) {
+              const [cluster, labels] = entry;
+              const intent_set = new Set(labels);
+              var optgroup_content = "";
+              intent_set.forEach(intent => optgroup_content += `<option value="${intent}">${intent}</option>`);
+              intent_filter.append(
+                  `<optgroup label="Cluster #${cluster}">${optgroup_content}</optgroup>`
+                );
+            });
+
+            intent_filter.change(function() {
+              const intents = $(this).val();
+              if (intents.length == 1 && intents[0] == "") {
+                clear();
+              } else {
+                const dp_idxs = data
+                    .filter(d => intents.includes(d.ground_truth))
+                    .map(d => d.idx);
+                filterChart(dp_idxs);
+              }
+              
+            });
 
             // Dimension reduction method
             dim_reduction_option.change(function() {
@@ -472,20 +475,19 @@
           }
 
           function filterChart(idxs) {
-              scatter.selectAll(".datapoint")
-                .attr("visibility", function(d) {
-                  d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
-                  
-                  if (idxs.length == 0) {
-                    return "visible";
-                  }
-                  
-                  if (idxs.includes(d_idx)) {
-                    return "visible";
-                  } else {
-                    return "hidden";
-                  }
-                });
+            d3.selectAll(".datapoint")
+              .attr("visibility", function(d) {
+                d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
+                if (idxs.length == 0) {
+                  return "visible";
+                }
+                
+                if (idxs.includes(d_idx)) {
+                  return "visible";
+                } else {
+                  return "hidden";
+                }
+              });
           }
 
           function clear() {
