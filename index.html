@@ -475,15 +475,26 @@
           }
 
           function filterChart(idxs) {
+            const is_to_show_errors_only = ($("#show-errors").is(":checked"));
+
+            var filtered_idxs;
+            if (is_to_show_errors_only) {
+              if (idxs.length == 0) {
+                filtered_idxs = errors_idxs;
+              } else {
+                filtered_idxs = errors_idxs.filter(i => idxs.includes(i));
+              }
+            } else {
+              if (idxs.length == 0) {
+                filtered_idxs = data.map(d => d.idx);
+              } else {
+                filtered_idxs = idxs;
+              }
+            }
             d3.selectAll(".datapoint")
               .attr("visibility", function(d) {
-                d_idx = d["idx"]; // TO REFACTOR: use semi-colon consistently
-                if (idxs.length == 0) {
-                  return "visible";
-                }
-                
-                if (idxs.includes(d_idx)) {
-                  return "visible";
+                if (filtered_idxs.includes(d.idx)) {
+                  return "visible"; // TO REFACTOR: use semi-colons consistently
                 } else {
                   return "hidden";
                 }
@@ -495,8 +506,9 @@
             if ($("#show-errors").is(":checked")) {
               filterChart(errors_idxs);
             } else {
-              filterChart([]);
+              
             }
+            filterChart([]);
 
             $(".selected-dp")
               .attr("stroke", "darkgrey")
