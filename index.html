@@ -10,44 +10,110 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pleasejs/0.4.2/Please.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.6.1/randomColor.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <!-- Bootstrap: Latest compiled and minified CSS  -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <!-- Bootstrap: Latest compiled and minified JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        
+    <style>
+      table {
+        table-layout: fixed;
+        width: 500px;
+      }
+
+      .small_td {
+        width: 110px;
+        overflow-wrap: break-word;
+        border-top: 1px solid lightgrey;
+        padding-right: 10px;
+      }
+
+      .large_td {
+        width: 390px;
+        overflow-wrap: break-word;
+        border-top: 1px solid lightgrey;
+      }
+
+      tr:hover {
+        background-color: gainsboro;
+      }
+
+      .widget {
+        border: 1px solid darkslategray; 
+        box-shadow: 1px 1px 5px lightgrey;
+        border-radius: 3px;
+        width: fit-content; 
+        padding: 10px;
+        margin: 10px;
+      }
+
+      .widget_title {
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.2em;
+      }
+    </style>
   </head>
   <body>
     <!-- page content -->
+    <div style="display: flex; flex-direction: row; flex-wrap: wrap; width: 100%; justify-content: space-around;">
+      <div class="widget">
+        <p class="widget_title">Options</p>
+        
+        <label for="show-errors">Show misclassifications only</label>
+        <input type="checkbox" id="show-errors" name="show-errors">
+        
+        <div>
+          <label for="dim-reduction">Position by (dimension reduction)</label>
+          <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
+          <input type="radio" name="dim-reduction" value="umap">umap</input>
+        </div>
 
-    <label for="show-errors">Show misclassifications only</label>
-    <input type="checkbox" id="show-errors" name="show-errors">
-    
-    &nbsp; | &nbsp;
-    <label for="dim-reduction">Position by (dimension reduction)</label>
-    <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
-    <input type="radio" name="dim-reduction" value="umap">umap</input>
+        <div>
+          <label for="group-by">Colour by</label>
+          <!-- <input type="radio" name="group-by" value="ground_truth_label_idx" checked>Ground truth</input>
+          <input type="radio" name="group-by" value="prediction_label_idx">Prediction</input> -->
+          <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
+          <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
+        </div>
 
+        <div>
+          <label for="group-by">Upon select, filter by</label>
+          <input type="radio" name="filter-by" value="support_set">Support set</input>
+          <input type="radio" name="filter-by" value="ground_truth" checked>Ground-truth</input>
+          <input type="radio" name="filter-by" value="prediction">Prediction</input>
+        </div>
 
-    &nbsp; | &nbsp;
-    <label for="group-by">Colour by</label>
-    <!-- <input type="radio" name="group-by" value="ground_truth_label_idx" checked>Ground truth</input>
-    <input type="radio" name="group-by" value="prediction_label_idx">Prediction</input> -->
-    <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
-    <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
-    
-    <div>
-      <label for="filter">Filter datapoints by index</label>
-      <input name="filter" id="filter"></input>
-      <button id="clear-filter">Clear</button>
+        <div>
+          <label for="filter">Filter datapoints by index</label>
+          <input name="filter" id="filter"></input>
+          <button id="clear-filter">Clear</button>
+        </div>
+      </div>
 
-      &nbsp; | &nbsp;
-      <label for="group-by">Upon select, filter by</label>
-      <input type="radio" name="filter-by" value="support_set">Support set</input>
-      <input type="radio" name="filter-by" value="ground_truth" checked>Ground-truth</input>
-      <input type="radio" name="filter-by" value="prediction">Prediction</input>
-    </div>
+      <div class="widget">
+        <div>
+          <p class="widget_title">Filter intents</p>
+          <select style="width: 300px;" size="8" name="intent_filter" id="intent_filter" multiple>
+            <option value=""></option>
+          </select>
+        </div>
+      </div>
 
-    <div>
-      <br>
-      <label for="intent_filter">Filter intents</label>
-      <select name="intent_filter" id="intent_filter" multiple>
-        <option value=""></option>
-      </select>
+      <div class="widget">
+          <p class="widget_title">
+            Table of misclassifications
+          </p>
+          <div style="overflow: auto; max-height: 150px;">
+            <table id="confusion-table">
+              <tr>
+                <th column_type="gt" class="small_td">Ground truth</th>
+                <th column_type="pred" class="small_td">Prediction</th>
+                <th class="large_td">Text</th>
+              </tr>
+            </table>
+          </div>
+      </div>
     </div>
 
     <div id="container">
@@ -56,13 +122,12 @@
       </g>
       </svg>
     </div>
-    
 
     <script>
       // set the dimensions and margins of the graph
       var margin = {top: 10, right: 30, bottom: 30, left: 60},
           width = 1400 - margin.left - margin.right,
-          height = 900 - margin.top - margin.bottom;
+          height = 800 - margin.top - margin.bottom;
       
       // // append the SVG object to the body of the page
       var SVG = d3.select("svg")
@@ -91,7 +156,7 @@
       var dim_reduction = "tsne";
 
       //Read the data
-      d3.json("banking-viz-data-12-clusters.json", function(data) {
+      d3.json("banking-viz-data-8-clusters.json", function(data) {
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
@@ -108,6 +173,8 @@
           // Identify errors
           errors = [];
           confusions = {};
+          gt_counts = {};
+          pred_counts  = {};
           errors_idxs = [];
           corrects = [];
           data.forEach((dp, idx) => {
@@ -115,20 +182,83 @@
               errors.push(dp);
               errors_idxs.push(idx);
 
-              const confusion_key = dp.ground_truth + "," + dp.prediction;
+              const confusion_key = dp.ground_truth + "," + dp.prediction + "," + dp.idx;
 
               if (confusion_key in confusions) {
                 confusions[confusion_key].push(dp.text)
               } else {
                 confusions[confusion_key] = [dp.text]
               }
+
+              if (dp.ground_truth in gt_counts) {
+                gt_counts[dp.ground_truth] += 1
+              } else {
+                gt_counts[dp.ground_truth] = 0;
+              }             
+              
+              if (dp.prediction in pred_counts) {
+                pred_counts[dp.prediction] += 1
+              } else {
+                pred_counts[dp.prediction] = 0;
+              }             
               
             } else if (dp["ground_truth_label_idx"] == dp["prediction_label_idx"]) {
               corrects.push(dp);
             }
           });
 
-          console.log(confusions);
+          // Create the table data
+          const confusion_table = []
+          for (confusion_key in confusions) {
+            const [gt, pred, idx] = confusion_key.split(",");
+            const txts = confusions[confusion_key];
+
+            txts.forEach(txt => 
+              confusion_table.push([gt, pred, txt, idx]));
+          }
+
+          confusion_table_gt_sorted = [...confusion_table];
+          confusion_table_pred_sorted = [...confusion_table];
+
+          confusion_table_gt_sorted.sort(function(row1, row2) {
+            return gt_counts[row1[0]] - gt_counts[row2[0]];
+          }).reverse();
+
+          confusion_table_pred_sorted.sort(function(row1, row2) {
+            return pred_counts[row1[1]] - pred_counts[row2[1]];
+          }).reverse();
+
+          // console.log(Object.entries(gt_counts).sort((a,b) => a[1] - b[1]).reverse())
+          // console.log(Object.entries(pred_counts).sort((a,b) => a[1] - b[1]).reverse())
+
+          // Create the table html from the data
+          var populate_html_confusion_table = function(data) {
+            var html = ""
+            data.forEach(function([gt, pred, txt, idx]) {
+              html += `<tr d_idx=${idx} class="error_tr">
+                          <td class="small_td">${gt}</td>
+                          <td class="small_td">${pred}</td>
+                          <td class="large_td">${txt}</td>
+                        </tr>`
+              }
+            );
+            $("#confusion-table tr").first().after(html)
+            $(".error_tr").click(function() {
+              const d_idx = $(this).attr("d_idx");
+              filterChart([parseInt(d_idx)]);
+            })
+          };
+
+          populate_html_confusion_table(confusion_table_gt_sorted);
+
+          $("#confusion-table th").click(function() {
+            const col_type = $(this).attr("column_type");
+            if (col_type == "pred") {
+              populate_html_confusion_table(confusion_table_pred_sorted);
+            } else if (col_type == "gt") {
+              populate_html_confusion_table(confusion_table_gt_sorted);
+            }
+          })
 
           // Set up the filter feature
           $(document).ready(function() {
