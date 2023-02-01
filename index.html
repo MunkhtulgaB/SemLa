@@ -57,6 +57,11 @@
         display: inline;
       }
 
+      #localAreaThreshold {
+        width: 100px;
+        display: inline;
+      }
+
     </style>
   </head>
   <body>
@@ -71,9 +76,13 @@
         <div>
           <label for="show-local-words">Show localised words</label>
           <input type="checkbox" id="show-local-words" name="show-local-words" checked>
+        </div>
+        <div>
+          <label for="freqThreshold">Frequency threshold</label>
+          <input type="number" id="freqThreshold" name="freqThreshold" min="2" max="300" value=30 step="0">
           &nbsp;|&nbsp;
-          <label for="show-errors">Frequency threshold</label>
-          <input type="number" id="freqThreshold" min="2" max="100" value=30 name="points" step="0">
+          <label for="localAreaThreshold">Locality threshold</label>
+          <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="50" max="500" value=100 step="10">
         </div>
 
         <div>
@@ -286,14 +295,17 @@
 
             // Toggle local words
             $("#show-local-words").change(function() {
-              const freq_threshold = $(this).val();
-              updateLocalWords(freq_threshold); 
+              updateLocalWords(); 
+            });
+
+            // Local area size threshold
+            $("#localAreaThreshold").change(function() {
+              updateLocalWords();
             });
 
             // Frequency threshold
             $("#freqThreshold").change(function() {
-              const freq_threshold = $(this).val();
-              updateLocalWords(freq_threshold);
+              updateLocalWords();
             });
 
             // Intent filter
@@ -350,10 +362,7 @@
 
             // Show local words?
             is_to_show_errors_only.change(function() {
-              if ($(this).is(":checked")) {
-                const freq_threshold =$("#freqThreshold").val();
-                updateLocalWords(freq_threshold);
-              }
+              updateLocalWords();
             })
 
             // Drag line
@@ -397,10 +406,7 @@
               })
               .on("end", function() {
                 updateCategories();
-                if ($("#show-local-words").is(":checked")) {
-                  const freq_threshold = $("#freqThreshold").val();
-                  updateLocalWords(freq_threshold);
-                }
+                updateLocalWords();
               });
 
           // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
@@ -529,17 +535,21 @@
               .style("border", "2px solid black")
               .style("padding", "10px")
 
-
-          const freq_threshold = $("#freqThreshold").val();
-          updateLocalWords(freq_threshold);
-
-          is_to_show_local_words = true;
+          updateLocalWords();
 
           // A function that counts word frequency in all visible dps
-          function updateLocalWords(freq_threshold) {
-            freq_threshold = Math.max(freq_threshold, 2);
+          function updateLocalWords() {;
+            const is_to_show_local_words = $("#show-local-words").is(":checked");
+            const locality_threshold = $("#localAreaThreshold").val();
+            const freq_threshold = $("#freqThreshold").val();
+
+            if (!is_to_show_local_words) {
+              scatter.selectAll("text").remove();
+              return;
+            }
+
             var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateCategories is called in the same context
-            const locality_threshold = 100;
+
             const word_positions = {}
 
             visibles.each(function(d) {
@@ -590,11 +600,12 @@
             // console.log(freq_threshold);
             // console.log(localised_words);
 
-            scatter.selectAll("text").remove();
+            scatter.selectAll(".local_word").remove();
             scatter.selectAll("text")
                 .data(localised_words)
                 .enter()
                 .append("text")
+                .attr("class", "local_word")
                 .text(d => d.word)
                 .attr("x", d => d.position[0])
                 .attr("y", d => d.position[1])
@@ -749,10 +760,7 @@
                 }
               });
 
-            if ($("#show-local-words").is(":checked")) {
-              const freq_threshold = $("#freqThreshold").val();
-              updateLocalWords(freq_threshold);
-            }
+            updateLocalWords();
           }
 
           function clear() {
