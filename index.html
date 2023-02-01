@@ -29,7 +29,7 @@
       }
 
       .large_td {
-        width: 390px;
+        width: 350px;
         overflow-wrap: break-word;
         border-top: 1px solid lightgrey;
       }
@@ -52,6 +52,11 @@
         font-weight: bold;
         font-size: 1.2em;
       }
+
+      #freqThreshold {
+        display: inline;
+      }
+
     </style>
   </head>
   <body>
@@ -63,6 +68,14 @@
         <label for="show-errors">Show misclassifications only</label>
         <input type="checkbox" id="show-errors" name="show-errors">
         
+        <div>
+          <label for="show-local-words">Show localised words</label>
+          <input type="checkbox" id="show-local-words" name="show-local-words" checked>
+          &nbsp;|&nbsp;
+          <label for="show-errors">Frequency threshold</label>
+          <input type="number" id="freqThreshold" min="2" max="100" value=30 name="points" step="0">
+        </div>
+
         <div>
           <label for="dim-reduction">Position by (dimension reduction)</label>
           <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
@@ -80,8 +93,8 @@
         <div>
           <label for="group-by">Upon select, filter by</label>
           <input type="radio" name="filter-by" value="support_set">Support set</input>
-          <input type="radio" name="filter-by" value="ground_truth" checked>Ground-truth</input>
-          <input type="radio" name="filter-by" value="prediction">Prediction</input>
+          <input type="radio" name="filter-by" value="ground_truth" checked>Same ground truth</input>
+          <input type="radio" name="filter-by" value="prediction">Same prediction</input>
         </div>
 
         <div>
@@ -156,7 +169,7 @@
       var dim_reduction = "tsne";
 
       //Read the data
-      d3.json("banking-viz-data-8-clusters.json", function(data) {
+      d3.json("banking-viz-data-12-clusters.json", function(data) {
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
@@ -168,7 +181,6 @@
               cluster_to_intent[d.intent_cluster].add(d.ground_truth);
             }
           });
-
 
           // Identify errors
           errors = [];
@@ -265,10 +277,24 @@
             dim_reduction_option = $('input[name="dim-reduction"]');
             groupby_option = $('input[name="group-by"]');
             filterby_option = $('input[name="filter-by"]');
-            is_to_show_errors_only = $("#show-errors")
+            is_to_show_errors_only = $("#show-errors");
+            is_to_show_local_words = $("#show-local-words");
             filter_input = $("#filter");
             clear_btn = $("#clear-filter");
             intent_filter = $("#intent_filter");
+
+
+            // Toggle local words
+            $("#show-local-words").change(function() {
+              const freq_threshold = $(this).val();
+              updateLocalWords(freq_threshold); 
+            });
+
+            // Frequency threshold
+            $("#freqThreshold").change(function() {
+              const freq_threshold = $(this).val();
+              updateLocalWords(freq_threshold);
+            });
 
             // Intent filter
             Object.entries(cluster_to_intent).forEach(function(entry) {
@@ -294,6 +320,7 @@
               
             });
 
+              
             // Dimension reduction method
             dim_reduction_option.change(function() {
               const dim_reduction_attr = $('input[name="dim-reduction"]:checked').val(); // TO REFACTOR: use const and let instead of var or vice versa consistently
@@ -320,6 +347,14 @@
 
             // Show errors only?
             is_to_show_errors_only.on("change", clear);
+
+            // Show local words?
+            is_to_show_errors_only.change(function() {
+              if ($(this).is(":checked")) {
+                const freq_threshold =$("#freqThreshold").val();
+                updateLocalWords(freq_threshold);
+              }
+            })
 
             // Drag line
             d3.select("#drag-line-0")
@@ -356,7 +391,17 @@
               .scaleExtent([.8, 100])  // This control how much you can unzoom (x0.5) and zoom (x20)
               .extent([[0, 0], [width, height]])
               .on("zoom", updateChart)
-              .on("end", updateCategories);
+              .on("start", function() {
+                scatter.selectAll("text")
+                .remove();
+              })
+              .on("end", function() {
+                updateCategories();
+                if ($("#show-local-words").is(":checked")) {
+                  const freq_threshold = $("#freqThreshold").val();
+                  updateLocalWords(freq_threshold);
+                }
+              });
 
           // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
           SVG.append("rect")
@@ -455,14 +500,7 @@
             .enter()
             .append('path')
             .attr("class", "datapoint")
-            .attr('d', d3.symbol().type(d3.symbolCircle).size(150)
-            // function(d) { 
-              // console.log(  )
-              // const cluster = d["intent_cluster"] % symbols.length
-              // return symbols[cluster](d)
-              
-            // }
-            )
+            .attr('d', d3.symbol().type(d3.symbolCircle).size(150))
             .attr("stroke", "lightslategrey")
             .attr('fill',  function (d) {
               var label = parseInt(d["intent_cluster"])
@@ -491,6 +529,77 @@
               .style("border", "2px solid black")
               .style("padding", "10px")
 
+
+          const freq_threshold = $("#freqThreshold").val();
+          updateLocalWords(freq_threshold);
+
+          is_to_show_local_words = true;
+
+          // A function that counts word frequency in all visible dps
+          function updateLocalWords(freq_threshold) {
+            freq_threshold = Math.max(freq_threshold, 2);
+            var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateCategories is called in the same context
+            const locality_threshold = 100;
+            const word_positions = {}
+
+            visibles.each(function(d) {
+              const pos_x = this.transform.baseVal[0].matrix.e;
+              const pos_y = this.transform.baseVal[0].matrix.f;
+              const txt = d.text;
+              const words = txt.match(/\b(\w+)\b/g);
+              words.forEach(function(word) {
+                if (word in word_positions) {
+                  word_positions[word].push([pos_x, pos_y])
+                } else {
+                  word_positions[word] = [[pos_x, pos_y]]
+                }
+              });
+            });
+
+            sorted_positions = Object.entries(word_positions).sort((a,b) => b[1].length - a[1].length)
+        
+            // if a word is localised, then we display that word there
+            const localised_words = [];
+            sorted_positions.forEach(function(entry) {
+              const [word, positions] = entry;
+              const xs = [];
+              const ys = [];
+              positions.forEach(function(pos) {
+                const [x,y] = pos;
+                xs.push(x);
+                ys.push(y);
+              })
+
+              const [max_x, min_x] = [Math.max(...xs), Math.min(...xs)];
+              const [max_y, min_y] = [Math.max(...ys), Math.min(...ys)];
+
+              const x_range = max_x - min_x;
+              const y_range = max_y - min_y;
+              
+              if (positions.length > freq_threshold 
+                  && x_range < locality_threshold 
+                  && y_range < locality_threshold) {
+                localised_words.push({
+                  "word": word,
+                  "frequency": positions.length,
+                  "position": [min_x + x_range/2, min_y + y_range/2]
+                });
+              }
+            });
+
+            // console.log(freq_threshold);
+            // console.log(localised_words);
+
+            scatter.selectAll("text").remove();
+            scatter.selectAll("text")
+                .data(localised_words)
+                .enter()
+                .append("text")
+                .text(d => d.word)
+                .attr("x", d => d.position[0])
+                .attr("y", d => d.position[1])
+                .style("font-size", d => (10 + d.frequency) + "px")
+          }
 
           // A function that updates the chart when the user zoom and thus new boundaries are available
           function updateChart() {
@@ -549,7 +658,7 @@
           }
 
           function updateCategories() {
-            var [visibles, gold_intent_set, predicted_intent_set, intent_cluster_set] = getVisibleDatapoints();
+            var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
 
             currently_visible_dps = visibles;
 
@@ -594,7 +703,6 @@
           function getVisibleDatapoints() {
             var gold_intents = [];
             var predicted_intents = [];
-            var intent_cluster_set = new Set([]);
 
             visibles = scatter.selectAll(".datapoint").filter(function(d) {
               var x = this.transform.baseVal[0].matrix.e;
@@ -605,7 +713,6 @@
               if (is_visible) {
                 gold_intents.push(d["ground_truth_label_idx"])
                 predicted_intents.push(d["prediction_label_idx"])
-                intent_cluster_set.add(d["intent_cluster"])
               }
               return is_visible;
             });
@@ -613,7 +720,7 @@
             var gold_intent_set = [...new Set(gold_intents)];
             var predicted_intent_set = [...new Set(predicted_intents)];
 
-            return [visibles, Array.from(gold_intent_set), Array.from(predicted_intent_set), Array.from(intent_cluster_set)];
+            return [visibles, Array.from(gold_intent_set), Array.from(predicted_intent_set)];
           }
 
           function filterChart(idxs) {
@@ -641,6 +748,11 @@
                   return "hidden";
                 }
               });
+
+            if ($("#show-local-words").is(":checked")) {
+              const freq_threshold = $("#freqThreshold").val();
+              updateLocalWords(freq_threshold);
+            }
           }
 
           function clear() {
@@ -715,6 +827,7 @@
               });
             }
             filterChart(idxs);
+            updateCategories();
           }
       })
 
