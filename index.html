@@ -557,7 +557,7 @@
           updateLocalWords();
 
           // A function that counts word frequency in all visible dps
-          function updateLocalWords() {;
+          function updateLocalWords() {
             const is_to_show_local_words = $("#show-local-words").is(":checked");
             const locality_threshold = $("#localAreaThreshold").val();
             const freq_threshold = $("#freqThreshold").val();
@@ -568,8 +568,7 @@
             }
 
             var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateCategories is called in the same context
-
-            const word_positions = {}
+            var word_positions = {}
 
             visibles.each(function(d) {
               const pos_x = this.transform.baseVal[0].matrix.e;
@@ -585,11 +584,33 @@
               });
             });
 
-            sorted_positions = Object.entries(word_positions).sort((a,b) => b[1].length - a[1].length)
+            word_positions = Object.entries(word_positions)
         
             // if a word is localised, then we display that word there
+            const localised_words = filterLocalWordsWithGaussianLocality(
+                word_positions,
+                freq_threshold,
+                locality_threshold
+              )
+
+            scatter.selectAll(".local_word").remove();
+            scatter.selectAll("text")
+                .data(localised_words)
+                .enter()
+                .append("text")
+                .attr("class", "local_word")
+                .text(d => d.word)
+                .attr("x", d => d.position[0])
+                .attr("y", d => d.position[1])
+                .style("font-size", d => (10 + d.frequency) + "px")
+                .style("fill", "#001617")
+          }
+
+          function filterLocalWordsWithSquareLocality(word_positions,
+                                                      freq_threshold,
+                                                      locality_threshold) {
             const localised_words = [];
-            sorted_positions.forEach(function(entry) {
+            word_positions.forEach(function(entry) {
               const [word, positions] = entry;
               const xs = [];
               const ys = [];
@@ -615,21 +636,59 @@
                 });
               }
             });
+            return localised_words;
+          }
 
-            // console.log(freq_threshold);
-            // console.log(localised_words);
+          function filterLocalWordsWithGaussianLocality(word_positions,
+                                                      freq_threshold,
+                                                      locality_threshold) {
+            // Assume the positions are normally distributed
+            var get_mean = function(samples) {
+              const sum = samples.reduce((a,b) => a+b, 0);
+              const mean = sum / samples.length;
+              return mean;
+            } 
 
-            scatter.selectAll(".local_word").remove();
-            scatter.selectAll("text")
-                .data(localised_words)
-                .enter()
-                .append("text")
-                .attr("class", "local_word")
-                .text(d => d.word)
-                .attr("x", d => d.position[0])
-                .attr("y", d => d.position[1])
-                .style("font-size", d => (10 + d.frequency) + "px")
-                .style("fill", "#001617")
+            var get_std = function(samples, mean) {
+              const acc = samples.reduce((a,b) => a + (b - mean)**2, 0);
+              return Math.sqrt(acc / (samples.length - 1));
+            }
+
+            var get_zscore = function(sample, mean, std) {
+              return (sample - mean) / std;
+            }
+
+            const localised_words = [];
+            word_positions.forEach(function(entry) {
+              const [word, positions] = entry;
+              if (positions.length <= 1) return; 
+              const xs = [];
+              const ys = [];
+              positions.forEach(function(pos) {
+                const [x,y] = pos;
+                xs.push(x);
+                ys.push(y);
+              })
+
+              const [mean_x, mean_y] = [get_mean(xs), get_mean(ys)];
+              const [std_x, std_y] = [
+                get_std(xs, mean_x),
+                get_std(ys, mean_y)
+              ] 
+
+              // if the word is frequent enough and 
+              // if 2*std is in locality threshold
+              if (positions.length > freq_threshold 
+                  && 2 * std_x < locality_threshold 
+                  && 2 * std_y < locality_threshold) {
+                localised_words.push({
+                  "word": word,
+                  "frequency": positions.length,
+                  "position": [mean_x, mean_y],
+                });
+              }
+            });
+            return localised_words;
           }
 
           // A function that updates the chart when the user zoom and thus new boundaries are available
