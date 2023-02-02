@@ -76,6 +76,10 @@
         <div>
           <label for="show-local-words">Show localised words</label>
           <input type="checkbox" id="show-local-words" name="show-local-words" checked>
+          &nbsp;|&nbsp;
+          <label for="locality-shape">Locality shape</label>
+          <input type="radio" name="locality-shape" value="square" checked>Square</input>
+          <input type="radio" name="locality-shape" value="gaussian">Gaussian</input>
         </div>
         <div>
           <label for="freqThreshold">Frequency threshold</label>
@@ -296,6 +300,12 @@
             // Toggle local words
             $("#show-local-words").change(function() {
               updateLocalWords(); 
+            });
+
+            // Locality shape
+            $('input[name="locality-shape"]').change(function() {
+              console.log($(this).val())
+              updateLocalWords();
             });
 
             // Local area size threshold
@@ -586,8 +596,16 @@
 
             word_positions = Object.entries(word_positions)
         
+            const locality_shape = $('input[name="locality-shape"]:checked').val();
+            var locality_fn = null;
+            if (locality_shape == "square") {
+              locality_fn = filterLocalWordsWithSquareLocality;
+            } else if (locality_shape == "gaussian") {
+              locality_fn = filterLocalWordsWithGaussianLocality;
+            }
+
             // if a word is localised, then we display that word there
-            const localised_words = filterLocalWordsWithGaussianLocality(
+            const localised_words = locality_fn(
                 word_positions,
                 freq_threshold,
                 locality_threshold
