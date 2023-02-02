@@ -637,7 +637,7 @@
                 .append("text")
                 .attr("class", "local_word")
                 .text(d => d.word)
-                .style("font-size", d => (10 + d.frequency) + "px")
+                .style("font-size", d => (10 + d.frequency*0.7) + "px")
                 .attr("x", function(d) {                 
                   return d.position[0]; // - this.getBBox().width/2;
                 })
