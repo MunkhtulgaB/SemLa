@@ -44,15 +44,24 @@
         border: 1px solid darkslategray; 
         box-shadow: 1px 1px 5px lightgrey;
         border-radius: 3px;
-        width: fit-content; 
+        /* width: fit-content;  */
         padding: 10px;
         margin: 10px;
+        height: fit-content;
       }
 
       .widget_title {
         text-align: center;
         font-weight: bold;
         font-size: 1.2em;
+      }
+
+      .widget_title:hover {
+        cursor: pointer;
+      }
+
+      .widget_content {
+        height: 160px;
       }
 
       #localAreaThreshold {
@@ -67,88 +76,91 @@
   </head>
   <body>
     <!-- page content -->
-    <div style="display: flex; flex-direction: row; flex-wrap: wrap; width: 100%; justify-content: space-around;">
-      <div class="widget">
+    <div style="display: flex; flex-direction: row; flex-wrap: wrap; width: 100%; justify-content: start;">
+      <div class="widget" style="width: 355px;">
         <p class="widget_title">Options</p>
-        
-        <label for="show-errors">Show misclassifications only</label>
-        <input type="checkbox" id="show-errors" name="show-errors">
+        <div class="widget_content">
+          <label for="show-errors">Show misclassifications only</label>
+          <input type="checkbox" id="show-errors" name="show-errors">
 
-        <div>
-          <label for="dim-reduction">Position by (dimension reduction)</label>
-          <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
-          <input type="radio" name="dim-reduction" value="umap">umap</input>
-        </div>
-
-        <div>
-          <label for="group-by">Colour by</label>
-          <!-- <input type="radio" name="group-by" value="ground_truth_label_idx" checked>Ground truth</input>
-          <input type="radio" name="group-by" value="prediction_label_idx">Prediction</input> -->
-          <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
-          <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
-        </div>
-
-        <div>
-          <label for="group-by">Upon select, filter:</label>
           <div>
-            <input type="radio" name="filter-by" value="support_set">Support set</input>
-            <input type="radio" name="filter-by" value="ground_truth" checked>Same label</input>
-            <input type="radio" name="filter-by" value="prediction">Same prediction</input>
+            <label for="dim-reduction">Position by (dimension reduction)</label>
+            <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
+            <input type="radio" name="dim-reduction" value="umap">umap</input>
+          </div>
+
+          <div>
+            <label for="group-by">Colour by</label>
+            <!-- <input type="radio" name="group-by" value="ground_truth_label_idx" checked>Ground truth</input>
+            <input type="radio" name="group-by" value="prediction_label_idx">Prediction</input> -->
+            <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
+            <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
+          </div>
+
+          <div>
+            <label for="group-by">Upon select, filter:</label>
+            <div>
+              <input type="radio" name="filter-by" value="support_set">Support set</input>
+              <input type="radio" name="filter-by" value="ground_truth" checked>Same label</input>
+              <input type="radio" name="filter-by" value="prediction">Same prediction</input>
+            </div>
+          </div>
+
+          <div>
+            <label for="filter">Filter datapoints by words</label>
+            <input name="filter" id="filter" style="width: 100px"></input>
+            <button id="clear-filter">Clear</button>
           </div>
         </div>
-
-        <div>
-          <label for="filter">Filter datapoints by words</label>
-          <input name="filter" id="filter" style="width: 100px"></input>
-          <button id="clear-filter">Clear</button>
-        </div>
       </div>
 
-      <div class="widget">
+      <div class="widget" style="width: 272px">
         <p class="widget_title">Local words</p>
-        <div>
-          <label for="show-local-words">Show localised n-grams
-          <input type="checkbox" id="show-local-words" name="show-local-words" checked>
-        </div>
-        <div>
-          <label for="ignore-stopwords">Ignore stopwords
-          <input type="checkbox" id="ignore-stopwords" name="ignore-stopwords">
-        </div>
-        <div>
-          <label for="how-many-grams">Show localised
-          <input type="number" id="how-many-grams" name="how-many-grams" value=1>-grams
-        </div>
-        <div>
-          <label for="locality-shape">Locality shape</label>
-          <input type="radio" name="locality-shape" value="square">Square</input>
-          <input type="radio" name="locality-shape" value="gaussian" checked>Gaussian</input>
-        </div>
-        <div>
-          <label>Frequency threshold</label>
-          <input type="number" class="freqThreshold" data-index="0" value="10" />
-          <input type="number" class="freqThreshold" data-index="1" value="100" />
-        </div>
-        <div>
-          <label for="localAreaThreshold">Locality threshold</label>
-          <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="10" max="500" value=100 step="10">
+        <div class="widget_content">
+          <div>
+            <label for="show-local-words">Show localised n-grams
+            <input type="checkbox" id="show-local-words" name="show-local-words" checked>
+          </div>
+          <div>
+            <label for="ignore-stopwords">Ignore stopwords
+            <input type="checkbox" id="ignore-stopwords" name="ignore-stopwords">
+          </div>
+          <div>
+            <label for="how-many-grams">Show localised
+            <input type="number" id="how-many-grams" name="how-many-grams" value=1>-grams
+          </div>
+          <div>
+            <label for="locality-shape">Locality shape</label>
+            <input type="radio" name="locality-shape" value="square">Square</input>
+            <input type="radio" name="locality-shape" value="gaussian" checked>Gaussian</input>
+          </div>
+          <div>
+            <label>Frequency threshold</label>
+            <input type="number" class="freqThreshold" data-index="0" value="10" />
+            <input type="number" class="freqThreshold" data-index="1" value="100" />
+          </div>
+          <div>
+            <label for="localAreaThreshold">Locality threshold</label>
+            <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="10" max="500" value=100 step="10">
+          </div>
         </div>
       </div>
 
 
-      <div class="widget">
-        <div>
-          <p class="widget_title">Intents &amp; Clusters</p>
-          <select style="width: 300px;" size="8" name="intent_filter" id="intent_filter" multiple>
+      <div class="widget" style="width: 323px">
+        <p class="widget_title">Intents &amp; Clusters</p>
+        <div class="widget_content">  
+          <select style="width: 300px; height: 100%" size="8" name="intent_filter" id="intent_filter" multiple>
             <option value=""></option>
           </select>
         </div>
       </div>
 
-      <div class="widget">
+      <div class="widget" style="width: 520px">
           <p class="widget_title">
             Misclassifications
           </p>
-          <div style="overflow: auto; max-height: 150px;">
+          <div class="widget_content" style="overflow: auto;">
             <table id="confusion-table">
               <tr>
                 <th column_type="gt" class="small_td">Ground truth</th>
@@ -168,9 +180,14 @@
     </div>
 
     <script>
+      // make widgets collapsible
+      $(".widget_title").click(function() {
+        $(this).parent().find(".widget_content").slideToggle();
+      })
+
       // set the dimensions and margins of the graph
       var margin = {top: 10, right: 30, bottom: 30, left: 60},
-          width = 1400 - margin.left - margin.right,
+          width = 1550 - margin.left - margin.right,
           height = 800 - margin.top - margin.bottom;
       
       // // append the SVG object to the body of the page
@@ -200,7 +217,7 @@
       var dim_reduction = "tsne";
 
       //Read the data
-      d3.json("clinc-viz_data-12-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json", function(data) {
+      d3.json("banking-viz_data-12-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json", function(data) {
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
