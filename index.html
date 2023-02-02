@@ -200,7 +200,7 @@
       var dim_reduction = "tsne";
 
       //Read the data
-      d3.json("banking-viz-data-12-clusters.json", function(data) {
+      d3.json("clinc-viz_data-12-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json", function(data) {
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
@@ -413,7 +413,20 @@
             });
 
             // Show errors only?
-            is_to_show_errors_only.on("change", clear);
+            idxs_before_error_filter = null;
+
+            is_to_show_errors_only.on("change", function() {
+              if ($("#show-errors").is(":checked")) {
+                var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateCategories is called in the same context
+                
+                idxs_before_error_filter = visibles.data().map(d => d.idx)
+                idxs = visibles.filter(d => errors_idxs.includes(d.idx))
+                  .data().map(d => d.idx);
+                filterChart(idxs);
+              } else {
+                filterChart(idxs_before_error_filter || [])
+              }
+            });
 
             // Show local words?
             is_to_show_errors_only.change(updateLocalWords)
@@ -718,7 +731,7 @@
             const localised_words = [];
             word_positions.forEach(function(entry) {
               const [word, positions] = entry;
-              if (positions.length <= 1) return; 
+              if (positions.length < 1) return; 
               const xs = [];
               const ys = [];
               positions.forEach(function(pos) {
