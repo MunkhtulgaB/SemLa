@@ -55,12 +55,6 @@
         font-size: 1.2em;
       }
 
-      #slider {
-        width: 100px;
-        display: inline-block;
-        margin: 0 10px;
-      }
-
       #localAreaThreshold {
         width: 100px;
         display: inline;
@@ -90,8 +84,8 @@
         </div>
         <div>
           <label>Frequency threshold</label>
-          <input type="number" class="freqThreshold" data-index="0" value="2" />
-          <input type="number" class="freqThreshold" data-index="1" value="30" />
+          <input type="number" class="freqThreshold" data-index="0" value="10" />
+          <input type="number" class="freqThreshold" data-index="1" value="100" />
           |&nbsp;
           <label for="localAreaThreshold">Locality threshold</label>
           <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="10" max="500" value=100 step="10">
@@ -317,19 +311,45 @@
             });
 
             // Local area size threshold
-            $("#localAreaThreshold").on("change", function() {
-              updateLocalWords();
-              d3.select("#localitySizer")
-                .attr("visibility", "hidden")
-            }).on("input", function() {
-              const localitySize = $(this).val();
-              d3.select("#localitySizer")
-                .attr("visibility", "visible")
-                .attr("width", localitySize)
-                .attr("height", localitySize)
-                .attr("x", width/2 - (localitySize/2))
-                .attr("y", height/2 - (localitySize/2) );
-            });
+            $("#localAreaThreshold")
+              .on("mousedown", function() {
+                const locality_shape = $('input[name="locality-shape"]:checked').val();
+                if (locality_shape == "square") {
+                  scatter.append("rect")
+                    .attr("id", "localitySizer")
+                    .attr("visibility", "hidden")
+                    .attr("stroke", "red")
+                    .attr("stroke-width", 1)
+                    .attr("fill", "rgba(255, 0, 0, 0.2)")
+                    .attr("x", width/2)
+                    .attr("y", height/2);
+                } else if (locality_shape == "gaussian") {
+                  scatter.append("circle")
+                    .attr("id", "localitySizer")
+                    .attr("visibility", "hidden")
+                    .attr("stroke", "red")
+                    .attr("stroke-width", 1)
+                    .attr("fill", "rgba(255, 0, 0, 0.2)")
+                    .attr("cx", width/2)
+                    .attr("cy", height/2);
+                }
+              })
+              .on("mouseup", function() {
+                d3.select("#localitySizer")
+                  .attr("visibility", "hidden");
+              })
+              .on("change", function() {
+                updateLocalWords();
+              }).on("input", function() {
+                const localitySize = $(this).val();
+                d3.select("#localitySizer")
+                  .attr("visibility", "visible")
+                  .attr("width", localitySize)
+                  .attr("height", localitySize)
+                  .attr("r", localitySize)
+                  .attr("x", width/2 - (localitySize/2))
+                  .attr("y", height/2 - (localitySize/2) );
+              });
 
             // Frequency threshold
             $("input.freqThreshold").change(updateLocalWords)
@@ -560,15 +580,6 @@
               .style("background-color", "white")
               .style("border", "2px solid black")
               .style("padding", "10px")
-
-          scatter.append("rect")
-            .attr("id", "localitySizer")
-            .attr("visibility", "hidden")
-            .attr("stroke", "red")
-            .attr("stroke-width", 1)
-            .attr("fill", "rgba(255, 0, 0, 0.2)")
-            .attr("x", width/2)
-            .attr("y", height/2);
 
           updateLocalWords();
 
