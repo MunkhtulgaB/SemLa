@@ -66,6 +66,9 @@
         display: inline;
       }
 
+      input[type=number] {
+        width: 50px;
+      }
     </style>
   </head>
   <body>
@@ -86,10 +89,9 @@
           <input type="radio" name="locality-shape" value="gaussian">Gaussian</input>
         </div>
         <div>
-          <input style="display: none" type="range" class="sliderValue" data-index="0" value="10" />
-          <input style="display: none" type="range" class="sliderValue" data-index="1" value="30" />
           <label>Frequency threshold</label>
-          <div id="slider"></div>
+          <input type="number" class="freqThreshold" data-index="0" value="2" />
+          <input type="number" class="freqThreshold" data-index="1" value="30" />
           |&nbsp;
           <label for="localAreaThreshold">Locality threshold</label>
           <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="10" max="500" value=100 step="10">
@@ -330,19 +332,8 @@
             });
 
             // Frequency threshold
-            $("#slider").slider({ // TO REFACTOR: change this id
-                min: 2,
-                max: 1000,
-                step: 1,
-                values: [2, 30],
-                slide: function(event, ui) {
-                    for (var i = 0; i < ui.values.length; ++i) {
-                        $("input.sliderValue[data-index=" + i + "]").val(ui.values[i]);
-                    }
-                },
-                stop: updateLocalWords
-            });
-
+            $("input.freqThreshold").change(updateLocalWords)
+          
             // Intent filter
             Object.entries(cluster_to_intent).forEach(function(entry) {
               const [cluster, labels] = entry;
@@ -585,8 +576,8 @@
           function updateLocalWords() {
             const is_to_show_local_words = $("#show-local-words").is(":checked");
             const locality_threshold = $("#localAreaThreshold").val();
-            const freq_threshold_lower = $("input.sliderValue[data-index=0]").val();
-            const freq_threshold_upper = $("input.sliderValue[data-index=1]").val();
+            const freq_threshold_lower = $("input.freqThreshold[data-index=0]").val();
+            const freq_threshold_upper = $("input.freqThreshold[data-index=1]").val();
 
             if (!is_to_show_local_words) {
               scatter.selectAll("text").remove();
