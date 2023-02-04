@@ -414,6 +414,7 @@
               const dim_reduction_attr = $('input[name="dim-reduction"]:checked').val(); // TO REFACTOR: use const and let instead of var or vice versa consistently
               dim_reduction = dim_reduction_attr;
               const [x,y] = getXYScales(data);
+              drawHulls((dim_reduction == "tsne") ? intents_to_points_tsne: intents_to_points_umap);
               updatePositions(x, y);
               updateLocalWords();
             });
@@ -439,7 +440,7 @@
 
             is_to_show_errors_only.on("change", function() {
               if ($("#show-errors").is(":checked")) {
-                var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateCategories is called in the same context
+                var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateSymbols is called in the same context
                 
                 idxs_before_error_filter = visibles.data().map(d => d.idx)
                 idxs = visibles.filter(d => errors_idxs.includes(d.idx))
@@ -490,7 +491,7 @@
                 .remove();
               })
               .on("end", function() {
-                updateCategories();
+                updateSymbols();
                 updateLocalWords();
               });
 
@@ -587,26 +588,41 @@
           symbols.push(d3.symbol().type(customSymbolDownTriangle).size(100));
 
           // before drawing the points, draw polygonHulls around each intent group
-          const intents_to_points = {}
+          const intents_to_points_tsne = {}
+          const intents_to_points_umap = {}
+
           data.forEach(function(d) {
-            const x_pos = d[`${dim_reduction}-dim0`];
-            const y_pos = d[`${dim_reduction}-dim1`];
+            const x_pos_tsne = d[`tsne-dim0`];
+            const y_pos_tsne = d[`tsne-dim1`];
+            const x_pos_umap = d[`umap-dim0`];
+            const y_pos_umap = d[`umap-dim1`];
+
             // save the locations for later
-            if (!intents_to_points[d.ground_truth_label_idx]) {
-              intents_to_points[d.ground_truth_label_idx] = [[x_pos, y_pos]];
+            if (!intents_to_points_tsne[d.ground_truth_label_idx]) {
+              intents_to_points_tsne[d.ground_truth_label_idx] = [[x_pos_tsne, y_pos_tsne]];
             } else {
-              intents_to_points[d.ground_truth_label_idx].push([x_pos, y_pos]);
+              intents_to_points_tsne[d.ground_truth_label_idx].push([x_pos_tsne, y_pos_tsne]);
+            }
+
+            if (!intents_to_points_umap[d.ground_truth_label_idx]) {
+              intents_to_points_umap[d.ground_truth_label_idx] = [[x_pos_umap, y_pos_umap]];
+            } else {
+              intents_to_points_umap[d.ground_truth_label_idx].push([x_pos_umap, y_pos_umap]);
             }
           })
 
-          const polyHullsData = {}
-          for (intent in intents_to_points) {
-            const pts = intents_to_points[intent];
-            hull = d3.polygonHull(pts);
-            polyHullsData[intent] = hull;
-          }
+          drawHulls((dim_reduction == "tsne") ? intents_to_points_tsne: intents_to_points_umap);
           
-          const polyHulls = scatter.selectAll('path.intentHull')
+          function drawHulls(intents2points) {
+            const polyHullsData = {}
+            for (intent in intents2points) {
+              const pts = intents2points[intent];
+              hull = d3.polygonHull(pts);
+              polyHullsData[intent] = hull;
+            }
+
+            scatter.selectAll('path.intentHull').remove();
+            scatter.selectAll('path.intentHull')
             .data(Object.entries(polyHullsData))
             .enter()
             .append("path")
@@ -625,6 +641,7 @@
               return cluster_to_color[intent_to_cluster[intent]];
             })
             .attr("visibility", "hidden");
+          }
           
           // draw the points
           scatter.selectAll('path.datapoint')
@@ -678,7 +695,7 @@
               return;
             }
 
-            var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateCategories is called in the same context
+            var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateSymbols is called in the same context
             var word_positions = {}
 
             visibles.each(function(d) {
@@ -881,18 +898,21 @@
                 return translation;
               });
             // update hulls
-            polyHulls.attr("d", function(d) {
+            scatter
+              .selectAll("path.intentHull")
+              .attr("d", function(d) {
               const [intent, pts] = d;
               const scaled_hull = pts.map(pt => [xScale(pt[0]), yScale(pt[1])])
               return `M${scaled_hull.join("L")}Z`
-            })
+            });
             filterHulls();
           }
 
           function filterHulls() {
             var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
-            polyHulls.attr("visibility", function(d) {
-              if (gold_intent_set.length > 10) {
+            scatter.selectAll("path.intentHull")
+              .attr("visibility", function(d) {
+              if (gold_intent_set.length > symbols.length) {
                 return "hidden";
               }
 
@@ -906,7 +926,7 @@
             });
           }
 
-          function updateCategories() {
+          function updateSymbols() {
             var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
 
             currently_visible_dps = visibles;
@@ -998,6 +1018,7 @@
                 }
               });
 
+            updateSymbols();
             updateLocalWords();
             filterHulls();
           }
@@ -1074,7 +1095,7 @@
               });
             }
             filterChart(idxs);
-            updateCategories();
+            updateSymbols();
           }
 
           function get_stopwords() {
