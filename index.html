@@ -592,10 +592,10 @@
             const x_pos = d[`${dim_reduction}-dim0`];
             const y_pos = d[`${dim_reduction}-dim1`];
             // save the locations for later
-            if (!intents_to_points[d.prediction_label_idx]) {
-              intents_to_points[d.prediction_label_idx] = [[x_pos, y_pos]];
+            if (!intents_to_points[d.ground_truth_label_idx]) {
+              intents_to_points[d.ground_truth_label_idx] = [[x_pos, y_pos]];
             } else {
-              intents_to_points[d.prediction_label_idx].push([x_pos, y_pos]);
+              intents_to_points[d.ground_truth_label_idx].push([x_pos, y_pos]);
             }
           })
 
@@ -623,7 +623,8 @@
             .style("fill", function(d) {
               const [intent, pts] =  d;
               return cluster_to_color[intent_to_cluster[intent]];
-            });
+            })
+            .attr("visibility", "hidden");
           
           // draw the points
           scatter.selectAll('path.datapoint')
@@ -891,9 +892,13 @@
           function filterHulls() {
             var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
             polyHulls.attr("visibility", function(d) {
+              if (gold_intent_set.length > 10) {
+                return "hidden";
+              }
+
               var [intent, pts] = d;
               intent = parseInt(intent);
-              if (predicted_intent_set.includes(intent)) {
+              if (gold_intent_set.includes(intent)) {
                 return "visible"
               } else {
                 return "hidden";
