@@ -221,12 +221,17 @@
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
+          const intent_to_cluster = {}
           
           data.forEach(function(d) {
             if (!cluster_to_intent[d.intent_cluster]) {
               cluster_to_intent[d.intent_cluster] = new Set([d.ground_truth])
             } else {
               cluster_to_intent[d.intent_cluster].add(d.ground_truth);
+            }
+
+            if (!intent_to_cluster[d.prediction_label_idx]) {
+              intent_to_cluster[d.prediction_label_idx] = d.intent_cluster;
             }
           });
 
@@ -581,7 +586,47 @@
      
           symbols.push(d3.symbol().type(customSymbolDownTriangle).size(100));
 
-          scatter.selectAll('path')
+          // before drawing the points, draw polygonHulls around each intent group
+          const intents_to_points = {}
+          data.forEach(function(d) {
+            const x_pos = d[`${dim_reduction}-dim0`];
+            const y_pos = d[`${dim_reduction}-dim1`];
+            // save the locations for later
+            if (!intents_to_points[d.prediction_label_idx]) {
+              intents_to_points[d.prediction_label_idx] = [[x_pos, y_pos]];
+            } else {
+              intents_to_points[d.prediction_label_idx].push([x_pos, y_pos]);
+            }
+          })
+
+          const polyHullsData = {}
+          for (intent in intents_to_points) {
+            const pts = intents_to_points[intent];
+            hull = d3.polygonHull(pts);
+            polyHullsData[intent] = hull;
+          }
+          
+          const polyHulls = scatter.selectAll('path.intentHull')
+            .data(Object.entries(polyHullsData))
+            .enter()
+            .append("path")
+            .attr("class", "intentHull")
+            .attr("d", function(d) {
+              const [intent, pts] =  d;
+              scaled_pts = pts.map(function(pt) {
+                return [x(pt[0]), y(pt[1])];
+              });
+              return `M${scaled_pts.join("L")}Z`
+            })
+            .style("stroke", "lightblue")
+            .style("fill-opacity", "0.3")
+            .style("fill", function(d) {
+              const [intent, pts] =  d;
+              return cluster_to_color[intent_to_cluster[intent]];
+            });
+          
+          // draw the points
+          scatter.selectAll('path.datapoint')
             .data(data)
             .enter()
             .append('path')
@@ -593,8 +638,9 @@
               return cluster_to_color[label]; 
             })
             .attr('transform', function(d) {
-              translation = "translate(" + x(d[`${dim_reduction}-dim0`])
-                   + "," + y(d[`${dim_reduction}-dim1`]) + ")";
+              const x_pos = d[`${dim_reduction}-dim0`];
+              const y_pos = d[`${dim_reduction}-dim1`];
+              translation = "translate(" + x(x_pos) + "," + y(y_pos) + ")";
               return translation;
             })
             .on("mouseover", show_tooltip)
@@ -833,6 +879,26 @@
                     + "," + yScale(d[`${dim_reduction}-dim1`]) + ")";
                 return translation;
               });
+            // update hulls
+            polyHulls.attr("d", function(d) {
+              const [intent, pts] = d;
+              const scaled_hull = pts.map(pt => [xScale(pt[0]), yScale(pt[1])])
+              return `M${scaled_hull.join("L")}Z`
+            })
+            filterHulls();
+          }
+
+          function filterHulls() {
+            var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
+            polyHulls.attr("visibility", function(d) {
+              var [intent, pts] = d;
+              intent = parseInt(intent);
+              if (predicted_intent_set.includes(intent)) {
+                return "visible"
+              } else {
+                return "hidden";
+              }
+            });
           }
 
           function updateCategories() {
@@ -928,6 +994,7 @@
               });
 
             updateLocalWords();
+            filterHulls();
           }
 
           function clear() {
