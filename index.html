@@ -745,7 +745,7 @@
                 .append("text")
                 .attr("class", "local_word")
                 .text(d => d.word)
-                .style("font-size", d => (10 + d.frequency*0.7) + "px")
+                .style("font-size", d => Math.min(10 + d.frequency*0.6, 150) + "px")
                 .attr("x", function(d) {                 
                   return d.x;
                 })
@@ -756,8 +756,8 @@
 
             // Apply force to prevent collision between texts
             const force_simulation = d3.forceSimulation(localised_words)
-                // .force("x", d3.forceX().x(d => d.x).strength(0.05))
-                // .force("y", d3.forceY().y(d => d.y).strength(0.05))
+                .force("x", d3.forceX().x(d => d.x).strength(0.05))
+                .force("y", d3.forceY().y(d => d.y).strength(0.05))
                 .force("collision", forceCollide())
                 .on("tick", function() {
                   // console.log("tick tock")
