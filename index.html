@@ -488,7 +488,7 @@
               .extent([[0, 0], [width, height]])
               .on("zoom", updateChart)
               .on("start", function() {
-                scatter.selectAll("text")
+                scatter.selectAll(".local_word")
                 .remove();
               })
               .on("end", function() {
@@ -569,7 +569,7 @@
                 }
               });
 
-          // Add triangles
+          // Add datapoints
           const symbolNames = ["Circle", "Cross", "Diamond",
                              "Square", "Star", "Triangle", "Wye"]
 
@@ -613,7 +613,7 @@
           })
 
           drawHulls((dim_reduction == "tsne") ? intents_to_points_tsne: intents_to_points_umap);
-          
+
           function drawHulls(intents2points) {
             const polyHullsData = {}
             for (intent in intents2points) {
@@ -693,7 +693,7 @@
             const freq_threshold_upper = parseInt($("input.freqThreshold[data-index=1]").val());
 
             if (!is_to_show_local_words || !n_grams || n_grams < 1) {
-              scatter.selectAll("text").remove();
+              scatter.selectAll(".local_word").remove();
               return;
             }
 
@@ -747,12 +747,82 @@
                 .text(d => d.word)
                 .style("font-size", d => (10 + d.frequency*0.7) + "px")
                 .attr("x", function(d) {                 
-                  return d.position[0]; // - this.getBBox().width/2;
+                  return d.x;
                 })
                 .attr("y", function(d) {
-                  return d.position[1]; //+ this.getBBox().height/2;
+                  return d.y;
                 })
-                .style("fill", "#001617")
+                .style("fill", "#001617");
+
+            // Apply force to prevent collision between texts
+            const force_simulation = d3.forceSimulation(localised_words)
+                // .force("x", d3.forceX().x(d => d.x).strength(0.05))
+                // .force("y", d3.forceY().y(d => d.y).strength(0.05))
+                .force("collision", forceCollide())
+                .on("tick", function() {
+                  // console.log("tick tock")
+                  scatter.selectAll("text")
+                  .attr("x", function(d) {                 
+                    return d.x; //- this.getBBox().width/2;
+                  })
+                  .attr("y", function(d) {
+                    return d.y; // + this.getBBox().height/2;
+                  })
+                });
+          }
+
+          function forceCollide() {
+            const bbox = function(d) {
+              return {
+                        "x": d.x, 
+                        "y": d.y, 
+                        "width": 0.6*(d.word.length * (10 + d.frequency*0.7)),
+                        "height": 0.6*(10 + d.frequency*0.7)
+                      }
+            };
+            
+            function force(alpha) {
+              const quad = d3.quadtree(nodes, d => d.x, d => d.y);
+              for (const d of nodes) {
+                quad.visit((q, x1, y1, x2, y2) => {
+                  let updated = false;
+                  if (q.data && q.data !== d) {
+                    d_bbox = bbox(d);
+                    q_bbox = bbox(q.data);
+
+                    dx = d_bbox.x - q_bbox.x;
+                    dy = d_bbox.y - q_bbox.y;
+
+                    x_dist = Math.abs(dx);
+                    y_dist = Math.abs(dy);
+
+                    x_spacing = Math.max(d_bbox.width, q_bbox.width); 
+                    y_spacing = Math.max(d_bbox.height, q_bbox.height);
+
+                    x_margin = x_dist - x_spacing;
+                    y_margin = y_dist - y_spacing;
+
+
+
+                    if (x_margin < 0 && y_margin < 0) {
+                      // overlap is detected
+                      if (x_dist < y_dist) {
+                        d.vx += alpha * dx * (10/d.frequency);
+                        q.data.vx -= alpha * dx * (10/q.data.frequency);
+                      } else {
+                        d.vy += alpha * dy * (10/d.frequency);
+                        q.data.vy -= alpha * dy * (10/q.data.frequency);
+                      }
+                    }
+                  }
+                  return updated;
+                });
+              }
+            }
+
+            force.initialize = _ => nodes = _;
+
+            return force;
           }
 
           function filterLocalWordsWithSquareLocality(word_positions,
@@ -782,7 +852,8 @@
                 localised_words.push({
                   "word": word,
                   "frequency": positions.length,
-                  "position": [min_x + x_range/2, min_y + y_range/2]
+                  "x": min_x + x_range/2, 
+                  "y": min_y + y_range/2
                 });
               }
             });
@@ -836,7 +907,8 @@
                 localised_words.push({
                   "word": word,
                   "frequency": positions.length,
-                  "position": [mean_x, mean_y],
+                  "x": mean_x, 
+                  "y": mean_y,
                 });
               }
             });
