@@ -404,6 +404,7 @@
                     .filter(d => intents.includes(d.ground_truth))
                     .map(d => d.idx);
                 filterChart(dp_idxs);
+                filterHulls();
               }
               
             });
@@ -904,17 +905,12 @@
               const scaled_hull = pts.map(pt => [xScale(pt[0]), yScale(pt[1])])
               return `M${scaled_hull.join("L")}Z`
             });
-            filterHulls();
           }
 
           function filterHulls() {
             var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
             scatter.selectAll("path.intentHull")
               .attr("visibility", function(d) {
-              if (gold_intent_set.length > symbols.length) {
-                return "hidden";
-              }
-
               var [intent, pts] = d;
               intent = parseInt(intent);
               if (gold_intent_set.includes(intent)) {
@@ -1019,7 +1015,6 @@
 
             updateSymbols();
             updateLocalWords();
-            filterHulls();
           }
 
           function clear() {
