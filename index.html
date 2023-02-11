@@ -217,7 +217,7 @@
       var dim_reduction = "tsne";
 
       //Read the data
-      d3.json("banking-viz_data-12-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json", function(data) {
+      d3.json("static/data/banking-viz_data-12-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json", function(data) {
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
@@ -404,9 +404,9 @@
                     .filter(d => intents.includes(d.ground_truth))
                     .map(d => d.idx);
                 filterChart(dp_idxs);
-                filterHulls();
+                var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
+                filterHulls(gold_intent_set);
               }
-              
             });
 
               
@@ -1009,13 +1009,12 @@
             });
           }
 
-          function filterHulls() {
-            var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints();
+          function filterHulls(intents) {
             scatter.selectAll("path.intentHull")
               .attr("visibility", function(d) {
               var [intent, pts] = d;
               intent = parseInt(intent);
-              if (gold_intent_set.includes(intent)) {
+              if (intents.includes(intent)) {
                 return "visible"
               } else {
                 return "hidden";
@@ -1127,6 +1126,7 @@
               
             }
             filterChart([]);
+            filterHulls([])
 
             $(".selected-dp")
               .attr("stroke", "darkgrey")
