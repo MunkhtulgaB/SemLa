@@ -681,10 +681,16 @@
               .style("border", "2px solid black")
               .style("padding", "10px")
 
+          var forceSimulation;
           updateLocalWords();
 
           // A function that counts word frequency in all visible dps
           function updateLocalWords() {
+            if (forceSimulation) {
+              forceSimulation.stop();
+            }
+
+
             const is_to_show_local_words = $("#show-local-words").is(":checked");
             const is_to_ignore_stopwords = $("#ignore-stopwords").is(":checked");
             const n_grams = $("#how-many-grams").val();
@@ -754,32 +760,8 @@
                 })
                 .style("fill", "#001617");
 
-              scatter.selectAll(".local_rect").remove();
-              scatter.selectAll("rect")
-                .data(localised_words)
-                .enter()
-                .append("rect")
-                .attr("class", "local_rect")
-                .attr("x", function(d) {                 
-                  return d.x;
-                })
-                .attr("y", function(d) {
-                  const fontsize = Math.min(10 + d.frequency*0.6, 150);
-                  return d.y - 0.8*fontsize;
-                })
-                .attr("width", function(d) {
-                  const fontsize = Math.min(10 + d.frequency*0.6, 150);
-                  return d.word.length * 0.5 * fontsize;
-                })
-                .attr("height", function(d) {
-                  const fontsize = Math.min(10 + d.frequency*0.6, 150);
-                  return 0.8*fontsize;
-                })
-                .style("fill", "none")
-                .style("stroke", "red");
-
             // Apply force to prevent collision between texts
-            const force_simulation = d3.forceSimulation(localised_words)
+            forceSimulation = d3.forceSimulation(localised_words)
                 // .force("x", d3.forceX().x(d => d.x).strength(d => d.frequency/100))
                 // .force("y", d3.forceY().y(d => d.y).strength(d => d.frequency/100))
                 .force("collision", forceCollide())
@@ -805,7 +787,7 @@
           }
 
           function fontSize(d) {
-            return Math.min(12 + d.frequency*0.2, 100);
+            return Math.min(10 + d.frequency*0.2, 80);
           }
 
           function forceCollide() {
