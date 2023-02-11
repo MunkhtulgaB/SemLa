@@ -652,7 +652,7 @@
             .append('path')
             .attr("class", "datapoint")
             .attr('d', d3.symbol().type(d3.symbolCircle).size(150))
-            .attr("stroke", "lightslategrey")
+            .attr("stroke", "#9299a1")
             .attr('fill',  function (d) {
               var label = parseInt(d["intent_cluster"])
               return cluster_to_color[label]; 
@@ -1129,7 +1129,7 @@
             filterHulls([])
 
             $(".selected-dp")
-              .attr("stroke", "darkgrey")
+              .attr("stroke", "#9299a1")
               .attr("stroke-width", "1px")
               .removeClass("selected-dp");
             d3.select("#drag-line-0").style("visibility", "hidden");
@@ -1166,7 +1166,7 @@
           function onclick(d) {
             $(".selected-dp")
               .removeClass("selected-dp")
-              .attr("stroke", "darkgrey")
+              .attr("stroke", "#9299a1")
               .attr("stroke-width", "1px");
             filter_by_dp_attr(d);
             $(this).attr("stroke", "red")
