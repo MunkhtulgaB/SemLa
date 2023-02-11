@@ -488,8 +488,8 @@
               .extent([[0, 0], [width, height]])
               .on("zoom", updateChart)
               .on("start", function() {
-                scatter.selectAll(".local_word")
-                .remove();
+                scatter.selectAll(".local_word").remove();
+                scatter.selectAll(".local_rect").remove()
               })
               .on("end", function() {
                 updateSymbols();
@@ -745,7 +745,7 @@
                 .append("text")
                 .attr("class", "local_word")
                 .text(d => d.word)
-                .style("font-size", d => Math.min(10 + d.frequency*0.6, 150) + "px")
+                .style("font-size", d => fontSize(d) + "px")
                 .attr("x", function(d) {                 
                   return d.x;
                 })
@@ -754,30 +754,70 @@
                 })
                 .style("fill", "#001617");
 
+              scatter.selectAll(".local_rect").remove();
+              scatter.selectAll("rect")
+                .data(localised_words)
+                .enter()
+                .append("rect")
+                .attr("class", "local_rect")
+                .attr("x", function(d) {                 
+                  return d.x;
+                })
+                .attr("y", function(d) {
+                  const fontsize = Math.min(10 + d.frequency*0.6, 150);
+                  return d.y - 0.8*fontsize;
+                })
+                .attr("width", function(d) {
+                  const fontsize = Math.min(10 + d.frequency*0.6, 150);
+                  return d.word.length * 0.5 * fontsize;
+                })
+                .attr("height", function(d) {
+                  const fontsize = Math.min(10 + d.frequency*0.6, 150);
+                  return 0.8*fontsize;
+                })
+                .style("fill", "none")
+                .style("stroke", "red");
+
             // Apply force to prevent collision between texts
             const force_simulation = d3.forceSimulation(localised_words)
-                .force("x", d3.forceX().x(d => d.x).strength(0.05))
-                .force("y", d3.forceY().y(d => d.y).strength(0.05))
+                // .force("x", d3.forceX().x(d => d.x).strength(d => d.frequency/100))
+                // .force("y", d3.forceY().y(d => d.y).strength(d => d.frequency/100))
                 .force("collision", forceCollide())
                 .on("tick", function() {
                   // console.log("tick tock")
-                  scatter.selectAll("text")
+                  scatter.selectAll(".local_word")
                   .attr("x", function(d) {                 
                     return d.x; //- this.getBBox().width/2;
                   })
                   .attr("y", function(d) {
                     return d.y; // + this.getBBox().height/2;
                   })
+
+                  scatter.selectAll(".local_rect")
+                  .attr("x", function(d) {                 
+                    return d.x; //- this.getBBox().width/2;
+                  })
+                  .attr("y", function(d) {
+                    const fontsize = Math.min(10 + d.frequency*0.6, 150);
+                    return d.y - 0.8*fontsize;
+                  })
                 });
+          }
+
+          function fontSize(d) {
+            return Math.min(12 + d.frequency*0.2, 100);
           }
 
           function forceCollide() {
             const bbox = function(d) {
+              const fontsize = fontSize(d);
+              const width = d.word.length * 0.5 * fontsize;
+              const height = 0.8*fontsize;
               return {
                         "x": d.x, 
-                        "y": d.y, 
-                        "width": 0.6*(d.word.length * (10 + d.frequency*0.7)),
-                        "height": 0.6*(10 + d.frequency*0.7)
+                        "y": d.y - height, 
+                        "width": width,
+                        "height": height,
                       }
             };
             
@@ -790,29 +830,37 @@
                     d_bbox = bbox(d);
                     q_bbox = bbox(q.data);
 
-                    dx = d_bbox.x - q_bbox.x;
-                    dy = d_bbox.y - q_bbox.y;
+                    d_cx = d_bbox.x + d_bbox.width/2;
+                    d_cy = d_bbox.y + d_bbox.height/2;
 
-                    x_dist = Math.abs(dx);
-                    y_dist = Math.abs(dy);
+                    q_cx = q_bbox.x + q_bbox.width/2;
+                    q_cy = q_bbox.y + q_bbox.height/2;
 
-                    x_spacing = Math.max(d_bbox.width, q_bbox.width); 
-                    y_spacing = Math.max(d_bbox.height, q_bbox.height);
+                    x_diff = d_cx - q_cx;
+                    y_diff = d_cy - q_cy;
 
-                    x_margin = x_dist - x_spacing;
-                    y_margin = y_dist - y_spacing;
+                    x_dist = Math.abs(x_diff);
+                    y_dist = Math.abs(y_diff)
 
+                    x_spacing = d_bbox.width/2 + q_bbox.width/2;
+                    y_spacing = d_bbox.height/2 + q_bbox.height/2;
 
+                    overlap_x = x_spacing - x_dist;
+                    overlap_y = y_spacing - y_dist;
 
-                    if (x_margin < 0 && y_margin < 0) {
-                      // overlap is detected
-                      if (x_dist < y_dist) {
-                        d.vx += alpha * dx * (10/d.frequency);
-                        q.data.vx -= alpha * dx * (10/q.data.frequency);
+                    freq_ratio_d = d.frequency/(d.frequency + q.data.frequency)
+                    freq_ratio_q = 1 - freq_ratio_d;
+
+                    if (overlap_x > 0 && overlap_y > 0) {
+                      // collision detected
+                      if (overlap_x < overlap_y) {
+                        d.x -= overlap_x * freq_ratio_q;
+                        q.data.x += overlap_x * freq_ratio_d;
                       } else {
-                        d.vy += alpha * dy * (10/d.frequency);
-                        q.data.vy -= alpha * dy * (10/q.data.frequency);
+                        d.y -= overlap_y * freq_ratio_q;
+                        q.data.y += overlap_y * freq_ratio_d;
                       }
+                      
                     }
                   }
                   return updated;
