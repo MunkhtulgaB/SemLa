@@ -791,6 +791,7 @@
           }
 
           function forceCollide() {
+            const padding = 2;
             const bbox = function(d) {
               const fontsize = fontSize(d);
               const width = d.word.length * 0.5 * fontsize;
@@ -824,8 +825,8 @@
                     x_dist = Math.abs(x_diff);
                     y_dist = Math.abs(y_diff)
 
-                    x_spacing = d_bbox.width/2 + q_bbox.width/2;
-                    y_spacing = d_bbox.height/2 + q_bbox.height/2;
+                    x_spacing = d_bbox.width/2 + q_bbox.width/2 + padding;
+                    y_spacing = d_bbox.height/2 + q_bbox.height/2 + padding;
 
                     overlap_x = x_spacing - x_dist;
                     overlap_y = y_spacing - y_dist;
