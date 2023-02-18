@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>Visual Analytics for Metric-Based Intent Recognition</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://d3js.org/d3.v4.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
@@ -119,7 +120,7 @@
         <div class="widget_content">
           <div>
             <label for="show-local-words">Show localised n-grams
-            <input type="checkbox" id="show-local-words" name="show-local-words" checked>
+            <input type="checkbox" id="show-local-words" name="show-local-words">
           </div>
           <div>
             <label for="ignore-stopwords">Ignore stopwords
@@ -170,6 +171,15 @@
             </table>
           </div>
       </div>
+
+      <div class="widget" style="width: 323px;" >
+        <p class="widget_title">
+          Importance
+        </p>
+        <div class="widget_content" style="height: 300px;">
+          <canvas id="importance_chart"></canvas>
+        </div>
+      </div>
     </div>
 
     <div id="container">
@@ -188,7 +198,7 @@
       // set the dimensions and margins of the graph
       var margin = {top: 10, right: 30, bottom: 30, left: 60},
           width = 1550 - margin.left - margin.right,
-          height = 800 - margin.top - margin.bottom;
+          height = 600 - margin.top - margin.bottom;
       
       // append the SVG object to the body of the page
       var SVG = d3.select("svg")
@@ -1173,7 +1183,111 @@
             $(this).attr("stroke", "red")
                   .attr("stroke-width","3px")
                   .addClass("selected-dp");
+            
+            console.log(d)
+            updateImportanceChart(d)
           }
+
+          // Importance
+          var importanceChart;
+          const dummyChartData = {
+              labels: [1, 2, 3, 4, 5, 6, 7],
+              datasets: [
+                {
+                  label: '#####',
+                  data: [1, 2, 3, 4, 5, 6, 7],
+                  borderColor: "grey",
+                  backgroundColor: "grey",
+                },
+                {
+                  label: '#####',
+                  data: [-1, -2, -3, -4, -5, -6],
+                  borderColor: "grey",
+                  backgroundColor: "grey",
+                }
+              ]
+            };     
+
+
+          function updateImportanceChart(d) {
+            if (importanceChart) importanceChart.destroy();
+            createImportanceChart("importance_chart", dummyChartData)
+
+            var jqxhr = $.ajax(`importances?index=${d.idx}`)
+              .done(function(res) {
+                const importanceData = formatImportanceData(res);
+                console.log(res)
+                console.log(importanceData)
+                if (importanceChart) importanceChart.destroy();
+                createImportanceChart("importance_chart", importanceData)
+              })
+              .fail(function() {
+                alert( "error" );
+              });
+          }
+
+          function createImportanceChart(container_id, data) {
+            const ctx = document.getElementById(container_id);
+            
+            const config = {
+              type: 'bar',
+              data: data,
+              options: {
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                // Elements options apply to all of the options unless overridden in a dataset
+                // In this case, we are setting the border of each horizontal bar to be 2px wide
+                elements: {
+                  bar: {
+                    borderWidth: 1,
+                  }
+                },
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                  },
+                },
+                scales: {
+                  y: {
+                    ticks: {
+                      autoSkip: false
+                    }
+                  }
+                }
+              },
+            };
+            importanceChart = new Chart(ctx, config)
+          }
+
+          function formatImportanceData(res) {
+            const data = {
+              labels: res.tokens,
+              datasets: [
+                {
+                  label: 'Attention',
+                  data: res.attn_importance,
+                  borderColor: "red",
+                  backgroundColor: "rgba(255, 0, 0, 0.5)",
+                },
+                {
+                  label: 'Integrated Gradient',
+                  data: res.grad_importance,
+                  borderColor: "blue",
+                  backgroundColor: "rgba(0, 100, 255, 0.5)",
+                },
+                {
+                  label: "LIME",
+                  data: res.lime_importance,
+                  borderColor: "green",
+                  backgroundColor: "rgba(0, 255, 100, 0.5)"
+                }
+              ]
+            };            
+
+            return data;
+          }
+
 
           function filter_by_dp_attr(d) {
             if (!d) {
@@ -1193,6 +1307,7 @@
             }
             filterChart(idxs);
             updateSymbols();
+            filterHulls([]);
           }
 
           function get_stopwords() {
