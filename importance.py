@@ -1,4 +1,3 @@
-from lib2to3.pgen2.token import tok_name
 import torch
 import math
 
@@ -78,7 +77,7 @@ def lime_importance(tokenizer, model, text, support_set, device="cuda"):
     return importance, tokens
 
 
-def gradient_importance(tokenizer, model, text, device="cuda"):
+def integrad_importance(tokenizer, model, text, device="cuda"):
     from captum.attr import LayerIntegratedGradients
 
     lig = LayerIntegratedGradients(model, model.embeddings)
@@ -93,4 +92,23 @@ def gradient_importance(tokenizer, model, text, device="cuda"):
     tokens = tokenizer.tokenize(text)
     importance = attributions_ig.sum(-1).squeeze().tolist()[1:-1]
     print(importance)
+    return importance, tokens
+
+
+def gradient_importance(tokenizer, model, text, device="cuda"):
+    def encode(text):
+        tokenized_inputs = tokenizer(text, return_tensors="pt")
+        tokenized_inputs.to(device)
+        
+
+        outputs, embeddings = model(**tokenized_inputs,
+                            output_hidden_states=True)
+        encoding = outputs.last_hidden_state[:,0,:]
+        return encoding, embeddings
+
+    model.to(device)
+    encoding, embeddings = encode(text)
+    encoding.sum().backward()
+    importance = embeddings.grad.abs().sum(-1).squeeze().tolist()[1:-1]
+    tokens = tokenizer.tokenize(text)
     return importance, tokens

@@ -1216,8 +1216,6 @@
             var jqxhr = $.ajax(`importances?index=${d.idx}`)
               .done(function(res) {
                 const importanceData = formatImportanceData(res);
-                console.log(res)
-                console.log(importanceData)
                 if (importanceChart) importanceChart.destroy();
                 createImportanceChart("importance_chart", importanceData)
               })
@@ -1261,24 +1259,34 @@
           }
 
           function formatImportanceData(res) {
+            const integrad_abs = res.integrad_importance.map(x => Math.abs(x));
+            const lime_abs = res.lime_importance.map(x => Math.abs(x));
+            const grad_abs = res.grad_importance.map(x => Math.abs(x));
+
             const data = {
               labels: res.tokens,
               datasets: [
                 {
                   label: 'Attention',
-                  data: res.attn_importance,
+                  data: res.attn_importance.map(x => x / Math.max(...res.attn_importance)),
                   borderColor: "red",
                   backgroundColor: "rgba(255, 0, 0, 0.5)",
                 },
                 {
                   label: 'Integrated Gradient',
-                  data: res.grad_importance,
+                  data: integrad_abs.map(x => x / Math.max(...integrad_abs)),
                   borderColor: "blue",
                   backgroundColor: "rgba(0, 100, 255, 0.5)",
                 },
                 {
+                  label: "Gradient",
+                  data: grad_abs.map(x => x / Math.max(...grad_abs)),
+                  borderColor: "orange",
+                  backgroundColor: "rgba(255, 100, 100, 0.5)"
+                },
+                {
                   label: "LIME",
-                  data: res.lime_importance,
+                  data: lime_abs.map(x => x / Math.max(...lime_abs)),
                   borderColor: "green",
                   backgroundColor: "rgba(0, 255, 100, 0.5)"
                 }

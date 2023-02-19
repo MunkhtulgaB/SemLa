@@ -3,7 +3,10 @@ from flask import Flask, send_from_directory, request
 from numba import jit
 import numpy as np
 from scipy.special import softmax
-from importance import attention_importance, lime_importance, gradient_importance
+from importance import attention_importance, lime_importance, integrad_importance, gradient_importance
+from transformers import BertModel
+from transformers.models.bert.modeling_bert import BaseModelOutputWithPoolingAndCrossAttentions
+
 
 
 DEVICE = "cpu"
@@ -18,6 +21,54 @@ elif DATASET == "clinc":
 @jit
 def inner_product_distance(a,b, tau=15):
     return np.exp(-np.sum(a * b) / tau)**2
+
+
+class BertForIntegratedGradients(BertModel):
+    def forward(self, *args, **kwargs):
+        encoding = super().forward(*args, **kwargs).last_hidden_state[:,0]
+        output = encoding.sum(dim=-1)
+        return output
+    
+
+class BertForGradients(BertModel):
+
+    def forward(
+        self,
+        input_ids,
+        attention_mask,
+        token_type_ids,
+        output_hidden_states=False,
+    ):
+        extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(attention_mask, input_ids.size(), device=DEVICE)
+        embedding_output = self.embeddings(
+            input_ids=input_ids,
+            position_ids=None,
+            token_type_ids=token_type_ids,
+            inputs_embeds=None,
+            past_key_values_length=0,
+        )
+
+     
+        embedding_output.retain_grad()
+
+        encoder_outputs = self.encoder(
+            embedding_output,
+            attention_mask=extended_attention_mask,
+            head_mask=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+            past_key_values=None,
+            use_cache=False,
+            output_attentions=False,
+            output_hidden_states=output_hidden_states
+        )
+        sequence_output = encoder_outputs[0]
+        pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
+
+        return BaseModelOutputWithPoolingAndCrossAttentions(
+            last_hidden_state=sequence_output,
+            pooler_output=pooled_output,
+        ), embedding_output
 
 
 class TextProcessor:
@@ -53,15 +104,8 @@ class TextProcessor:
         self.model.to(DEVICE)
 
         # A version of the same model for integrated gradients
-        from transformers import BertModel
-        class BertForEncoding(BertModel):
-            def forward(self, *args, **kwargs):
-                encoding = super().forward(*args, **kwargs).last_hidden_state[:,0]
-                output = encoding.sum(dim=-1)
-                return output
-            
-        self.model_for_ig = BertForEncoding.from_pretrained(checkpoint)
-
+        self.model_for_ig = BertForIntegratedGradients.from_pretrained(checkpoint)
+        self.model_for_grad = BertForGradients.from_pretrained(checkpoint)
     
     def process(self, text):
         encoding = self.encode(text)
@@ -85,19 +129,29 @@ class TextProcessor:
             support_set = self.raw_datasets["test"][support_set_idxs]
             importance = lime_importance(self.tokenizer, self.model, text, support_set)
             return importance
-        elif method == "gradient":
-            importance = gradient_importance(self.tokenizer, self.model_for_ig, text)
+        elif method == "integrad":
+            importance = integrad_importance(self.tokenizer, self.model_for_ig, text)
             return importance
+        elif method == "gradient":
+            importance = gradient_importance(self.tokenizer, self.model_for_grad, text)
+            return importance
+        
+        
 
     def importances_all(self, index):
         attn_importance, tokens = self.importance(index, "attention")
         lime_importance, tokens = self.importance(index, "lime")
         grad_importance, tokens = self.importance(index, "gradient")
+        integrad_importance, tokens = self.importance(index, "integrad")
 
         return {"tokens": tokens, 
                 "attn_importance": attn_importance,
                 "lime_importance": lime_importance,
-                "grad_importance": grad_importance}
+                "grad_importance": grad_importance, 
+                "integrad_importance": integrad_importance}
+    
+    def relation(self, index1, index2):
+        return {"index1": index1, "index2": index2}
 
 def create_app(test_config=None):
     # create and configure the app
@@ -127,5 +181,14 @@ def create_app(test_config=None):
         index = int(request.args.get("index"))
         result = text_processor.importances_all(index)
         return result
+
+    @app.route("/relation")
+    def relation():
+        index1 = int(request.args.get("index1"))
+        index2 = int(request.args.get("index2"))
+
+        result = text_processor.relation(index1, index2)
+        return result
+
 
     return app
