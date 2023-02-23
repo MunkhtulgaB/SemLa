@@ -31,7 +31,9 @@ def attention_importance(tokenizer, model, text, device="cuda"):
     return importance, tokens
 
 
-def lime_importance(tokenizer, model, text, support_set, device="cuda"):
+def lime_importance(tokenizer, model, text, support_set, device=None):
+    if device is None:
+        device = "cuda" if len(text.split(" ")) < 10 else "cpu"
 
     def one_sentence_tokenize(text):
         tokens = tokenizer.tokenize(text)
@@ -67,7 +69,7 @@ def lime_importance(tokenizer, model, text, support_set, device="cuda"):
     from lime.lime_text import LimeTextExplainer
 
     model.to(device)
-    BATCH_LIMIT = 2
+    BATCH_LIMIT = 1
     TAU = 15
 
     support_encodings = encode(support_set["text"])
@@ -86,6 +88,7 @@ def lime_importance(tokenizer, model, text, support_set, device="cuda"):
     tokens = one_sentence_tokenize(text)
     importance = sorted(exp.as_map()[label], key=lambda x: x[0])
     importance = [weight for pos, weight in importance]
+    print(importance)
     return importance, tokens
 
 

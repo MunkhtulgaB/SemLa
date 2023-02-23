@@ -1293,7 +1293,7 @@
               type: 'bar',
               data: data,
               options: {
-                categoryPercentage: 0.5,
+                categoryPercentage: 0.9,
                 barPercentage: 1,
                 maintainAspectRatio: false,
                 indexAxis: 'y',
@@ -1346,21 +1346,21 @@
                   data: integrad_abs.map(x => x / Math.max(...integrad_abs)),
                   borderColor: "white",
                   borderWidth: 2,
-                  backgroundColor: "#E69F00",
+                  backgroundColor: "#e69f00",
                 },
                 {
                   label: "Gradient",
                   data: grad_abs.map(x => x / Math.max(...grad_abs)),
                   borderColor: "white",
                   borderWidth: 2,
-                  backgroundColor: "#56b4e9"
+                  backgroundColor: "#009E73"
                 },
                 {
                   label: "LIME",
                   data: lime_abs.map(x => x / Math.max(...lime_abs)),
                   borderColor: "white",
                   borderWidth: 2,
-                  backgroundColor: "#f0e442"
+                  backgroundColor: "#56B4E9"
                 }
               ]
             };            
