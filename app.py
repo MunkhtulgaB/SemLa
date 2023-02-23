@@ -3,7 +3,7 @@ from flask import Flask, send_from_directory, request
 from numba import jit
 import numpy as np
 from scipy.special import softmax
-from importance import attention_importance, lime_importance, integrad_importance, gradient_importance
+from importance import attention_importance, lime_importance, integrad_importance, gradient_importance, grad_relation
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BaseModelOutputWithPoolingAndCrossAttentions
 
@@ -151,7 +151,19 @@ class TextProcessor:
                 "integrad_importance": integrad_importance}
     
     def relation(self, index1, index2):
-        return {"index1": index1, "index2": index2}
+        txt1 = self.raw_datasets["test"]["text"][index1]
+        txt2 = self.raw_datasets["test"]["text"][index2]
+        imp1, imp2, tok1, tok2 = grad_relation(
+            self.tokenizer,
+            self.model_for_grad,
+            txt1,
+            txt2
+        )
+        return {"index1": index1, "index2": index2,
+                "importance1": imp1,
+                "importance2": imp2,
+                "tokens1": tok1,
+                "tokens2": tok2}
 
 def create_app(test_config=None):
     # create and configure the app

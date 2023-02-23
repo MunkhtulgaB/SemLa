@@ -1,5 +1,17 @@
+from lib2to3.pgen2 import token
 import torch
 import math
+
+
+def encode(text, tokenizer, model, device="cuda"):
+    tokenized_inputs = tokenizer(text, return_tensors="pt")
+    tokenized_inputs.to(device)
+    model.to(device)
+    
+    outputs, embeddings = model(**tokenized_inputs,
+                        output_hidden_states=True)
+    encoding = outputs.last_hidden_state[:,0,:]
+    return encoding, embeddings
 
 
 def attention_importance(tokenizer, model, text, device="cuda"):
@@ -91,24 +103,28 @@ def integrad_importance(tokenizer, model, text, device="cuda"):
     )
     tokens = tokenizer.tokenize(text)
     importance = attributions_ig.sum(-1).squeeze().tolist()[1:-1]
-    print(importance)
     return importance, tokens
 
 
 def gradient_importance(tokenizer, model, text, device="cuda"):
-    def encode(text):
-        tokenized_inputs = tokenizer(text, return_tensors="pt")
-        tokenized_inputs.to(device)
-        
-
-        outputs, embeddings = model(**tokenized_inputs,
-                            output_hidden_states=True)
-        encoding = outputs.last_hidden_state[:,0,:]
-        return encoding, embeddings
-
-    model.to(device)
-    encoding, embeddings = encode(text)
+    encoding, embeddings = encode(text, tokenizer, model, device)
     encoding.sum().backward()
     importance = embeddings.grad.abs().sum(-1).squeeze().tolist()[1:-1]
     tokens = tokenizer.tokenize(text)
     return importance, tokens
+
+
+def grad_relation(tokenizer, model, txt1, txt2, device="cuda"):
+    encoding1, embeddings1 = encode(txt1, tokenizer, model, device)
+    encoding2, embeddings2 = encode(txt2, tokenizer, model, device)
+
+    similarity = torch.inner(encoding1, encoding2)
+    similarity.backward()
+    
+    importance1 = embeddings1.grad.abs().sum(-1).squeeze().tolist()[1:-1]
+    importance2 = embeddings2.grad.abs().sum(-1).squeeze().tolist()[1:-1]
+
+    return (importance1, 
+            importance2, 
+            tokenizer.tokenize(txt1),
+            tokenizer.tokenize(txt2))

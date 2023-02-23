@@ -180,6 +180,21 @@
           <canvas id="importance_chart"></canvas>
         </div>
       </div>
+
+      <div class="widget" style="width: 323px;" >
+        <p class="widget_title">
+          Relation
+        </p>
+        <div class="widget_content" style="height: 300px;">
+          <div style="height: 150px;">
+            <canvas id="rel_chart1"></canvas>
+          </div>
+          <div style="height: 150px;">
+            <canvas id="rel_chart2"></canvas>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <div id="container">
@@ -576,6 +591,10 @@
                     "x2": mouseover_dp_data[0][`${dim_reduction}-dim0`],
                     "y2": mouseover_dp_data[0][`${dim_reduction}-dim1`],
                   }]);
+
+                  const idx1 = d.idx;
+                  const idx2 = mouseover_dp_data[0].idx;
+                  updateRelationChart(idx1, idx2)
                 }
               });
 
@@ -1183,9 +1202,52 @@
             $(this).attr("stroke", "red")
                   .attr("stroke-width","3px")
                   .addClass("selected-dp");
-            
-            console.log(d)
+
             updateImportanceChart(d)
+          }
+
+          // Relation
+          var relChart1;
+          var relChart2;
+
+          function updateRelationChart(idx1, idx2) {
+            
+            var jqxhr = $.ajax(`relation?index1=${idx1}&index2=${idx2}`)
+              .done(function(res) {
+
+                const data1 = {
+                  labels: res.tokens1,
+                  datasets: [
+                    {
+                      label: 'Gradients',
+                      data: res.importance1,
+                      borderColor: "red",
+                      backgroundColor: "rgba(255, 0, 0, 0.5)",
+                    },
+                  ]
+                }
+
+                const data2 = {
+                  labels: res.tokens2,
+                  datasets: [
+                    {
+                      label: 'Gradients',
+                      data: res.importance2,
+                      borderColor: "red",
+                      backgroundColor: "rgba(255, 0, 0, 0.5)",
+                    },
+                  ]
+                }
+
+                if (relChart1) relChart1.destroy();
+                if (relChart2) relChart2.destroy();
+
+                relChart1 = createImportanceChart("rel_chart1", data1)
+                relChart2 = createImportanceChart("rel_chart2", data2)
+              })
+              .fail(function() {
+                alert( "error" );
+              });
           }
 
           // Importance
@@ -1211,13 +1273,13 @@
 
           function updateImportanceChart(d) {
             if (importanceChart) importanceChart.destroy();
-            createImportanceChart("importance_chart", dummyChartData)
+            importanceChart = createImportanceChart("importance_chart", dummyChartData)
 
             var jqxhr = $.ajax(`importances?index=${d.idx}`)
               .done(function(res) {
                 const importanceData = formatImportanceData(res);
                 if (importanceChart) importanceChart.destroy();
-                createImportanceChart("importance_chart", importanceData)
+                importanceChart = createImportanceChart("importance_chart", importanceData)
               })
               .fail(function() {
                 alert( "error" );
@@ -1231,6 +1293,8 @@
               type: 'bar',
               data: data,
               options: {
+                categoryPercentage: 0.5,
+                barPercentage: 1,
                 maintainAspectRatio: false,
                 indexAxis: 'y',
                 // Elements options apply to all of the options unless overridden in a dataset
@@ -1247,7 +1311,11 @@
                   },
                 },
                 scales: {
+                  x: {
+                    stacked: true,
+                  },
                   y: {
+                    stacked: true,
                     ticks: {
                       autoSkip: false
                     }
@@ -1255,7 +1323,7 @@
                 }
               },
             };
-            importanceChart = new Chart(ctx, config)
+            return new Chart(ctx, config)
           }
 
           function formatImportanceData(res) {
@@ -1269,26 +1337,30 @@
                 {
                   label: 'Attention',
                   data: res.attn_importance.map(x => x / Math.max(...res.attn_importance)),
-                  borderColor: "red",
-                  backgroundColor: "rgba(255, 0, 0, 0.5)",
+                  borderColor: "white",
+                  borderWidth: 2,
+                  backgroundColor: "#0072b2",
                 },
                 {
                   label: 'Integrated Gradient',
                   data: integrad_abs.map(x => x / Math.max(...integrad_abs)),
-                  borderColor: "blue",
-                  backgroundColor: "rgba(0, 100, 255, 0.5)",
+                  borderColor: "white",
+                  borderWidth: 2,
+                  backgroundColor: "#E69F00",
                 },
                 {
                   label: "Gradient",
                   data: grad_abs.map(x => x / Math.max(...grad_abs)),
-                  borderColor: "orange",
-                  backgroundColor: "rgba(255, 100, 100, 0.5)"
+                  borderColor: "white",
+                  borderWidth: 2,
+                  backgroundColor: "#56b4e9"
                 },
                 {
                   label: "LIME",
                   data: lime_abs.map(x => x / Math.max(...lime_abs)),
-                  borderColor: "green",
-                  backgroundColor: "rgba(0, 255, 100, 0.5)"
+                  borderColor: "white",
+                  borderWidth: 2,
+                  backgroundColor: "#f0e442"
                 }
               ]
             };            
