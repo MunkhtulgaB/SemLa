@@ -185,20 +185,15 @@
         <p class="widget_title">
           Relation
         </p>
-        <div class="widget_content" style="height: 300px;">
-          <div style="height: 150px;">
-            <canvas id="rel_chart1"></canvas>
-          </div>
-          <div style="height: 150px;">
-            <canvas id="rel_chart2"></canvas>
-          </div>
+        <div class="widget_content" style="height: 300px; padding: 10px">
+            <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
         </div>
       </div>
 
     </div>
 
     <div id="container">
-      <svg width="1460" height="760">
+      <svg id="semantic_landscape" width="1460" height="760">
       <g>
       </g>
       </svg>
@@ -216,7 +211,7 @@
           height = 600 - margin.top - margin.bottom;
       
       // append the SVG object to the body of the page
-      var SVG = d3.select("svg")
+      var SVG = d3.select("svg#semantic_landscape")
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom)
           .select("g")
@@ -514,7 +509,6 @@
               .on("zoom", updateChart)
               .on("start", function() {
                 scatter.selectAll(".local_word").remove();
-                scatter.selectAll(".local_rect").remove()
               })
               .on("end", function() {
                 updateSymbols();
@@ -802,15 +796,6 @@
                   })
                   .attr("y", function(d) {
                     return d.y; // + this.getBBox().height/2;
-                  })
-
-                  scatter.selectAll(".local_rect")
-                  .attr("x", function(d) {                 
-                    return d.x; //- this.getBBox().width/2;
-                  })
-                  .attr("y", function(d) {
-                    const fontsize = Math.min(10 + d.frequency*0.6, 150);
-                    return d.y - 0.8*fontsize;
                   })
                 });
           }
@@ -1211,39 +1196,122 @@
           var relChart2;
 
           function updateRelationChart(idx1, idx2) {
-            
+            d3.selectAll("svg#rel_chart > *").remove();
+
             var jqxhr = $.ajax(`relation?index1=${idx1}&index2=${idx2}`)
               .done(function(res) {
+                const fontsize = 13;
+                const relchart = d3.select("svg#rel_chart");
+                const leftcol_data = res.tokens1.map((t, i) => ({"token": t, "pos": i, "importance": res.importance1[i]}));
+                const rightcol_data = res.tokens2.map((t, i) => ({"token": t, "pos": i, "importance": res.importance2[i]}))
 
-                const data1 = {
-                  labels: res.tokens1,
-                  datasets: [
-                    {
-                      label: 'Gradients',
-                      data: res.importance1,
-                      borderColor: "red",
-                      backgroundColor: "rgba(255, 0, 0, 0.5)",
-                    },
-                  ]
-                }
+                const chart_height = relchart.node().clientHeight;
+                const chart_width = relchart.node().clientWidth;
+                const spacing_left_col = (chart_height - res.tokens1.length * fontsize) / (res.tokens1.length - 1);
+                const spacing_right_col = (chart_height - res.tokens2.length * fontsize) / (res.tokens2 .length - 1);
+                const max_importance = Math.max(...res.importance1.concat(res.importance2))
+                
+                var text_left = relchart.selectAll(".relchart_left")
+                  .data(leftcol_data)
+                  .enter()
+                  .append("text")
+                  .attr("class", "relchart_left")
+                  .text(d => d.token)
+                  .style("font-size", fontsize + "px")
+                  .attr("x", 0)
+                  .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
+                const left_text_bboxes = []
+                text_left.each(function(d) {
+                  left_text_bboxes.push(this.getBBox());
+                })
+                const left_rects = relchart.selectAll(".left_rect")
+                  .data(leftcol_data)
+                  .enter()
+                  .append("rect")
+                  .attr("class", "left_rect")
+                  .attr("width", d => left_text_bboxes[d.pos].width)
+                  .attr("height", d => left_text_bboxes[d.pos].height)
+                  .attr("x", d => left_text_bboxes[d.pos].x)
+                  .attr("y", d => left_text_bboxes[d.pos].y)
+                  .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
+                  .attr("fill-opacity", d => 0.5 * Math.abs(d.importance / max_importance))
+                text_left.remove();
+                text_left = relchart.selectAll(".relchart_left")
+                  .data(leftcol_data)
+                  .enter()
+                  .append("text")
+                  .attr("class", "relchart_left")
+                  .text(d => d.token)
+                  .style("font-size", fontsize + "px")
+                  .attr("x", 0)
+                  .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
+                  .style("fill", "black");
 
-                const data2 = {
-                  labels: res.tokens2,
-                  datasets: [
-                    {
-                      label: 'Gradients',
-                      data: res.importance2,
-                      borderColor: "red",
-                      backgroundColor: "rgba(255, 0, 0, 0.5)",
-                    },
-                  ]
-                }
 
-                if (relChart1) relChart1.destroy();
-                if (relChart2) relChart2.destroy();
+                var text_right = relchart.selectAll(".relchart_right")
+                  .data(rightcol_data)
+                  .enter()
+                  .append("text")
+                  .attr("text-anchor", "end")
+                  .attr("class", "relchart_left")
+                  .text(d => d.token)
+                  .style("font-size", fontsize + "px")
+                  .attr("x", chart_width + "px")
+                  .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
+                const right_text_bboxes = []
+                text_right.each(function(d) {
+                  right_text_bboxes.push(this.getBBox());
+                })
+                const right_rects = relchart.selectAll(".right_rect")
+                  .data(rightcol_data)
+                  .enter()
+                  .append("rect")
+                  .attr("class", "right_rect")
+                  .attr("width", d => right_text_bboxes[d.pos].width)
+                  .attr("height", d => right_text_bboxes[d.pos].height)
+                  .attr("x", d => right_text_bboxes[d.pos].x)
+                  .attr("y", d => right_text_bboxes[d.pos].y)
+                  .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
+                  .attr("fill-opacity", d => 0.5 * Math.abs(d.importance / max_importance));
+                text_right.remove();
+                text_right = relchart.selectAll(".relchart_right")
+                  .data(rightcol_data)
+                  .enter()
+                  .append("text")
+                  .attr("text-anchor", "end")
+                  .attr("class", "relchart_right")
+                  .text(d => d.token)
+                  .style("font-size", fontsize + "px")
+                  .attr("x", chart_width + "px")
+                  .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
+                  .style("fill", "black");
 
-                relChart1 = createImportanceChart("rel_chart1", data1)
-                relChart2 = createImportanceChart("rel_chart2", data2)
+
+                const left_lines = relchart.selectAll(".left_links")
+                  .data(leftcol_data)
+                  .enter()
+                  .append("line")
+                  .attr("class", "left_links")
+                  .attr("x1", Math.max(...left_text_bboxes.map(b => b.width)) + 5)
+                  .attr("y1", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
+                  .attr("x2", "50%")
+                  .attr("y2", "50%")
+                  .style("stroke", "#0072b2")
+                  .style("stroke-width", 2)
+                  .style("stroke-opacity", d => d.importance / max_importance);
+                const right_lines = relchart.selectAll(".right_links")
+                  .data(rightcol_data)
+                  .enter()
+                  .append("line")
+                  .attr("class", "right_links")
+                  .attr("x1", "50%")
+                  .attr("y1", "50%")
+                  .attr("x2", chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5))
+                  .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
+                  .style("stroke", "#0072b2")
+                  .style("stroke-width", 2)
+                  .style("stroke-opacity", d => d.importance / max_importance);
+                
               })
               .fail(function() {
                 alert( "error" );
