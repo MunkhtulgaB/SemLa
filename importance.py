@@ -3,7 +3,7 @@ import torch
 import math
 
 
-def encode(text, tokenizer, model, device="cuda"):
+def encode(text, tokenizer, model, device="cuda", output_last_hiddens=False):
     tokenized_inputs = tokenizer(text, return_tensors="pt")
     tokenized_inputs.to(device)
     model.to(device)
@@ -11,6 +11,9 @@ def encode(text, tokenizer, model, device="cuda"):
     outputs, embeddings = model(**tokenized_inputs,
                         output_hidden_states=True)
     encoding = outputs.last_hidden_state[:,0,:]
+
+    if output_last_hiddens:
+        return encoding, embeddings, outputs.last_hidden_state.squeeze()[1:-1,:]
     return encoding, embeddings
 
 
@@ -124,10 +127,30 @@ def grad_relation(tokenizer, model, txt1, txt2, device="cuda"):
     similarity = torch.inner(encoding1, encoding2)
     similarity.backward()
     
-    importance1 = embeddings1.grad.abs().sum(-1).squeeze().tolist()[1:-1]
-    importance2 = embeddings2.grad.abs().sum(-1).squeeze().tolist()[1:-1]
+    importance1 = embeddings1.grad.sum(-1).squeeze().tolist()[1:-1]
+    importance2 = embeddings2.grad.sum(-1).squeeze().tolist()[1:-1]
 
-    return (importance1, 
-            importance2, 
-            tokenizer.tokenize(txt1),
-            tokenizer.tokenize(txt2))
+    return {"importance1": importance1, 
+            "importance2": importance2, 
+            "tokens1": tokenizer.tokenize(txt1),
+            "tokens2": tokenizer.tokenize(txt2)}
+
+def token_encoding_relation(tokenizer, model, txt1, txt2, device="cuda"):
+    sent_enc1, embeddings1, encodings1 = encode(txt1, tokenizer, model, device, output_last_hiddens=True)
+    sent_enc2, embeddings2, encodings2 = encode(txt2, tokenizer, model, device, output_last_hiddens=True)
+
+    sentence_similarity = torch.inner(sent_enc1, sent_enc2)
+    sentence_similarity.backward()
+
+    importance1 = embeddings1.grad.sum(-1).squeeze().tolist()[1:-1]
+    importance2 = embeddings2.grad.sum(-1).squeeze().tolist()[1:-1]
+
+    with torch.no_grad():
+        tau = 15
+        token_similarities = torch.softmax(torch.inner(encodings1, encodings2) / tau, dim=-1)
+    
+    return {"links": token_similarities.tolist(),
+            "tokens1": tokenizer.tokenize(txt1),
+            "tokens2": tokenizer.tokenize(txt2),
+            "importance1": importance1,
+            "importance2": importance2}

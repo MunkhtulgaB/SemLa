@@ -1,9 +1,10 @@
 from curses import raw
+from lib2to3.pgen2 import token
 from flask import Flask, send_from_directory, request
 from numba import jit
 import numpy as np
 from scipy.special import softmax
-from importance import attention_importance, lime_importance, integrad_importance, gradient_importance, grad_relation
+from importance import attention_importance, lime_importance, integrad_importance, gradient_importance, grad_relation, token_encoding_relation
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BaseModelOutputWithPoolingAndCrossAttentions
 
@@ -150,20 +151,24 @@ class TextProcessor:
                 "grad_importance": grad_importance, 
                 "integrad_importance": integrad_importance}
     
-    def relation(self, index1, index2):
+    def relation(self, index1, index2, reltype):
         txt1 = self.raw_datasets["test"]["text"][index1]
         txt2 = self.raw_datasets["test"]["text"][index2]
-        imp1, imp2, tok1, tok2 = grad_relation(
-            self.tokenizer,
-            self.model_for_grad,
-            txt1,
-            txt2
-        )
-        return {"index1": index1, "index2": index2,
-                "importance1": imp1,
-                "importance2": imp2,
-                "tokens1": tok1,
-                "tokens2": tok2}
+
+        if not reltype:
+            return grad_relation(
+                self.tokenizer,
+                self.model_for_grad,
+                txt1,
+                txt2
+            )
+        elif reltype == "encoding":
+            return token_encoding_relation(
+                self.tokenizer,
+                self.model_for_grad,
+                txt1, 
+                txt2
+            )
 
 def create_app(test_config=None):
     # create and configure the app
@@ -198,8 +203,9 @@ def create_app(test_config=None):
     def relation():
         index1 = int(request.args.get("index1"))
         index2 = int(request.args.get("index2"))
+        reltype = request.args.get("reltype")
 
-        result = text_processor.relation(index1, index2)
+        result = text_processor.relation(index1, index2, reltype)
         return result
 
 
