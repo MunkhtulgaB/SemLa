@@ -131,8 +131,7 @@ def token_encoding_relation(tokenizer, model, txt1, txt2, device="cuda"):
     importance2 = embeddings2.grad.sum(-1).squeeze().tolist()[1:-1]
 
     with torch.no_grad():
-        tau = 15
-        token_similarities = torch.softmax(torch.inner(encodings1, encodings2) / tau, dim=-1)
+        token_similarities = torch.inner(encodings1, encodings2)
     
     return {"links": token_similarities.tolist(),
             "tokens1": tokenizer.tokenize(txt1),
