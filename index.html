@@ -1104,25 +1104,9 @@
           }
 
           function filterChart(idxs) {
-            const is_to_show_errors_only = ($("#show-errors").is(":checked"));
-
-            var filtered_idxs;
-            if (is_to_show_errors_only) {
-              if (idxs.length == 0) {
-                filtered_idxs = errors_idxs;
-              } else {
-                filtered_idxs = errors_idxs.filter(i => idxs.includes(i));
-              }
-            } else {
-              if (idxs.length == 0) {
-                filtered_idxs = data.map(d => d.idx);
-              } else {
-                filtered_idxs = idxs;
-              }
-            }
             d3.selectAll(".datapoint")
               .attr("visibility", function(d) {
-                if (filtered_idxs.includes(d.idx)) {
+                if (idxs.includes(d.idx)) {
                   return "visible"; // TO REFACTOR: use semi-colons consistently
                 } else {
                   return "hidden";
@@ -1131,6 +1115,7 @@
 
             updateSymbols();
             updateLocalWords();
+            d3.select("#drag-line-0").style("visibility", "hidden");
           }
 
           function clear() {
@@ -1147,7 +1132,6 @@
               .attr("stroke", "#9299a1")
               .attr("stroke-width", "1px")
               .removeClass("selected-dp");
-            d3.select("#drag-line-0").style("visibility", "hidden");
           }
 
           function show_tooltip(d) { // TO REFACTOR: use either camelCase or snake_case but not both
@@ -1198,15 +1182,11 @@
           function updateRelationChart(idx1, idx2) {
             d3.selectAll("svg#rel_chart > *").remove();
 
-            const reltype = "";
+            const reltype = "encoding";
 
             var jqxhr = $.ajax(`relation?index1=${idx1}&index2=${idx2}&reltype=${reltype}`)
               .done(function(res) {
-                if (reltype == "encoding") {
-                  renderEncodingRelChart(res);
-                } else {
-                  renderGradRelChart(res);
-                }
+                renderEncodingRelChart(res);
               })
               .fail(function() {
                 alert( "error" );
@@ -1259,7 +1239,16 @@
               .style("font-size", fontsize + "px")
               .attr("x", 0)
               .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
-              .style("fill", "black");
+              .style("fill", "black")
+              .on("mouseover", function(d) {
+                relchart.selectAll(".rel_links")
+                  .filter(link => link.from == d.pos)
+                  .style("visibility", "visible");
+              })
+              .on("mouseout", function(d) {
+                relchart.selectAll(".rel_links")
+                  .style("visibility", "hidden");
+              });
 
 
             var text_right = relchart.selectAll(".relchart_right")
@@ -1298,7 +1287,16 @@
               .style("font-size", fontsize + "px")
               .attr("x", chart_width + "px")
               .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
-              .style("fill", "black");
+              .style("fill", "black")
+              .on("mouseover", function(d) {
+                relchart.selectAll(".rel_links")
+                  .filter(link => link.to == d.pos)
+                  .style("visibility", "visible");
+              })
+              .on("mouseout", function(d) {
+                relchart.selectAll(".rel_links")
+                  .style("visibility", "hidden");
+              });
 
             const link_data = [];
             res.links.forEach(function(links, i) {
@@ -1311,103 +1309,15 @@
               .data(link_data)
               .enter()
               .append("line")
-              .attr("class", "left_links")
+              .attr("class", "rel_links")
               .attr("x1", Math.max(...left_text_bboxes.map(b => b.width)) + 5)
               .attr("y1", d => (d.from + 1) * fontsize + d.from * spacing_left_col)
               .attr("x2", chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5))
               .attr("y2", d => (d.to + 1) * fontsize + d.to * spacing_right_col)
-              .style("stroke", "#0072b2")
+              .style("stroke", "grey")
+              .style("visibility", "hidden")
               .style("stroke-width", 2)
               .style("stroke-opacity", d => d.strength);
-          }
-
-          function renderGradRelChart(res) {
-            const fontsize = 13;
-            const relchart = d3.select("svg#rel_chart");
-            const leftcol_data = res.tokens1.map((t, i) => ({"token": t, "pos": i, "importance": res.importance1[i]}));
-            const rightcol_data = res.tokens2.map((t, i) => ({"token": t, "pos": i, "importance": res.importance2[i]}))
-
-            const chart_height = relchart.node().clientHeight;
-            const chart_width = relchart.node().clientWidth;
-            const spacing_left_col = (chart_height - res.tokens1.length * fontsize) / (res.tokens1.length - 1);
-            const spacing_right_col = (chart_height - res.tokens2.length * fontsize) / (res.tokens2 .length - 1);
-            const max_importance = Math.max(...res.importance1.concat(res.importance2))
-            
-            var text_left = relchart.selectAll(".relchart_left")
-              .data(leftcol_data)
-              .enter()
-              .append("text")
-              .attr("class", "relchart_left")
-              .text(d => d.token)
-              .style("font-size", fontsize + "px")
-              .attr("x", 0)
-              .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
-            const left_text_bboxes = []
-            text_left.each(function(d) {
-              left_text_bboxes.push(this.getBBox());
-            })
-            const left_rects = relchart.selectAll(".left_rect")
-              .data(leftcol_data)
-              .enter()
-              .append("rect")
-              .attr("class", "left_rect")
-              .attr("width", d => left_text_bboxes[d.pos].width)
-              .attr("height", d => left_text_bboxes[d.pos].height)
-              .attr("x", d => left_text_bboxes[d.pos].x)
-              .attr("y", d => left_text_bboxes[d.pos].y)
-              .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
-              .attr("fill-opacity", d => 0.5 * Math.abs(d.importance / max_importance))
-            text_left.remove();
-            text_left = relchart.selectAll(".relchart_left")
-              .data(leftcol_data)
-              .enter()
-              .append("text")
-              .attr("class", "relchart_left")
-              .text(d => d.token)
-              .style("font-size", fontsize + "px")
-              .attr("x", 0)
-              .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
-              .style("fill", "black");
-
-
-            var text_right = relchart.selectAll(".relchart_right")
-              .data(rightcol_data)
-              .enter()
-              .append("text")
-              .attr("text-anchor", "end")
-              .attr("class", "relchart_left")
-              .text(d => d.token)
-              .style("font-size", fontsize + "px")
-              .attr("x", chart_width + "px")
-              .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
-            const right_text_bboxes = []
-            text_right.each(function(d) {
-              right_text_bboxes.push(this.getBBox());
-            })
-            const right_rects = relchart.selectAll(".right_rect")
-              .data(rightcol_data)
-              .enter()
-              .append("rect")
-              .attr("class", "right_rect")
-              .attr("width", d => right_text_bboxes[d.pos].width)
-              .attr("height", d => right_text_bboxes[d.pos].height)
-              .attr("x", d => right_text_bboxes[d.pos].x)
-              .attr("y", d => right_text_bboxes[d.pos].y)
-              .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
-              .attr("fill-opacity", d => 0.5 * Math.abs(d.importance / max_importance));
-            text_right.remove();
-            text_right = relchart.selectAll(".relchart_right")
-              .data(rightcol_data)
-              .enter()
-              .append("text")
-              .attr("text-anchor", "end")
-              .attr("class", "relchart_right")
-              .text(d => d.token)
-              .style("font-size", fontsize + "px")
-              .attr("x", chart_width + "px")
-              .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
-              .style("fill", "black");
-
 
             const left_lines = relchart.selectAll(".left_links")
               .data(leftcol_data)
