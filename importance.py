@@ -118,22 +118,7 @@ def gradient_importance(tokenizer, model, text, device="cuda"):
     importance = embeddings.grad.abs().sum(-1).squeeze().tolist()[1:-1]
     tokens = tokenizer.tokenize(text)
     return importance, tokens
-
-
-def grad_relation(tokenizer, model, txt1, txt2, device="cuda"):
-    encoding1, embeddings1 = encode(txt1, tokenizer, model, device)
-    encoding2, embeddings2 = encode(txt2, tokenizer, model, device)
-
-    similarity = torch.inner(encoding1, encoding2)
-    similarity.backward()
     
-    importance1 = embeddings1.grad.sum(-1).squeeze().tolist()[1:-1]
-    importance2 = embeddings2.grad.sum(-1).squeeze().tolist()[1:-1]
-
-    return {"importance1": importance1, 
-            "importance2": importance2, 
-            "tokens1": tokenizer.tokenize(txt1),
-            "tokens2": tokenizer.tokenize(txt2)}
 
 def token_encoding_relation(tokenizer, model, txt1, txt2, device="cuda"):
     sent_enc1, embeddings1, encodings1 = encode(txt1, tokenizer, model, device, output_last_hiddens=True)
