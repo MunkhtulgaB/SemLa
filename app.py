@@ -4,7 +4,7 @@ from flask import Flask, send_from_directory, request
 from numba import jit
 import numpy as np
 from scipy.special import softmax
-from importance import attention_importance, lime_importance, integrad_importance, gradient_importance, grad_relation, token_encoding_relation
+from importance import attention_importance, lime_importance, integrad_importance, gradient_importance, token_encoding_relation
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BaseModelOutputWithPoolingAndCrossAttentions
 
