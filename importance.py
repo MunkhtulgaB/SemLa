@@ -152,6 +152,7 @@ def integrad_relation(tokenizer, model, txt1, txt2, device="cuda"):
         tokenized_inputs2 = tokenizer(txt2, return_tensors="pt")
         tokenized_inputs2.to(device)
         encoding2 = model(tokenized_inputs2["input_ids"])
+        similarity = torch.inner(encoding1, encoding2).sum(dim=-1)
 
     lig = LayerIntegratedGradients(model, model.embeddings)
     tokenized_inputs = tokenizer(txt1, return_tensors="pt")
@@ -183,4 +184,5 @@ def integrad_relation(tokenizer, model, txt1, txt2, device="cuda"):
     return {"tokens1": tokens1,
             "tokens2": tokens2,
             "importance1": importance1,
-            "importance2": importance2,}
+            "importance2": importance2,
+            "similarity": similarity.item()}
