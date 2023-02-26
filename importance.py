@@ -137,4 +137,50 @@ def token_encoding_relation(tokenizer, model, txt1, txt2, device="cuda"):
             "tokens1": tokenizer.tokenize(txt1),
             "tokens2": tokenizer.tokenize(txt2),
             "importance1": importance1,
-            "importance2": importance2}
+            "importance2": importance2,
+            "similarity": sentence_similarity.item()}
+
+
+def integrad_relation(tokenizer, model, txt1, txt2, device="cuda"):
+    from captum.attr import LayerIntegratedGradients
+
+    model.to(device)
+    with torch.no_grad():
+        tokenized_inputs1 = tokenizer(txt1, return_tensors="pt")
+        tokenized_inputs1.to(device)
+        encoding1 = model(tokenized_inputs1["input_ids"])
+        tokenized_inputs2 = tokenizer(txt2, return_tensors="pt")
+        tokenized_inputs2.to(device)
+        encoding2 = model(tokenized_inputs2["input_ids"])
+
+    lig = LayerIntegratedGradients(model, model.embeddings)
+    tokenized_inputs = tokenizer(txt1, return_tensors="pt")
+    tokenized_inputs.to(device)
+    input = tokenized_inputs["input_ids"]
+
+    attributions_ig, delta = lig.attribute(
+        (input, encoding2), 
+        return_convergence_delta=True,
+        attribute_to_layer_input=False
+    )
+    tokens1 = tokenizer.tokenize(txt1)
+    importance1 = attributions_ig.sum(-1).squeeze().tolist()[1:-1]
+    
+    # repeat for txt2
+    lig = LayerIntegratedGradients(model, model.embeddings)
+    tokenized_inputs = tokenizer(txt2, return_tensors="pt")
+    tokenized_inputs.to(device)
+    input = tokenized_inputs["input_ids"]
+
+    attributions_ig, delta = lig.attribute(
+        (input, encoding1), 
+        return_convergence_delta=True,
+        attribute_to_layer_input=False
+    )
+    tokens2 = tokenizer.tokenize(txt2)
+    importance2 = attributions_ig.sum(-1).squeeze().tolist()[1:-1]
+
+    return {"tokens1": tokens1,
+            "tokens2": tokens2,
+            "importance1": importance1,
+            "importance2": importance2,}
