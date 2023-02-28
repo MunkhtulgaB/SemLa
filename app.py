@@ -4,7 +4,7 @@ from flask import Flask, send_from_directory, request
 from numba import jit
 import numpy as np
 from scipy.special import softmax
-from importance import attention_importance, lime_importance, integrad_importance, gradient_importance, token_encoding_relation
+from importance import attention_importance, lime_importance, integrad_importance, gradient_importance, token_encoding_relation, integrad_relation
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BaseModelOutputWithPoolingAndCrossAttentions
 
@@ -23,6 +23,19 @@ elif DATASET == "clinc":
 def inner_product_distance(a,b, tau=15):
     return np.exp(-np.sum(a * b) / tau)**2
 
+
+class BertForIntegratedGradientsWrtSimilarity(BertModel):
+    def forward(self, input_ids, precomputed_encoding=None):
+        encoding = super().forward(input_ids).last_hidden_state[:,0]
+        
+        if precomputed_encoding is not None:
+            import torch
+
+            similarity = torch.inner(encoding, precomputed_encoding)
+            similarity = similarity.sum(dim=-1)
+            return similarity
+        else:
+            return encoding
 
 class BertForIntegratedGradients(BertModel):
     def forward(self, *args, **kwargs):
@@ -107,7 +120,8 @@ class TextProcessor:
         # A version of the same model for integrated gradients
         self.model_for_ig = BertForIntegratedGradients.from_pretrained(checkpoint)
         self.model_for_grad = BertForGradients.from_pretrained(checkpoint)
-    
+        self.model_for_similarity_ig = BertForIntegratedGradientsWrtSimilarity.from_pretrained(checkpoint)
+
     def process(self, text):
         encoding = self.encode(text)
         return {"encoding": encoding.tolist()}
@@ -156,19 +170,20 @@ class TextProcessor:
         txt2 = self.raw_datasets["test"]["text"][index2]
 
         if not reltype:
-            return grad_relation(
-                self.tokenizer,
-                self.model_for_grad,
-                txt1,
-                txt2
-            )
-        elif reltype == "encoding":
             return token_encoding_relation(
                 self.tokenizer,
                 self.model_for_grad,
                 txt1, 
                 txt2
             )
+        elif reltype == "integrad":
+            return integrad_relation(
+                self.tokenizer,
+                self.model_for_similarity_ig,
+                txt1,
+                txt2
+            )
+
 
 def create_app(test_config=None):
     # create and configure the app
