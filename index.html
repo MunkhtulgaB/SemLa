@@ -1264,7 +1264,6 @@
             return new Promise((resolve, reject) => {
               $.ajax(`relation?index1=${idx1}&index2=${idx2}&reltype=${reltype}`)
               .done(function(res) {
-                console.log(res)
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
                   $("#rel_chart_left_container").animate({
@@ -1464,7 +1463,6 @@
 
           function minmax(values, value) {
             if (value && !values.includes(value)) {
-              console.log(value, values)
               throw new Error("value must be included in values");
             }
             const max_val = Math.max(...values);

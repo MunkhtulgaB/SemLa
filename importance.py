@@ -63,7 +63,6 @@ def lime_importance(tokenizer, model, text, support_set, device=None):
                     token_type_ids=tokenized_xs["token_type_ids"][batch_idx*BATCH_LIMIT: (batch_idx + 1) * BATCH_LIMIT].to(device),
                     attention_mask=tokenized_xs["attention_mask"][batch_idx*BATCH_LIMIT: (batch_idx + 1) * BATCH_LIMIT].to(device),
                 )
-                print(tokenized_xs_batched)
                 outputs_batched = model(**tokenized_xs_batched)
                 outputs.append( outputs_batched.last_hidden_state[:,0,:] )
         
@@ -99,7 +98,6 @@ def lime_importance(tokenizer, model, text, support_set, device=None):
     tokens = one_sentence_tokenize(text)
     importance = sorted(exp.as_map()[label], key=lambda x: x[0])
     importance = [weight for pos, weight in importance]
-    print(importance)
     return importance, tokens
 
 
