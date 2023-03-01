@@ -559,6 +559,9 @@
           var yAxis = SVG.append("g")
           .call(d3.axisLeft(y));
 
+          var newX = x;
+          var newY = y;
+
           // Create the scatter variable
           var scatter = SVG.append('g')
           .attr("clip-path", "url(#clip)")
@@ -985,8 +988,8 @@
           // A function that updates the chart when the user zoom and thus new boundaries are available
           function updateChart() {
               // recover the new scale
-              var newX = d3.event.transform.rescaleX(x);
-              var newY = d3.event.transform.rescaleY(y);
+              newX = d3.event.transform.rescaleX(x);
+              newY = d3.event.transform.rescaleY(y);
 
               // update axes with these new boundaries
               xAxis.call(d3.axisBottom(newX))
@@ -1192,7 +1195,58 @@
                   .attr("stroke-width","3px")
                   .addClass("selected-dp");
 
-            updateImportanceChart(d)
+            
+            updateImportanceChart(d);
+
+            // populate the relchart automatically
+            const similarities_sorted = Array.from(d.distances[0].entries()).sort((a,b) => b[1] - a[1]);
+            const support_dps = d.support_set.map(idx => data[idx]);
+
+            const closest_dp = support_dps[similarities_sorted[0][0]]; // closest dp
+            if (closest_dp.ground_truth_label_idx != d.prediction_label_idx) {
+              throw new Error();
+            }
+            var dp2;
+
+            if (d.prediction == d.ground_truth) {
+              dp2 = support_dps[similarities_sorted[1][0]]; // second closest dp
+            } else {
+              dp2 = support_dps.find(dp => dp.ground_truth_label_idx == d.ground_truth_label_idx);
+            }
+
+            updateRelationChart(d.idx, closest_dp.idx)
+              .then(res => updateRelationChart(d.idx, dp2.idx));
+
+
+            // draw the draglines to the two support examples
+            const dragline0 = d3.select("#drag-line-0");
+            const dragline1 = d3.select("#drag-line-1");
+
+            dragline0
+              .style("visibility", "visible")
+              .attr("x1", newX(d[`${dim_reduction}-dim0`]))
+              .attr("y1", newY(d[`${dim_reduction}-dim1`]))
+              .attr("x2", newX(closest_dp[`${dim_reduction}-dim0`]))
+              .attr("y2", newY(closest_dp[`${dim_reduction}-dim1`]))
+              .data([{
+                "x1": d[`${dim_reduction}-dim0`],
+                "y1": d[`${dim_reduction}-dim1`],
+                "x2": closest_dp[`${dim_reduction}-dim0`],
+                "y2": closest_dp[`${dim_reduction}-dim1`],
+              }]);
+            
+            dragline1
+              .style("visibility", "visible")
+              .attr("x1", newX(d[`${dim_reduction}-dim0`]))
+              .attr("y1", newY(d[`${dim_reduction}-dim1`]))
+              .attr("x2", newX(dp2[`${dim_reduction}-dim0`]))
+              .attr("y2", newY(dp2[`${dim_reduction}-dim1`]))
+              .data([{
+                "x1": d[`${dim_reduction}-dim0`],
+                "y1": d[`${dim_reduction}-dim1`],
+                "x2": dp2[`${dim_reduction}-dim0`],
+                "y2": dp2[`${dim_reduction}-dim1`],
+              }]);
           }
 
           // Relation
@@ -1205,10 +1259,12 @@
             current_tokens1 = d3.selectAll("svg#rel_chart > .relchart_left")
               .data().map(d => d.token);
 
-            const reltype = "encoding";
+            const reltype = "integrad";
 
-            var jqxhr = $.ajax(`relation?index1=${idx1}&index2=${idx2}&reltype=${reltype}`)
+            return new Promise((resolve, reject) => {
+              $.ajax(`relation?index1=${idx1}&index2=${idx2}&reltype=${reltype}`)
               .done(function(res) {
+                console.log(res)
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
                   $("#rel_chart_left_container").animate({
@@ -1223,10 +1279,12 @@
                   d3.selectAll("svg#rel_chart > *").remove();
                   renderEncodingRelChart(res);
                 }
+                resolve();
               })
               .fail(function() {
                 alert( "error" );
               });
+            }) 
           }
           
           
@@ -1291,29 +1349,30 @@
               });
 
             // Render token-to-token links that show on hover
-            const link_data = [];
-            res.links.forEach(function(links, i) {
-              links.forEach(function(link, j) {
-                link_data.push({"from": j, "to": i, "strength": link});
-              })
-            });
-            const old_links_data = d3.selectAll(".rel_links").data();
-            const all_link_strengths = link_data.concat(old_links_data).map(l => l.strength);
+            if (res.links) {
+              const link_data = [];
+              res.links.forEach(function(links, i) {
+                links.forEach(function(link, j) {
+                  link_data.push({"from": j, "to": i, "strength": link});
+                })
+              });
+              const old_links_data = d3.selectAll(".rel_links").data();
+              const all_link_strengths = link_data.concat(old_links_data).map(l => l.strength);
 
-            relchart_left.selectAll(".rel_links_contrast")
-              .data(link_data)
-              .enter()
-              .append("line")
-              .attr("class", "rel_links_contrast")
-              .attr("x1", Math.max(...left_text_bboxes.map(b => b.width)) + 5)
-              .attr("y1", d => (d.from + 1) * fontsize + d.from * spacing_left_col)
-              .attr("x2", "95%")
-              .attr("y2", d => (d.to + 1) * fontsize + d.to * spacing_right_col)
-              .style("stroke", "dimgrey")
-              .style("visibility", "hidden")
-              .style("stroke-width", 2)
-              .style("stroke-opacity", d => minmax(all_link_strengths, d.strength) ** 3);
-
+              relchart_left.selectAll(".rel_links_contrast")
+                .data(link_data)
+                .enter()
+                .append("line")
+                .attr("class", "rel_links_contrast")
+                .attr("x1", Math.max(...left_text_bboxes.map(b => b.width)) + 5)
+                .attr("y1", d => (d.from + 1) * fontsize + d.from * spacing_left_col)
+                .attr("x2", "95%")
+                .attr("y2", d => (d.to + 1) * fontsize + d.to * spacing_right_col)
+                .style("stroke", "dimgrey")
+                .style("visibility", "hidden")
+                .style("stroke-width", d => 10 * minmax(all_link_strengths, Math.abs(d.importance)))
+                .style("stroke-opacity", d => minmax(all_link_strengths, d.strength) ** 3);
+            }
             // Render importance-links
             const left_lines = relchart_left.selectAll(".left_links_contrast")
               .data(tokens2_data)
@@ -1325,7 +1384,7 @@
               .attr("x2", "50%")
               .attr("y2", "50%")
               .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
-              .style("stroke-width", 2)
+              .style("stroke-width", d => 10 * minmax(all_importance, Math.abs(d.importance)))
               .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
             const right_lines = relchart_left.selectAll(".right_links_contrast")
               .data(tokens1_data)
@@ -1337,7 +1396,7 @@
               .attr("x2", "95%")
               .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
               .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
-              .style("stroke-width", 2)
+              .style("stroke-width", d => 10 * minmax(all_importance, Math.abs(d.importance)))
               .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
             
             // Recalculate stroke opacity for previously visible lines
@@ -1351,7 +1410,7 @@
             relchart.selectAll(".left_rect")
                   .attr("fill", "none")
             relchart.selectAll(".right_rect")
-                  .attr("fill-opacity", d => (d.importance > 0) ? 0.5 * minmax(all_importance, d.importance) : 0 )
+                  .attr("fill-opacity", d => 0.5 * minmax(all_importance, Math.abs(d.importance)))
 
             // Refresh the on hover effect of each token, new and old
             relchart.selectAll(".relchart_left")
@@ -1382,6 +1441,10 @@
                 d3.select("#rel_chart_tooltip")
                   .style("visibility", "hidden");
               });
+          }
+
+          function sum(values) {
+            return values.reduce((a,b) => a+b, 0);
           }
 
           function softmax(values, value) {
@@ -1520,27 +1583,29 @@
                   .style("visibility", "hidden");
               });
 
-            const link_data = [];
-            res.links.forEach(function(links, i) {
-              links.forEach(function(link, j) {
-                link_data.push({"from": i, "to": j, "strength": link});
-              })
-            });
-            const all_link_strengths = link_data.map(l => l.strength);
+            if (res.links) {
+              const link_data = [];
+              res.links.forEach(function(links, i) {
+                links.forEach(function(link, j) {
+                  link_data.push({"from": i, "to": j, "strength": link});
+                })
+              });
+              const all_link_strengths = link_data.map(l => l.strength);
 
-            relchart.selectAll(".rel_links")
-              .data(link_data)
-              .enter()
-              .append("line")
-              .attr("class", "rel_links")
-              .attr("x1", Math.max(...left_text_bboxes.map(b => b.width)) + 5)
-              .attr("y1", d => (d.from + 1) * fontsize + d.from * spacing_left_col)
-              .attr("x2", chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5))
-              .attr("y2", d => (d.to + 1) * fontsize + d.to * spacing_right_col)
-              .style("stroke", "dimgrey")
-              .style("visibility", "hidden")
-              .style("stroke-width", 2)
-              .style("stroke-opacity", d => minmax(all_link_strengths, d.strength) ** 3);
+              relchart.selectAll(".rel_links")
+                .data(link_data)
+                .enter()
+                .append("line")
+                .attr("class", "rel_links")
+                .attr("x1", Math.max(...left_text_bboxes.map(b => b.width)) + 5)
+                .attr("y1", d => (d.from + 1) * fontsize + d.from * spacing_left_col)
+                .attr("x2", chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5))
+                .attr("y2", d => (d.to + 1) * fontsize + d.to * spacing_right_col)
+                .style("stroke", "dimgrey")
+                .style("visibility", "hidden")
+                .style("stroke-width", d => 10 * minmax(all_link_strengths, Math.abs(d.importance)))
+                .style("stroke-opacity", d => minmax(all_link_strengths, d.strength) ** 3);
+            }
 
             const left_lines = relchart.selectAll(".left_links")
               .data(leftcol_data)
@@ -1552,7 +1617,7 @@
               .attr("x2", "50%")
               .attr("y2", "50%")
               .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
-              .style("stroke-width", 2)
+              .style("stroke-width", d => 10 * minmax(all_importance, Math.abs(d.importance)))
               .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
             const right_lines = relchart.selectAll(".right_links")
               .data(rightcol_data)
@@ -1564,7 +1629,7 @@
               .attr("x2", chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5))
               .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
               .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
-              .style("stroke-width", 2)
+              .style("stroke-width", d => 10 * minmax(all_importance, Math.abs(d.importance)))
               .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
             d3.selectAll(".relation")
               .on("mouseover", function(d) {
