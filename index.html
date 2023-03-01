@@ -1787,7 +1787,8 @@
           function formatImportanceData(res) {
             const integrad_abs = res.integrad_importance.map(x => Math.abs(x));
             const lime_abs = res.lime_importance.map(x => Math.abs(x));
-
+            const grad_abs = res.grad_importance.map(x => Math.abs(x));
+            
             const data = {
               labels: res.tokens,
               datasets: [
@@ -1806,11 +1807,18 @@
                   backgroundColor: "#e69f00",
                 },
                 {
+                  label: "Gradient",
+                  data: grad_abs.map(x => x / Math.max(...grad_abs)),
+                  borderColor: "white",
+                  borderWidth: 2,
+                  backgroundColor: "#009E73"
+                },
+                {
                   label: "LIME",
                   data: lime_abs.map(x => x / Math.max(...lime_abs)),
                   borderColor: "white",
                   borderWidth: 2,
-                  backgroundColor: "#009E73"
+                  backgroundColor: "#56B4E9"
                 }
               ]
             };            

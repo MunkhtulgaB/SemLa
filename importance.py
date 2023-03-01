@@ -30,7 +30,6 @@ def attention_importance(tokenizer, model, text, device="cuda"):
         tokenized_input.to(device)
         model.to(device)
         outputs = model(**tokenized_input, output_attentions=True)
-        print(outputs)
         attentions = torch.stack(outputs.attentions)
         attentions_aggregated = attentions.squeeze().sum(0).sum(0).detach().cpu()
         attentions_importance = attentions_aggregated.sum(0) / 144
@@ -127,10 +126,12 @@ def integrad_importance(tokenizer, model, text, device="cuda"):
 
 
 def gradient_importance(tokenizer, model, text, device="cuda"):
+    model.setMode("vanilla_grad")
     encoding, embeddings = encode(text, tokenizer, model, device)
     encoding.sum().backward()
     importance = embeddings.grad.abs().sum(-1).squeeze().tolist()[1:-1]
     tokens = tokenizer.tokenize(text)
+    model.setMode(None)
     return importance, tokens
     
 

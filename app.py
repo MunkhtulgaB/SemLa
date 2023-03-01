@@ -4,7 +4,7 @@ from flask import Flask, send_from_directory, request
 from numba import jit
 import numpy as np
 from scipy.special import softmax
-from importance import attention_importance, lime_importance, integrad_importance, integrad_relation
+from importance import attention_importance, gradient_importance, lime_importance, integrad_importance, integrad_relation
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BaseModelOutputWithPoolingAndCrossAttentions
 
@@ -152,16 +152,20 @@ class TextProcessor:
         elif method == "integrad":
             importance = integrad_importance(self.tokenizer, self.model, text)
             return importance
-        
+        elif method == "gradient":
+            importance = gradient_importance(self.tokenizer, self.model, text)
+            return importance
 
     def importances_all(self, index):
         attn_importance, tokens = self.importance(index, "attention")
         lime_importance, tokens = self.importance(index, "lime")
         integrad_importance, tokens = self.importance(index, "integrad")
+        grad_importance, tokens = self.importance(index, "gradient")
 
         return {"tokens": tokens, 
                 "attn_importance": attn_importance,
                 "lime_importance": lime_importance,
+                "grad_importance": grad_importance, 
                 "integrad_importance": integrad_importance}
     
     def relation(self, index1, index2, reltype):
