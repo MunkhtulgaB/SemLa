@@ -26,6 +26,8 @@ def inner_product_distance(a,b, tau=15):
 
 class BertForIntegratedGradientsWrtSimilarity(BertModel):
     def forward(self, input_ids, precomputed_encoding=None):
+
+        print(input_ids.shape)
         encoding = super().forward(input_ids).last_hidden_state[:,0]
         
         if precomputed_encoding is not None:
@@ -177,12 +179,22 @@ class TextProcessor:
                 txt2
             )
         elif reltype == "integrad":
-            return integrad_relation(
+            tokens1, importance1 = integrad_relation(
                 self.tokenizer,
                 self.model_for_similarity_ig,
                 txt1,
                 txt2
             )
+            tokens2, importance2 = integrad_relation(
+                self.tokenizer,
+                self.model_for_similarity_ig,
+                txt2,
+                txt1
+            )
+            return {"tokens1": tokens1,
+                    "tokens2": tokens2,
+                    "importance1": importance1,
+                    "importance2": importance2,}
 
 
 def create_app(test_config=None):
