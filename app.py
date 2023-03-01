@@ -4,7 +4,7 @@ from flask import Flask, send_from_directory, request
 from numba import jit
 import numpy as np
 from scipy.special import softmax
-from importance import attention_importance, lime_importance, integrad_importance, gradient_importance, token_encoding_relation, integrad_relation
+from importance import attention_importance, lime_importance, integrad_importance, integrad_relation
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BaseModelOutputWithPoolingAndCrossAttentions
 
@@ -121,7 +121,6 @@ class TextProcessor:
 
         # A version of the same model for integrated gradients
         self.model_for_ig = BertForIntegratedGradients.from_pretrained(checkpoint)
-        self.model_for_grad = BertForGradients.from_pretrained(checkpoint)
         self.model_for_similarity_ig = BertForIntegratedGradientsWrtSimilarity.from_pretrained(checkpoint)
 
     def process(self, text):
@@ -148,53 +147,39 @@ class TextProcessor:
             return importance
         elif method == "integrad":
             importance = integrad_importance(self.tokenizer, self.model_for_ig, text)
-            return importance
-        elif method == "gradient":
-            importance = gradient_importance(self.tokenizer, self.model_for_grad, text)
-            return importance
-        
+            return importance        
         
 
     def importances_all(self, index):
         attn_importance, tokens = self.importance(index, "attention")
         lime_importance, tokens = self.importance(index, "lime")
-        grad_importance, tokens = self.importance(index, "gradient")
         integrad_importance, tokens = self.importance(index, "integrad")
 
         return {"tokens": tokens, 
                 "attn_importance": attn_importance,
                 "lime_importance": lime_importance,
-                "grad_importance": grad_importance, 
                 "integrad_importance": integrad_importance}
     
     def relation(self, index1, index2, reltype):
         txt1 = self.raw_datasets["test"]["text"][index1]
         txt2 = self.raw_datasets["test"]["text"][index2]
 
-        if not reltype:
-            return token_encoding_relation(
-                self.tokenizer,
-                self.model_for_grad,
-                txt1, 
-                txt2
-            )
-        elif reltype == "integrad":
-            tokens1, importance1 = integrad_relation(
-                self.tokenizer,
-                self.model_for_similarity_ig,
-                txt1,
-                txt2
-            )
-            tokens2, importance2 = integrad_relation(
-                self.tokenizer,
-                self.model_for_similarity_ig,
-                txt2,
-                txt1
-            )
-            return {"tokens1": tokens1,
-                    "tokens2": tokens2,
-                    "importance1": importance1,
-                    "importance2": importance2,}
+        tokens1, importance1 = integrad_relation(
+            self.tokenizer,
+            self.model_for_similarity_ig,
+            txt1,
+            txt2
+        )
+        tokens2, importance2 = integrad_relation(
+            self.tokenizer,
+            self.model_for_similarity_ig,
+            txt2,
+            txt1
+        )
+        return {"tokens1": tokens1,
+                "tokens2": tokens2,
+                "importance1": importance1,
+                "importance2": importance2,}
 
 
 def create_app(test_config=None):

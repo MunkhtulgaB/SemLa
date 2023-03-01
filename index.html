@@ -1325,7 +1325,7 @@
               .attr("x", d => left_text_bboxes[d.pos].x)
               .attr("y", d => left_text_bboxes[d.pos].y)
               .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
-              .attr("fill-opacity", d => 0.5 * minmax(all_importance, Math.abs(d.importance)));
+              .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)): 0);
             text_left.remove();
             text_left = relchart_left.selectAll(".relchart_left_contrast")
               .data(tokens2_data)
@@ -1369,8 +1369,8 @@
                 .attr("y2", d => (d.to + 1) * fontsize + d.to * spacing_right_col)
                 .style("stroke", "dimgrey")
                 .style("visibility", "hidden")
-                .style("stroke-width", d => 10 * minmax(all_link_strengths, Math.abs(d.importance)))
-                .style("stroke-opacity", d => minmax(all_link_strengths, d.strength) ** 3);
+                .style("stroke-width", d => (d.importance) ? 10 * minmax(all_link_strengths, Math.abs(d.importance)): 0)
+                .style("stroke-opacity", d =>(d.importance) ?  minmax(all_link_strengths, d.strength) ** 3: 0);
             }
             // Render importance-links
             const left_lines = relchart_left.selectAll(".left_links_contrast")
@@ -1383,8 +1383,8 @@
               .attr("x2", "50%")
               .attr("y2", "50%")
               .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
-              .style("stroke-width", d => 10 * minmax(all_importance, Math.abs(d.importance)))
-              .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
+              .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
+              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
             const right_lines = relchart_left.selectAll(".right_links_contrast")
               .data(tokens1_data)
               .enter()
@@ -1395,23 +1395,23 @@
               .attr("x2", "95%")
               .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
               .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
-              .style("stroke-width", d => 10 * minmax(all_importance, Math.abs(d.importance)))
-              .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
+              .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
+              .style("stroke-opacity", d => (d.importance) ?minmax(all_importance, Math.abs(d.importance)): 0);
             
             // Recalculate stroke opacity for previously visible lines
             d3.selectAll(".left_links")
-              .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
+              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
             d3.selectAll(".right_links")
-              .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
+              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
             
             // Similarly, recalculate opacity of previously visible highlight rects
             const relchart = d3.select("svg#rel_chart");
             relchart.selectAll(".left_rect")
                   .attr("fill", "none")
             relchart.selectAll(".right_rect")
-                  .attr("fill-opacity", d => 0.5 * minmax(all_importance, Math.abs(d.importance)))
+                  .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)): 0)
 
-            // Refresh the on hover effect of each token, new and old
+            // Refresh the on-hover effect of each token, new and old
             relchart.selectAll(".relchart_left")
               .on("mouseover", function(d) {
                 relchart_left.selectAll(".rel_links_contrast")
@@ -1433,7 +1433,7 @@
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
                   .style("visibility", "visible")
-                  .html(`Importance: ${d.importance.toFixed(3)}`)
+                  .html(`Importance: ${(d.importance) ? d.importance.toFixed(3): ""}`)
                   .style("top", (event.pageY + 10) + "px")
                   .style("left", (event.pageX + 10) + "px");
               }).on("mouseout", function(d) {
@@ -1465,10 +1465,12 @@
             if (value && !values.includes(value)) {
               throw new Error("value must be included in values");
             }
+
+            values = values.filter(v => !isNaN(v))            
             const max_val = Math.max(...values);
             const min_val = Math.min(...values);
             const val_range = max_val - min_val;
-            
+
             if (value) {
               return (value - min_val) / val_range;
             } else {
@@ -1511,7 +1513,7 @@
               .attr("x", d => left_text_bboxes[d.pos].x)
               .attr("y", d => left_text_bboxes[d.pos].y)
               .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
-              .attr("fill-opacity", d => 0.5 * minmax(all_importance, Math.abs(d.importance)) )
+              .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)) : 0)
             text_left.remove();
             text_left = relchart.selectAll(".relchart_left")
               .data(leftcol_data)
@@ -1558,7 +1560,7 @@
               .attr("x", d => right_text_bboxes[d.pos].x)
               .attr("y", d => right_text_bboxes[d.pos].y)
               .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
-              .attr("fill-opacity", d => 0.5 * minmax(all_importance, Math.abs(d.importance)) );
+              .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)) : 0 );
             text_right.remove();
             text_right = relchart.selectAll(".relchart_right")
               .data(rightcol_data)
@@ -1601,8 +1603,8 @@
                 .attr("y2", d => (d.to + 1) * fontsize + d.to * spacing_right_col)
                 .style("stroke", "dimgrey")
                 .style("visibility", "hidden")
-                .style("stroke-width", d => 10 * minmax(all_link_strengths, Math.abs(d.importance)))
-                .style("stroke-opacity", d => minmax(all_link_strengths, d.strength) ** 3);
+                .style("stroke-width", d => (d.importance) ? 10 * minmax(all_link_strengths, Math.abs(d.importance)): 0)
+                .style("stroke-opacity", d => (d.importance) ? minmax(all_link_strengths, d.strength) ** 3: 0);
             }
 
             const left_lines = relchart.selectAll(".left_links")
@@ -1615,8 +1617,8 @@
               .attr("x2", "50%")
               .attr("y2", "50%")
               .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
-              .style("stroke-width", d => 10 * minmax(all_importance, Math.abs(d.importance)))
-              .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
+              .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
+              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
             const right_lines = relchart.selectAll(".right_links")
               .data(rightcol_data)
               .enter()
@@ -1627,8 +1629,8 @@
               .attr("x2", chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5))
               .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
               .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
-              .style("stroke-width", d => 10 * minmax(all_importance, Math.abs(d.importance)))
-              .style("stroke-opacity", d => minmax(all_importance, Math.abs(d.importance)));
+              .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0)
+              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
             d3.selectAll(".relation")
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
@@ -1721,7 +1723,6 @@
           function formatImportanceData(res) {
             const integrad_abs = res.integrad_importance.map(x => Math.abs(x));
             const lime_abs = res.lime_importance.map(x => Math.abs(x));
-            const grad_abs = res.grad_importance.map(x => Math.abs(x));
 
             const data = {
               labels: res.tokens,
@@ -1741,18 +1742,11 @@
                   backgroundColor: "#e69f00",
                 },
                 {
-                  label: "Gradient",
-                  data: grad_abs.map(x => x / Math.max(...grad_abs)),
-                  borderColor: "white",
-                  borderWidth: 2,
-                  backgroundColor: "#009E73"
-                },
-                {
                   label: "LIME",
                   data: lime_abs.map(x => x / Math.max(...lime_abs)),
                   borderColor: "white",
                   borderWidth: 2,
-                  backgroundColor: "#56B4E9"
+                  backgroundColor: "#009E73"
                 }
               ]
             };            
