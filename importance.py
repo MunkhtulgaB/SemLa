@@ -30,7 +30,7 @@ def attention_importance(tokenizer, model, text, device="cuda"):
         tokenized_input.to(device)
         model.to(device)
         outputs = model(**tokenized_input, output_attentions=True)
-        
+        print(outputs)
         attentions = torch.stack(outputs.attentions)
         attentions_aggregated = attentions.squeeze().sum(0).sum(0).detach().cpu()
         attentions_importance = attentions_aggregated.sum(0) / 144
@@ -42,8 +42,6 @@ def attention_importance(tokenizer, model, text, device="cuda"):
 
 
 def lime_importance(tokenizer, model, text, support_set, device=None):
-    if device is None:
-        device = "cuda" if len(text.split(" ")) < 10 else "cpu"
 
     def one_sentence_tokenize(text):
         tokens = tokenizer.tokenize(text)
@@ -53,7 +51,6 @@ def lime_importance(tokenizer, model, text, support_set, device=None):
         with torch.no_grad():
             tokenized_xs = tokenizer.batch_encode_plus(texts, max_length=50, 
                                                     truncation=True, padding=True, return_tensors="pt")
-            tokenized_xs.to(device)
             outputs = []
             num_batches = math.ceil(len(texts) / BATCH_LIMIT)
             
@@ -77,6 +74,9 @@ def lime_importance(tokenizer, model, text, support_set, device=None):
         return probs.detach().cpu().numpy()
 
     from lime.lime_text import LimeTextExplainer
+
+    if device is None:
+        device = "cuda" if len(text.split(" ")) < 10 else "cpu"
 
     model.to(device)
     BATCH_LIMIT = 1
@@ -104,13 +104,16 @@ def lime_importance(tokenizer, model, text, support_set, device=None):
 def integrad_importance(tokenizer, model, text, device="cuda"):
     from captum.attr import LayerIntegratedGradients
 
+    model.setMode("integrad")
+    model.to(device)
     lig = LayerIntegratedGradients(model, model.embeddings)
     tokenized_inputs = tokenizer(text, 
                                 max_length=MAX_LENGTH, 
                                 truncation=True, 
                                 return_tensors="pt")
+    tokenized_inputs.to(device)
     input = tokenized_inputs["input_ids"]
-
+    
     attributions_ig, delta = lig.attribute(
         input, 
         return_convergence_delta=True,
@@ -118,6 +121,8 @@ def integrad_importance(tokenizer, model, text, device="cuda"):
     )
     tokens = tokenizer.tokenize(text)
     importance = attributions_ig.sum(-1).squeeze().tolist()[1:-1]
+    model.setMode(None)
+
     return importance, tokens
 
 
@@ -153,6 +158,7 @@ def token_encoding_relation(tokenizer, model, txt1, txt2, device="cuda"):
 def integrad_relation(tokenizer, model, txt1, txt2, device="cuda"):
     from captum.attr import LayerIntegratedGradients
 
+    model.setMode("integrad_from_similarity")
     model.to(device)
     with torch.no_grad():
         tokenized_inputs2 = tokenizer(txt2, 
@@ -177,5 +183,6 @@ def integrad_relation(tokenizer, model, txt1, txt2, device="cuda"):
     )
     tokens = tokenizer.tokenize(txt1)
     importance = attributions_ig.sum(-1).squeeze().tolist()[1:-1]
-    
+    model.setMode(None)
+
     return tokens, importance

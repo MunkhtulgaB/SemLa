@@ -24,67 +24,74 @@ def inner_product_distance(a,b, tau=15):
     return np.exp(-np.sum(a * b) / tau)**2
 
 
-class BertForIntegratedGradientsWrtSimilarity(BertModel):
-    def forward(self, input_ids, precomputed_encoding=None):
+class BertForImportanceAttribution(BertModel):
 
-        print(input_ids.shape)
-        encoding = super().forward(input_ids).last_hidden_state[:,0]
+    def setMode(self, mode):
+        self.mode = mode
+
+    def forward(self, 
+                input_ids, 
+                precomputed_encoding=None,
+                attention_mask=None,
+                token_type_ids=None,
+                output_hidden_states=False,
+                output_attentions=False):
+
+        if self.mode == "integrad_from_similarity":
+            encoding = super().forward(input_ids).last_hidden_state[:,0]
+            
+            if precomputed_encoding is not None:
+                import torch
+
+                similarity = torch.inner(encoding, precomputed_encoding)
+                similarity = similarity.sum(dim=-1)
+                return similarity
+            else:
+                return encoding
+
+        elif self.mode == "integrad":
+            encoding = super().forward(input_ids).last_hidden_state[:,0]
+            output = encoding.sum(dim=-1)
+            return output
         
-        if precomputed_encoding is not None:
-            import torch
+        elif self.mode == "vanilla_grad":
+            extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(attention_mask, input_ids.size(), device=DEVICE)
+            embedding_output = self.embeddings(
+                input_ids=input_ids,
+                position_ids=None,
+                token_type_ids=token_type_ids,
+                inputs_embeds=None,
+                past_key_values_length=0,
+            )
 
-            similarity = torch.inner(encoding, precomputed_encoding)
-            similarity = similarity.sum(dim=-1)
-            return similarity
-        else:
-            return encoding
+        
+            embedding_output.retain_grad()
 
-class BertForIntegratedGradients(BertModel):
-    def forward(self, *args, **kwargs):
-        encoding = super().forward(*args, **kwargs).last_hidden_state[:,0]
-        output = encoding.sum(dim=-1)
-        return output
-    
+            encoder_outputs = self.encoder(
+                embedding_output,
+                attention_mask=extended_attention_mask,
+                head_mask=None,
+                encoder_hidden_states=None,
+                encoder_attention_mask=None,
+                past_key_values=None,
+                use_cache=False,
+                output_attentions=False,
+                output_hidden_states=output_hidden_states
+            )
+            sequence_output = encoder_outputs[0]
+            pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
 
-class BertForGradients(BertModel):
-
-    def forward(
-        self,
-        input_ids,
-        attention_mask,
-        token_type_ids,
-        output_hidden_states=False,
-    ):
-        extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(attention_mask, input_ids.size(), device=DEVICE)
-        embedding_output = self.embeddings(
-            input_ids=input_ids,
-            position_ids=None,
-            token_type_ids=token_type_ids,
-            inputs_embeds=None,
-            past_key_values_length=0,
-        )
-
-     
-        embedding_output.retain_grad()
-
-        encoder_outputs = self.encoder(
-            embedding_output,
-            attention_mask=extended_attention_mask,
-            head_mask=None,
-            encoder_hidden_states=None,
-            encoder_attention_mask=None,
-            past_key_values=None,
-            use_cache=False,
-            output_attentions=False,
-            output_hidden_states=output_hidden_states
-        )
-        sequence_output = encoder_outputs[0]
-        pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
-
-        return BaseModelOutputWithPoolingAndCrossAttentions(
-            last_hidden_state=sequence_output,
-            pooler_output=pooled_output,
-        ), embedding_output
+            return BaseModelOutputWithPoolingAndCrossAttentions(
+                last_hidden_state=sequence_output,
+                pooler_output=pooled_output,
+            ), embedding_output
+        elif self.mode is None:
+            return super().forward(input_ids, 
+                    attention_mask=attention_mask,
+                    token_type_ids=token_type_ids,
+                    output_hidden_states=output_hidden_states,
+                    output_attentions=output_attentions
+                )
 
 
 class TextProcessor:
@@ -116,12 +123,9 @@ class TextProcessor:
         checkpoint = "./models/" + dataset
 
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-        self.model = AutoModel.from_pretrained(checkpoint, num_labels=num_labels)
+        self.model = BertForImportanceAttribution.from_pretrained(checkpoint)
+        self.model.setMode(None)
         self.model.to(DEVICE)
-
-        # A version of the same model for integrated gradients
-        self.model_for_ig = BertForIntegratedGradients.from_pretrained(checkpoint)
-        self.model_for_similarity_ig = BertForIntegratedGradientsWrtSimilarity.from_pretrained(checkpoint)
 
     def process(self, text):
         encoding = self.encode(text)
@@ -146,8 +150,8 @@ class TextProcessor:
             importance = lime_importance(self.tokenizer, self.model, text, support_set)
             return importance
         elif method == "integrad":
-            importance = integrad_importance(self.tokenizer, self.model_for_ig, text)
-            return importance        
+            importance = integrad_importance(self.tokenizer, self.model, text)
+            return importance
         
 
     def importances_all(self, index):
@@ -166,13 +170,13 @@ class TextProcessor:
 
         tokens1, importance1 = integrad_relation(
             self.tokenizer,
-            self.model_for_similarity_ig,
+            self.model,
             txt1,
             txt2
         )
         tokens2, importance2 = integrad_relation(
             self.tokenizer,
-            self.model_for_similarity_ig,
+            self.model,
             txt2,
             txt1
         )

@@ -73,11 +73,59 @@
       input[type=number] {
         width: 50px;
       }
+
+      #widget-panel {
+        margin: 0;
+        position: fixed;
+        left: 0;
+        top: 0;
+        background-color: white;
+        z-index: 1;
+        display: flex; 
+        flex-direction: row; 
+        flex-wrap: wrap; 
+        width: 100%; 
+        height: fit-content;
+        justify-content: space-evenly;
+        border-bottom: 1px solid grey;
+        /* box-shadow: -1px -1px 2px grey; */
+        padding: 5px;
+      }
+
+      #dashboard {
+        position: fixed;
+        overflow: hidden;
+        bottom: 0;
+        right: 0;
+        width: 1320px;
+        display: flex;
+        padding-bottom: 50px;
+        flex-direction: column;
+        justify-content: space-evenly;
+      }
+
+      body {
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+      }
+
+      html {
+        padding: 0;
+        margin: 0;
+      }
+
+      #container {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        padding: 0;
+      }
     </style>
   </head>
   <body>
     <!-- page content -->
-    <div style="display: flex; flex-direction: row; flex-wrap: wrap; width: 100%; justify-content: start;">
+    <div id="widget-panel">
       <div class="widget" style="width: 355px;">
         <p class="widget_title">Options</p>
         <div class="widget_content">
@@ -171,8 +219,18 @@
             </table>
           </div>
       </div>
+    </div>
 
-      <div class="widget" style="width: 323px;" >
+    <div id="container">
+      <svg id="semantic_landscape">
+      <g>
+      </g>
+      </svg>
+    </div>
+
+
+    <div id="dashboard" style="width: 0;">
+      <div class="widget" style="width: 323px; border: 3px solid red;" >
         <p class="widget_title">
           Importance
         </p>
@@ -195,14 +253,6 @@
             </div>
          </div>
       </div>
-
-    </div>
-
-    <div id="container">
-      <svg id="semantic_landscape" width="1460" height="760">
-      <g>
-      </g>
-      </svg>
     </div>
 
     <script>
@@ -213,8 +263,8 @@
 
       // set the dimensions and margins of the graph
       var margin = {top: 10, right: 30, bottom: 30, left: 60},
-          width = 1550 - margin.left - margin.right,
-          height = 600 - margin.top - margin.bottom;
+          width = 1250 - margin.left - margin.right,
+          height = 800 - margin.top - margin.bottom;
       
       // append the SVG object to the body of the page
       var SVG = d3.select("svg#semantic_landscape")
@@ -238,14 +288,14 @@
           .attr("id", "drag-line-0")
           .attr("class", "drag_line")
           .style("visibility", "hidden")
-          .attr("stroke", "rgba(255, 112, 112, 0.8)")
+          .attr("stroke", "lightblue")
           .attr("stroke-width", "3");
       var drag_line1 = SVG.append("line")
           .attr("clip-path", "url(#clip)")
           .attr("id", "drag-line-1")
           .attr("class", "drag_line")
           .style("visibility", "hidden")
-          .attr("stroke", "rgba(255, 112, 112, 0.8)")
+          .attr("stroke", "lightblue")
           .attr("stroke-width", "3");
 
       var dim_reduction = "tsne";
@@ -1143,6 +1193,7 @@
           }
 
           function clear() {
+            $("#dashboard").animate({width: '0px'});
             filter_input.val("");
             if ($("#show-errors").is(":checked")) {
               filterChart(errors_idxs);
@@ -1169,7 +1220,7 @@
           }
 
           function move_tooltip_to_cursor() { 
-            return tooltip.style("top", (event.pageY + 20)+"px").style("left",(event.pageX + 20)+"px");
+            return tooltip.style("top", (event.pageY - 230)+"px").style("left",(event.pageX + 20)+"px");
           }
 
           function hide_tooltip(){ 
@@ -1185,7 +1236,12 @@
                     dp_element.transform.baseVal[0].matrix.f];
           }
 
+          function showLabelForRelations() {
+            console.log("show what is what")
+          }
+
           function onclick(d) {
+            $("#dashboard").animate({width: '630px'});
             $(".selected-dp")
               .removeClass("selected-dp")
               .attr("stroke", "#9299a1")
@@ -1196,13 +1252,11 @@
                   .addClass("selected-dp");
 
             
-            updateImportanceChart(d);
-
-            // populate the relchart automatically
+            // Update importance and relations charts
             const similarities_sorted = Array.from(d.distances[0].entries()).sort((a,b) => b[1] - a[1]);
             const support_dps = d.support_set.map(idx => data[idx]);
-
             const closest_dp = support_dps[similarities_sorted[0][0]]; // closest dp
+            
             if (closest_dp.ground_truth_label_idx != d.prediction_label_idx) {
               throw new Error();
             }
@@ -1214,9 +1268,10 @@
               dp2 = support_dps.find(dp => dp.ground_truth_label_idx == d.ground_truth_label_idx);
             }
 
+            // populate the relchart automatically
             updateRelationChart(d.idx, closest_dp.idx)
-              .then(res => updateRelationChart(d.idx, dp2.idx));
-
+                .then(_ => updateRelationChart(d.idx, dp2.idx))
+                .then(_ => updateImportanceChart(d));
 
             // draw the draglines to the two support examples
             const dragline0 = d3.select("#drag-line-0");
@@ -1247,6 +1302,7 @@
                 "x2": dp2[`${dim_reduction}-dim0`],
                 "y2": dp2[`${dim_reduction}-dim1`],
               }]);
+            showLabelForRelations();
           }
 
           // Relation
@@ -1282,6 +1338,7 @@
               })
               .fail(function() {
                 alert( "error" );
+                reject();
               });
             }) 
           }
@@ -1324,7 +1381,7 @@
               .attr("height", d => left_text_bboxes[d.pos].height)
               .attr("x", d => left_text_bboxes[d.pos].x)
               .attr("y", d => left_text_bboxes[d.pos].y)
-              .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
+              .attr("fill", d => (d.importance > 0) ? "skyblue" : "pink")
               .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)): 0);
             text_left.remove();
             text_left = relchart_left.selectAll(".relchart_left_contrast")
@@ -1382,7 +1439,7 @@
               .attr("y1", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
               .attr("x2", "50%")
               .attr("y2", "50%")
-              .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
+              .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
               .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
             const right_lines = relchart_left.selectAll(".right_links_contrast")
@@ -1394,7 +1451,7 @@
               .attr("y1", "50%")
               .attr("x2", "95%")
               .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
-              .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
+              .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
               .style("stroke-opacity", d => (d.importance) ?minmax(all_importance, Math.abs(d.importance)): 0);
             
@@ -1512,7 +1569,7 @@
               .attr("height", d => left_text_bboxes[d.pos].height)
               .attr("x", d => left_text_bboxes[d.pos].x)
               .attr("y", d => left_text_bboxes[d.pos].y)
-              .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
+              .attr("fill", d => (d.importance > 0) ? "skyblue" : "pink")
               .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)) : 0)
             text_left.remove();
             text_left = relchart.selectAll(".relchart_left")
@@ -1559,7 +1616,7 @@
               .attr("height", d => right_text_bboxes[d.pos].height)
               .attr("x", d => right_text_bboxes[d.pos].x)
               .attr("y", d => right_text_bboxes[d.pos].y)
-              .attr("fill", d => (d.importance > 0) ? "#0072b2" : "#ff6961")
+              .attr("fill", d => (d.importance > 0) ? "skyblue" : "pink")
               .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)) : 0 );
             text_right.remove();
             text_right = relchart.selectAll(".relchart_right")
@@ -1616,7 +1673,7 @@
               .attr("y1", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
               .attr("x2", "50%")
               .attr("y2", "50%")
-              .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
+              .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
               .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
             const right_lines = relchart.selectAll(".right_links")
@@ -1628,7 +1685,7 @@
               .attr("y1", "50%")
               .attr("x2", chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5))
               .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
-              .style("stroke", d => (d.importance > 0) ? "#0072b2": "#ff6961")
+              .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0)
               .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
             d3.selectAll(".relation")
@@ -1647,19 +1704,22 @@
           // Importance
           var importanceChart;
           const dummyChartData = {
-              labels: [1, 2, 3, 4, 5, 6, 7],
+              labels: ["*", "*", "*", "*", "*", "*", "*"],
               datasets: [
                 {
-                  label: '#####',
-                  data: [1, 2, 3, 4, 5, 6, 7],
-                  borderColor: "grey",
-                  backgroundColor: "grey",
+                  label: '*****',
+                  borderColor: "lightgrey",
+                  backgroundColor: "lightgrey",
                 },
                 {
-                  label: '#####',
-                  data: [-1, -2, -3, -4, -5, -6],
-                  borderColor: "grey",
-                  backgroundColor: "grey",
+                  label: "*****",
+                  borderColor: "lightgrey",
+                  backgroundColor: "lightgrey",
+                },
+                {
+                  label: "*****",
+                  borderColor: "lightgrey",
+                  backgroundColor: "lightgrey",
                 }
               ]
             };     
@@ -1669,15 +1729,19 @@
             if (importanceChart) importanceChart.destroy();
             importanceChart = createImportanceChart("importance_chart", dummyChartData)
 
-            var jqxhr = $.ajax(`importances?index=${d.idx}`)
+            return new Promise((resolve, reject) => {
+              $.ajax(`importances?index=${d.idx}`)
               .done(function(res) {
                 const importanceData = formatImportanceData(res);
                 if (importanceChart) importanceChart.destroy();
-                importanceChart = createImportanceChart("importance_chart", importanceData)
+                importanceChart = createImportanceChart("importance_chart", importanceData);
+                resolve();
               })
               .fail(function() {
                 alert( "error" );
+                reject();
               });
+            });
           }
 
           function createImportanceChart(container_id, data) {
