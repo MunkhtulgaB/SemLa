@@ -99,7 +99,7 @@
         right: 0;
         width: 1320px;
         display: flex;
-        padding-bottom: 50px;
+        padding-bottom: 20px;
         flex-direction: column;
         justify-content: space-evenly;
       }
@@ -205,7 +205,7 @@
         </div>
       </div>
 
-      <div class="widget" style="width: 520px">
+      <div class="widget" style="width: 400px">
           <p class="widget_title">
             Misclassifications
           </p>
@@ -214,7 +214,7 @@
               <tr>
                 <th column_type="gt" class="small_td">Ground truth</th>
                 <th column_type="pred" class="small_td">Prediction</th>
-                <th class="large_td">Text</th>
+                <th column_type="num_confusions" class="small_td"># confusions</th>
               </tr>
             </table>
           </div>
@@ -230,21 +230,21 @@
 
 
     <div id="dashboard" style="width: 0;">
-      <div class="widget" style="width: 323px; border: 3px solid red;" >
+      <div class="widget" style="width: 592px; border: 3px solid red; background-color: white;" >
         <p class="widget_title">
           Importance
         </p>
-        <div class="widget_content" style="height: 300px;">
+        <div class="widget_content" style="height: 320px;">
           <canvas id="importance_chart"></canvas>
         </div>
       </div>
 
       <div id="rel_chart_tooltip" style="visibility: hidden; position: absolute; padding: 5px; border-radius: 5px; font-weight: bold; font-size: 12px; background-color: black; opacity: 0.8; color: white"></div>
-      <div class="widget" style="width: fit-content;" >
+      <div class="widget" style="width: fit-content; background-color: white;" >
         <p class="widget_title">
           Relation
         </p>
-        <div class="widget_content" style="display: flex; height: 300px; padding: 10px">
+        <div class="widget_content" style="display: flex; height: 320px; padding: 10px">
             <div id="rel_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
               <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
             </div>
@@ -331,7 +331,7 @@
               errors.push(dp);
               errors_idxs.push(idx);
 
-              const confusion_key = dp.ground_truth + "," + dp.prediction + "," + dp.idx;
+              const confusion_key = dp.ground_truth + "," + dp.prediction;
 
               if (confusion_key in confusions) {
                 confusions[confusion_key].push(dp.text)
@@ -359,15 +359,15 @@
           // Create the table data
           const confusion_table = []
           for (confusion_key in confusions) {
-            const [gt, pred, idx] = confusion_key.split(",");
+            const [gt, pred] = confusion_key.split(",");
             const txts = confusions[confusion_key];
 
-            txts.forEach(txt => 
-              confusion_table.push([gt, pred, txt, idx]));
+            confusion_table.push([gt, pred, txts.length]);
           }
 
           confusion_table_gt_sorted = [...confusion_table];
           confusion_table_pred_sorted = [...confusion_table];
+          confusion_table_num_confusions_sorted = [...confusion_table];
 
           confusion_table_gt_sorted.sort(function(row1, row2) {
             return gt_counts[row1[0]] - gt_counts[row2[0]];
@@ -377,22 +377,23 @@
             return pred_counts[row1[1]] - pred_counts[row2[1]];
           }).reverse();
 
+          confusion_table_num_confusions_sorted.sort(function(row1, row2) {
+            return row1[2] - row2[2];
+          }).reverse();
+
+
           // Create the table html from the data
           var populate_html_confusion_table = function(data) {
             var html = ""
-            data.forEach(function([gt, pred, txt, idx]) {
-              html += `<tr d_idx=${idx} class="error_tr">
+            data.forEach(function([gt, pred, num_confusions]) {
+              html += `<tr class="error_tr">
                           <td class="small_td">${gt}</td>
                           <td class="small_td">${pred}</td>
-                          <td class="large_td">${txt}</td>
+                          <td class="small_td">${num_confusions}</td>
                         </tr>`
               }
             );
-            $("#confusion-table tr").first().after(html)
-            $(".error_tr").click(function() {
-              const d_idx = $(this).attr("d_idx");
-              filterChart([parseInt(d_idx)]);
-            })
+            $("#confusion-table tr").first().after(html);
           };
 
           populate_html_confusion_table(confusion_table_gt_sorted);
@@ -403,10 +404,12 @@
               populate_html_confusion_table(confusion_table_pred_sorted);
             } else if (col_type == "gt") {
               populate_html_confusion_table(confusion_table_gt_sorted);
+            } else if (col_type == "num_confusions") {
+              populate_html_confusion_table(confusion_table_num_confusions_sorted);
             }
           })
 
-          // Set up the filter feature
+          
           $(document).ready(function() {
             dim_reduction_option = $('input[name="dim-reduction"]');
             groupby_option = $('input[name="group-by"]');
@@ -646,6 +649,7 @@
                   .attr("y2", d3.event.y);
               })
               .on("end", function(d) {
+                $("#dashboard").animate({"width": "630px"});
                 mouseover_dp = d3.select(".ismouseover")
                 if (mouseover_dp.empty()) {
                   current_dragline.style("visibility", "hidden");
@@ -778,13 +782,13 @@
               .style("visibility", "hidden")
               .style("background-color", "white")
               .style("border", "2px solid black")
-              .style("padding", "10px")
+              .style("padding", "10px");
 
           var forceSimulation;
           updateLocalWords();
 
           // A function that counts word frequency in all visible dps
-          function updateLocalWords() {
+          function updateLocalWords(mode) {
             if (forceSimulation) {
               forceSimulation.stop();
             }
@@ -1236,10 +1240,6 @@
                     dp_element.transform.baseVal[0].matrix.f];
           }
 
-          function showLabelForRelations() {
-            console.log("show what is what")
-          }
-
           function onclick(d) {
             $("#dashboard").animate({width: '630px'});
             $(".selected-dp")
@@ -1269,6 +1269,8 @@
             }
 
             // populate the relchart automatically
+            loadingImportanceChart();
+            emptyRelationChart();
             updateRelationChart(d.idx, closest_dp.idx)
                 .then(_ => updateRelationChart(d.idx, dp2.idx))
                 .then(_ => updateImportanceChart(d));
@@ -1302,12 +1304,16 @@
                 "x2": dp2[`${dim_reduction}-dim0`],
                 "y2": dp2[`${dim_reduction}-dim1`],
               }]);
-            showLabelForRelations();
           }
 
           // Relation
           var relChart1;
           var relChart2;
+
+          function emptyRelationChart() {
+            d3.selectAll("svg#rel_chart > *").remove();
+            d3.selectAll("svg#rel_chart_left > *").remove();
+          }
 
           function updateRelationChart(idx1, idx2) {
             if (idx1 == idx2) return;
@@ -1337,7 +1343,7 @@
                 resolve();
               })
               .fail(function() {
-                alert( "error" );
+                alert("There is an issue at the moment. Please try again soon.");
                 reject();
               });
             }) 
@@ -1724,11 +1730,12 @@
               ]
             };     
 
-
-          function updateImportanceChart(d) {
+          function loadingImportanceChart() {
             if (importanceChart) importanceChart.destroy();
             importanceChart = createImportanceChart("importance_chart", dummyChartData)
+          }
 
+          function updateImportanceChart(d) {
             return new Promise((resolve, reject) => {
               $.ajax(`importances?index=${d.idx}`)
               .done(function(res) {
