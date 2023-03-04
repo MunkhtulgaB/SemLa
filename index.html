@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.6.1/randomColor.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <!-- Bootstrap: Latest compiled and minified CSS  -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
@@ -1435,37 +1436,89 @@
                 .style("stroke-width", d => (d.importance) ? 10 * minmax(all_link_strengths, Math.abs(d.importance)): 0)
                 .style("stroke-opacity", d =>(d.importance) ?  minmax(all_link_strengths, d.strength) ** 3: 0);
             }
+
+            const leftcol_data = tokens2_data;
+            const rightcol_data = tokens1_data;
+
             // Render importance-links
+            const getWidth = d => 10 * minmax(all_importance, Math.abs(d.importance));
+
+            const pos_left = leftcol_data.filter(dp => dp.importance > 0).map(getWidth);
+            const neg_left = leftcol_data.filter(dp => dp.importance < 0).map(getWidth);
+            const pos_right = rightcol_data.filter(dp => dp.importance > 0).map(getWidth);
+            const neg_right = rightcol_data.filter(dp => dp.importance < 0).map(getWidth);
+
+            const max_pos = (pos_left.reduce((a,b) => a+b, 0) > pos_right.reduce((a,b) => a+b, 0)) ? pos_left : pos_right;
+            const max_neg = (neg_left.reduce((a,b) => a+b, 0) > neg_right.reduce((a,b) => a+b, 0)) ? neg_left : neg_right;
+            const total_width = max_pos.concat(max_neg).reduce((a,b) => a+b, 0);
+            
+            const PAD = 15;
+            const start_line_pos = chart_height/2 - total_width/2;
+            const start_line_neg = PAD + chart_height/2 + total_width/2 - max_neg.reduce((a,b) => a+b, 0);
+
+
+            var linkGenerator = d3.linkHorizontal()
+                                  .x(d => d.x)
+                                  .y(d => d.y);
+
+            const chart_width = 250;
             const left_lines = relchart_left.selectAll(".left_links_contrast")
-              .data(tokens2_data)
+              .data(leftcol_data.filter(dp => !isNaN(dp.importance)).map(function(d,i) {
+                const positives_so_far_sum = leftcol_data.slice(0, i).filter(dp => dp.importance > 0).map(getWidth).reduce((a,b) => a+b, 0);
+                const negatives_so_far_sum = leftcol_data.slice(0, i).filter(dp => dp.importance < 0).map(getWidth).reduce((a,b) => a+b, 0);
+                
+                const y_start_line = ((d.importance > 0) ? start_line_pos : start_line_neg);
+                const y_offset = (d.importance > 0) ? positives_so_far_sum : negatives_so_far_sum; 
+                
+                // console.log(d.token, d.importance, y_offset, neg_right, neg_left)
+                return {
+                  source: {x: Math.max(...left_text_bboxes.map(b => b.width)) + 5,
+                          y:  (d.pos + 1) * fontsize + d.pos * spacing_left_col},
+                  target: {x: chart_width/2,
+                          y: y_start_line + y_offset + getWidth(d) / 2},
+                  importance: d.importance
+                }
+              }))
               .enter()
-              .append("line")
-              .attr("class", "relation left_links_contrast")
-              .attr("x1", Math.max(...left_text_bboxes.map(b => b.width)) + 5)
-              .attr("y1", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
-              .attr("x2", "50%")
-              .attr("y2", "50%")
+              .append("path")
+              .attr("fill", "none")
+              .attr("d", linkGenerator)
               .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
-              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
+              .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
+            
+            
             const right_lines = relchart_left.selectAll(".right_links_contrast")
-              .data(tokens1_data)
+              .data(
+                rightcol_data.filter(dp => !isNaN(dp.importance)).map(function(d,i) {
+                const positives_so_far_sum = rightcol_data.slice(0, i).filter(dp => dp.importance > 0).map(getWidth).reduce((a,b) => a+b, 0);
+                const negatives_so_far_sum = rightcol_data.slice(0, i).filter(dp => dp.importance < 0).map(getWidth).reduce((a,b) => a+b, 0);
+                
+                const y_start_line = ((d.importance > 0) ? start_line_pos : start_line_neg);
+                const y_offset = (d.importance > 0) ? positives_so_far_sum : negatives_so_far_sum; 
+                
+                return {
+                  source: {x: chart_width/2,
+                          y: y_start_line + y_offset + getWidth(d) / 2},
+                  target: {x: chart_width * 0.9,
+                           y: (d.pos + 1) * fontsize + d.pos * spacing_right_col},
+                  importance: d.importance
+                }
+              }))
               .enter()
-              .append("line")
+              .append("path")
+              .attr("fill", "none")
+              .attr("d", linkGenerator)
               .attr("class", "relation right_links_contrast")
-              .attr("x1", "50%")
-              .attr("y1", "50%")
-              .attr("x2", "95%")
-              .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
               .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
-              .style("stroke-opacity", d => (d.importance) ?minmax(all_importance, Math.abs(d.importance)): 0);
+              .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
             
             // Recalculate stroke opacity for previously visible lines
             d3.selectAll(".left_links")
-              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
+              .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
             d3.selectAll(".right_links")
-              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
+              .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
             
             // Similarly, recalculate opacity of previously visible highlight rects
             const relchart = d3.select("svg#rel_chart");
@@ -1670,30 +1723,78 @@
                 .style("stroke-opacity", d => (d.importance) ? minmax(all_link_strengths, d.strength) ** 3: 0);
             }
 
+            const getWidth = d => 10 * minmax(all_importance, Math.abs(d.importance));
+
+            const pos_left = leftcol_data.filter(dp => dp.importance > 0).map(getWidth);
+            const neg_left = leftcol_data.filter(dp => dp.importance < 0).map(getWidth);
+            const pos_right = rightcol_data.filter(dp => dp.importance > 0).map(getWidth);
+            const neg_right = rightcol_data.filter(dp => dp.importance < 0).map(getWidth);
+
+            const max_pos = (pos_left.reduce((a,b) => a+b, 0) > pos_right.reduce((a,b) => a+b, 0)) ? pos_left : pos_right;
+            const max_neg = (neg_left.reduce((a,b) => a+b, 0) > neg_right.reduce((a,b) => a+b, 0)) ? neg_left : neg_right;
+            const total_width = max_pos.concat(max_neg).reduce((a,b) => a+b, 0);
+            
+            const PAD = 15;
+            const start_line_pos = chart_height/2 - total_width/2;
+            const start_line_neg = PAD + chart_height/2 + total_width/2 - max_neg.reduce((a,b) => a+b, 0);
+
+            var linkGenerator = d3.linkHorizontal()
+                                  .x(d => d.x)
+                                  .y(d => d.y);
+
+
             const left_lines = relchart.selectAll(".left_links")
-              .data(leftcol_data)
+              .data(leftcol_data.filter(dp => !isNaN(dp.importance)).map(function(d,i) {
+                const positives_so_far_sum = leftcol_data.slice(0, i).filter(dp => dp.importance > 0).map(getWidth).reduce((a,b) => a+b, 0);
+                const negatives_so_far_sum = leftcol_data.slice(0, i).filter(dp => dp.importance < 0).map(getWidth).reduce((a,b) => a+b, 0);
+                
+                const y_start_line = ((d.importance > 0) ? start_line_pos : start_line_neg);
+                const y_offset = (d.importance > 0) ? positives_so_far_sum : negatives_so_far_sum; 
+                
+                // console.log(d.token, d.importance, y_offset, neg_right, neg_left)
+                return {
+                  source: {x: Math.max(...left_text_bboxes.map(b => b.width)) + 5,
+                          y:  (d.pos + 1) * fontsize + d.pos * spacing_left_col},
+                  target: {x: chart_width/2,
+                          y: y_start_line + y_offset + getWidth(d) / 2},
+                  importance: d.importance
+                }
+              }))
               .enter()
-              .append("line")
+              .append("path")
+              .attr("d", linkGenerator)
               .attr("class", "relation left_links")
-              .attr("x1", Math.max(...left_text_bboxes.map(b => b.width)) + 5)
-              .attr("y1", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
-              .attr("x2", "50%")
-              .attr("y2", "50%")
+              .attr("fill", "none")
               .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
-              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
+              .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
+            
             const right_lines = relchart.selectAll(".right_links")
-              .data(rightcol_data)
+              .data(rightcol_data.filter(dp => !isNaN(dp.importance)).map(function(d,i) {
+                const positives_so_far_sum = rightcol_data.slice(0, i).filter(dp => dp.importance > 0).map(getWidth).reduce((a,b) => a+b, 0);
+                const negatives_so_far_sum = rightcol_data.slice(0, i).filter(dp => dp.importance < 0).map(getWidth).reduce((a,b) => a+b, 0);
+                
+                const y_start_line = ((d.importance > 0) ? start_line_pos : start_line_neg);
+                const y_offset = (d.importance > 0) ? positives_so_far_sum : negatives_so_far_sum; 
+                
+                return {
+                  source: {x: chart_width/2,
+                          y: y_start_line + y_offset + getWidth(d) / 2},
+                  target: {x: chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5),
+                           y: (d.pos + 1) * fontsize + d.pos * spacing_right_col},
+                  importance: d.importance
+                }
+              }))
               .enter()
-              .append("line")
+              .append("path")
+              .attr("d", linkGenerator)
               .attr("class", "relation right_links")
-              .attr("x1", "50%")
-              .attr("y1", "50%")
-              .attr("x2", chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5))
-              .attr("y2", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
+              .attr("fill", "none")
               .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0)
-              .style("stroke-opacity", d => (d.importance) ? minmax(all_importance, Math.abs(d.importance)): 0);
+              .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
+            
+            
             d3.selectAll(".relation")
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
