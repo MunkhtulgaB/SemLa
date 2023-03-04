@@ -1452,7 +1452,7 @@
             const max_neg = (neg_left.reduce((a,b) => a+b, 0) > neg_right.reduce((a,b) => a+b, 0)) ? neg_left : neg_right;
             const total_width = max_pos.concat(max_neg).reduce((a,b) => a+b, 0);
             
-            const PAD = 15;
+            const PAD = 0;
             const start_line_pos = chart_height/2 - total_width/2;
             const start_line_neg = PAD + chart_height/2 + total_width/2 - max_neg.reduce((a,b) => a+b, 0);
 
@@ -1514,6 +1514,26 @@
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
               .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
             
+            // Add 2 similarity blocks
+            const block_width = 10;
+            relchart_left.selectAll(".sim_block")
+              .data([
+                {fill: "skyblue", stroke: "blue",
+                  height: max_pos.reduce((a,b)=>a+b, 0),
+                  y: start_line_pos},
+                {fill: "pink", stroke: "red",
+                  height: max_neg.reduce((a,b)=>a+b, 0), 
+                  y: start_line_neg}
+              ])
+              .enter()
+              .append("rect")
+              .attr("fill", d => d.fill)
+              .attr("stroke", d => d.stroke)
+              .attr("x", chart_width/2 - block_width/2)
+              .attr("y", d => d.y)
+              .attr("height", d => d.height)
+              .attr("width", block_width);
+
             // Recalculate stroke opacity for previously visible lines
             d3.selectAll(".left_links")
               .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
@@ -1734,7 +1754,7 @@
             const max_neg = (neg_left.reduce((a,b) => a+b, 0) > neg_right.reduce((a,b) => a+b, 0)) ? neg_left : neg_right;
             const total_width = max_pos.concat(max_neg).reduce((a,b) => a+b, 0);
             
-            const PAD = 15;
+            const PAD = 0;
             const start_line_pos = chart_height/2 - total_width/2;
             const start_line_neg = PAD + chart_height/2 + total_width/2 - max_neg.reduce((a,b) => a+b, 0);
 
@@ -1794,7 +1814,26 @@
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0)
               .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
             
-            
+            // Add 2 similarity blocks
+            const block_width = 10;
+            relchart.selectAll(".sim_block")
+              .data([
+                {fill: "skyblue", stroke: "blue",
+                  height: max_pos.reduce((a,b)=>a+b, 0),
+                  y: start_line_pos},
+                {fill: "pink", stroke: "red",
+                  height: max_neg.reduce((a,b)=>a+b, 0), 
+                  y: start_line_neg}
+              ])
+              .enter()
+              .append("rect")
+              .attr("fill", d => d.fill)
+              .attr("stroke", d => d.stroke)
+              .attr("x", chart_width/2 - block_width/2)
+              .attr("y", d => d.y)
+              .attr("height", d => d.height)
+              .attr("width", block_width);
+
             d3.selectAll(".relation")
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
