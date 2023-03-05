@@ -1306,14 +1306,10 @@
             emptyRelationChart();
             emptyTokenChart();
 
-            // updateTokenChart(d.idx, dp2.idx)
-
-            // updateRelationChart(d.idx, closest_dp.idx)
-            //     .then(_ => updateRelationChart(d.idx, dp2.idx))
-            //     // .then(_ => updateImportanceChart(d))
-            //     .then(_ => updateTokenChart(d.idx, closest_dp.idx))
-            //     .then(_ => updateTokenChart(d.idx, dp2.idx));
-            updateTokenChart(d.idx, closest_dp.idx)
+            updateRelationChart(d.idx, closest_dp.idx)
+                .then(_ => updateRelationChart(d.idx, dp2.idx))
+                .then(_ => updateImportanceChart(d))
+                .then(_ => updateTokenChart(d.idx, closest_dp.idx))
                 .then(_ => updateTokenChart(d.idx, dp2.idx));
 
             // draw the draglines to the two support examples
@@ -1358,7 +1354,7 @@
 
           function emptyTokenChart() {
             d3.selectAll("svg#token_chart > *").remove();
-            d3.selectAll("svg#token_chart_lright> *").remove();
+            d3.selectAll("svg#token_chart_left > *").remove();
           }
 
           function updateRelationChart(idx1, idx2) {
@@ -1483,8 +1479,8 @@
               .attr("x", text_x + "px")
               .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing)
               .style("fill", "black")
-              .on("mouseover", onMouseOver || relChartOnMouseOver)
-              .on("mouseout", onMouseOut || relChartOnMouseOut);
+              .on("mouseover", onMouseOver || onMouseOverRelChart)
+              .on("mouseout", onMouseOut || onMouseOutRelChart);
             return bboxes;
           }
 
@@ -1502,8 +1498,8 @@
             const spacing_right_col = (chart_height - res.tokens2.length * fontsize) / (res.tokens2 .length - 1);
             const all_importance = res.importance1.concat(res.importance2).map(i => Math.abs(i));
 
-            const left_text_bboxes = renderRelTexts("svg#rel_chart", leftcol_data, all_importance, true);
-            const right_text_bboxes = renderRelTexts("svg#rel_chart", rightcol_data, all_importance, false);
+            const left_text_bboxes = renderRelTexts("svg#rel_chart", leftcol_data, all_importance, true, d => {onMouseOverRelChart(d); onMouseOverCenterTokenInTokenChart(d)});
+            const right_text_bboxes = renderRelTexts("svg#rel_chart", rightcol_data, all_importance, false, d => {onMouseOverRelChart(d); onMouseOverRightTokenInTokenChart(d)});
 
             // Draw links
             const getWidth = d => 10 * minmax(all_importance, Math.abs(d.importance));
@@ -1636,7 +1632,8 @@
             const importance3 = d3.selectAll("svg#rel_chart > .text_right").data().map(d => d.importance);
             const importance4 = d3.selectAll("svg#rel_chart > .text_left").data().map(d => d.importance);
             const all_importance = res.importance1.concat(res.importance2).concat(importance3).concat(importance4).map(i => Math.abs(i));
-            const left_text_bboxes = renderRelTexts("svg#rel_chart_left", leftcol_data, all_importance, true);
+            
+            const left_text_bboxes = renderRelTexts("svg#rel_chart_left", leftcol_data, all_importance, true, d => { onMouseOverRelChart(d); onMouseOverLeftTokenInTokenChart(d) });
 
             // Render links
             const getWidth = d => 10 * minmax(all_importance, Math.abs(d.importance));
@@ -1770,7 +1767,7 @@
               });
           }
 
-          function relChartOnMouseOver(d) {
+          function onMouseOverRelChart(d) {
             const tooltip = d3.select("#rel_chart_tooltip");
             if (d.importance) {
               tooltip
@@ -1781,11 +1778,42 @@
             }
           }
 
-          function relChartOnMouseOut(d) {
+          function onMouseOutRelChart(d) {
             d3.select("#rel_chart_tooltip")
+                  .style("visibility", "hidden");
+            onMouseOutInTokenChart(d);
+          }
+
+
+          function onMouseOverCenterTokenInTokenChart(d) {
+            d3.selectAll(".token_links")
+              .filter(l => l.from != d.pos)
+              .style("visibility", "hidden");
+            d3.selectAll(".token_links_contrast")
+              .filter(l => l.to != d.pos)
+              .style("visibility", "hidden");
+          }
+
+          function onMouseOverRightTokenInTokenChart(d) {
+            d3.selectAll(".token_links")
+                  .filter(l => l.to != d.pos)
+                  .style("visibility", "hidden");
+                d3.selectAll(".token_links_contrast")
                   .style("visibility", "hidden");
           }
 
+          function onMouseOverLeftTokenInTokenChart(d) {
+            d3.selectAll(".token_links_contrast")
+                .filter(l => l.from != d.pos)
+                .style("visibility", "hidden");
+              d3.selectAll(".token_links")
+                .style("visibility", "hidden");
+          }
+
+          function onMouseOutInTokenChart(d) {
+            d3.selectAll(".token_links, .token_links_contrast")
+              .style("visibility", "visible")
+          };
 
           function renderTokenChart(res) {
             // Draw texts
@@ -1801,28 +1829,14 @@
 
             var onMouseOver = function(d) {
               if (d.is_left) {
-                d3.selectAll(".token_links")
-                  .filter(l => l.from != d.pos)
-                  .style("visibility", "hidden");
-                d3.selectAll(".token_links_contrast")
-                  .filter(l => l.to != d.pos)
-                  .style("visibility", "hidden");
+                onMouseOverCenterTokenInTokenChart(d);
               } else {
-                d3.selectAll(".token_links")
-                  .filter(l => l.to != d.pos)
-                  .style("visibility", "hidden");
-                d3.selectAll(".token_links_contrast")
-                  .style("visibility", "hidden");
+                onMouseOverRightTokenInTokenChart(d)
               }
             };
- 
-            var onMouseOut = function(d) {
-              d3.selectAll(".token_links, .token_links_contrast")
-                .style("visibility", "visible")
-            };
 
-            const left_text_bboxes = renderRelTexts("svg#token_chart", leftcol_data, null, true, onMouseOver, onMouseOut);
-            const right_text_bboxes = renderRelTexts("svg#token_chart", rightcol_data, null, false, onMouseOver, onMouseOut);
+            const left_text_bboxes = renderRelTexts("svg#token_chart", leftcol_data, null, true, onMouseOver, onMouseOutInTokenChart);
+            const right_text_bboxes = renderRelTexts("svg#token_chart", rightcol_data, null, false, onMouseOver, onMouseOutInTokenChart);
 
             // Draw links
             const link_data = [];
@@ -1859,22 +1873,8 @@
 
             const rightcol_data = res.tokens1.map((t, i) => ({"token": t, "pos": i}));
             const leftcol_data = res.tokens2.map((t, i) => ({"token": t, "pos": i}));
-      
-            var onMouseOver = function(d) {
-              d3.selectAll(".token_links_contrast")
-                .filter(l => l.from != d.pos)
-                .style("visibility", "hidden");
-              d3.selectAll(".token_links")
-                .style("visibility", "hidden");
-            };
- 
-            var onMouseOut = function(d) {
-              d3.selectAll(".token_links, .token_links_contrast")
-                .style("visibility", "visible")
-            };
 
-
-            const left_text_bboxes = renderRelTexts("svg#token_chart_left", leftcol_data, null, true, onMouseOver, onMouseOut);
+            const left_text_bboxes = renderRelTexts("svg#token_chart_left", leftcol_data, null, true, onMouseOverLeftTokenInTokenChart, onMouseOutInTokenChart);
 
             // Draw links
             const link_data = [];
