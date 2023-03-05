@@ -248,7 +248,7 @@
         <p class="widget_title">
           Summary
         </p>
-        <div class="widget_content" style="height: 300px;">
+        <div class="widget_content" style="height: 300px; overflow: auto">
           <div id="summary"></div>
         </div>
       </div>
@@ -1653,6 +1653,18 @@
                 d3.selectAll(".rel_link")
                   .filter(dp => (dp.importance > 0) != (d.sign > 0))
                   .style("visibility", "hidden")
+
+                d3.select("#rel_chart_tooltip")
+                  .style("visibility", "visible")
+                  .html(`Total ${ (d.sign > 0) ? "positive" : "negative"} gradients:
+                         ${(d.sign > 0) ?
+                          leftcol_data.map(dp=>dp.importance).filter(imp => imp > 0)
+                          .concat(rightcol_data.map(dp=>dp.importance).filter(imp => imp > 0)).reduce((a,b) => a+b,0).toFixed(1)
+                          :leftcol_data.map(dp=>dp.importance).filter(imp => imp < 0)
+                          .concat(rightcol_data.map(dp=>dp.importance).filter(imp => imp < 0)).reduce((a,b) => a+b,0).toFixed(1)
+                          }`)
+                  .style("top", (event.pageY + 10) + "px")
+                  .style("left", (event.pageX + 10) + "px");
               })
               .on("mouseout", function(d) {
                 d3.selectAll(".rel_link")
@@ -1664,7 +1676,7 @@
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
                   .style("visibility", "visible")
-                  .html(`Importance: ${d.importance.toFixed(3)}`)
+                  .html(`Importance (integrated gradient): ${d.importance.toFixed(3)}`)
                   .style("top", (event.pageY + 10) + "px")
                   .style("left", (event.pageX + 10) + "px");
               }).on("mouseout", function(d) {
@@ -1787,7 +1799,19 @@
               .on("mouseover", function(d) {
                 d3.selectAll(".rel_link")
                   .filter(dp => (dp.importance > 0) != (d.sign > 0))
-                  .style("visibility", "hidden")
+                  .style("visibility", "hidden");
+
+                d3.select("#rel_chart_tooltip")
+                  .style("visibility", "visible")
+                  .html(`Total ${ (d.sign > 0) ? "positive" : "negative"} gradients:
+                         ${(d.sign > 0) ?
+                          leftcol_data.map(dp=>dp.importance).filter(imp => imp > 0)
+                          .concat(rightcol_data.map(dp=>dp.importance).filter(imp => imp > 0)).reduce((a,b) => a+b,0).toFixed(1)
+                          :leftcol_data.map(dp=>dp.importance).filter(imp => imp < 0)
+                          .concat(rightcol_data.map(dp=>dp.importance).filter(imp => imp < 0)).reduce((a,b) => a+b,0).toFixed(1)
+                          }`)
+                  .style("top", (event.pageY + 10) + "px")
+                  .style("left", (event.pageX + 10) + "px");
               })
               .on("mouseout", function(d) {
                 d3.selectAll(".rel_link")
@@ -1814,7 +1838,7 @@
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
                   .style("visibility", "visible")
-                  .html(`Importance: ${(d.importance) ? d.importance.toFixed(3): ""}`)
+                  .html(`Importance (integrated gradient): ${(d.importance) ? d.importance.toFixed(3): ""}`)
                   .style("top", (event.pageY + 10) + "px")
                   .style("left", (event.pageX + 10) + "px");
               }).on("mouseout", function(d) {
@@ -1828,7 +1852,7 @@
             if (d.importance) {
               tooltip
                 .style("visibility", "visible")
-                .html(`Importance: ${d.importance.toFixed(3)}`)
+                .html(`Importance (integrated gradient): ${d.importance.toFixed(3)}`)
                 .style("top", (event.pageY + 10) + "px")
                 .style("left", (event.pageX + 10) + "px");
             }
@@ -1959,7 +1983,7 @@
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
                   .style("visibility", "visible")
-                  .html(`Strength: ${d.strength.toFixed(3)}`)
+                  .html(`Similarity (inner product): ${d.strength.toFixed(3)}`)
                   .style("top", (event.pageY + 10) + "px")
                   .style("left", (event.pageX + 10) + "px");
               }).on("mouseout", function(d) {
