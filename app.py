@@ -4,7 +4,7 @@ from flask import Flask, send_from_directory, request
 from numba import jit
 import numpy as np
 from scipy.special import softmax
-from importance import attention_importance, gradient_importance, lime_importance, integrad_importance, integrad_relation
+from importance import attention_importance, token_encoding_relation, gradient_importance, lime_importance, integrad_importance, integrad_relation
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BaseModelOutputWithPoolingAndCrossAttentions
 
@@ -172,22 +172,30 @@ class TextProcessor:
         txt1 = self.raw_datasets["test"]["text"][index1]
         txt2 = self.raw_datasets["test"]["text"][index2]
 
-        tokens1, importance1 = integrad_relation(
-            self.tokenizer,
-            self.model,
-            txt1,
-            txt2
-        )
-        tokens2, importance2 = integrad_relation(
-            self.tokenizer,
-            self.model,
-            txt2,
-            txt1
-        )
-        return {"tokens1": tokens1,
-                "tokens2": tokens2,
-                "importance1": importance1,
-                "importance2": importance2,}
+        if reltype == "token2token":
+            return token_encoding_relation(
+                self.tokenizer,
+                self.model,
+                txt1,
+                txt2,
+            )
+        else:
+            tokens1, importance1 = integrad_relation(
+                self.tokenizer,
+                self.model,
+                txt1,
+                txt2
+            )
+            tokens2, importance2 = integrad_relation(
+                self.tokenizer,
+                self.model,
+                txt2,
+                txt1
+            )
+            return {"tokens1": tokens1,
+                    "tokens2": tokens2,
+                    "importance1": importance1,
+                    "importance2": importance2,}
 
 
 def create_app(test_config=None):

@@ -4,22 +4,6 @@ import math
 
 MAX_LENGTH = 30
 
-def encode(text, tokenizer, model, device="cuda", output_last_hiddens=False):
-    tokenized_inputs = tokenizer(text, 
-                                max_length=MAX_LENGTH, 
-                                truncation=True, 
-                                return_tensors="pt")
-    tokenized_inputs.to(device)
-    model.to(device)
-    
-    outputs, embeddings = model(**tokenized_inputs,
-                        output_hidden_states=True)
-    encoding = outputs.last_hidden_state[:,0,:]
-
-    if output_last_hiddens:
-        return encoding, embeddings, outputs.last_hidden_state.squeeze()[1:-1,:]
-    return encoding, embeddings
-
 
 def attention_importance(tokenizer, model, text, device="cuda"):
     with torch.no_grad():
@@ -126,6 +110,22 @@ def integrad_importance(tokenizer, model, text, device="cuda"):
 
 
 def gradient_importance(tokenizer, model, text, device="cuda"):
+    def encode(text, tokenizer, model, device="cuda", output_last_hiddens=False):
+        tokenized_inputs = tokenizer(text, 
+                                    max_length=MAX_LENGTH, 
+                                    truncation=True, 
+                                    return_tensors="pt")
+        tokenized_inputs.to(device)
+        model.to(device)
+        
+        outputs, embeddings = model(**tokenized_inputs,
+                            output_hidden_states=True)
+        encoding = outputs.last_hidden_state[:,0,:]
+
+        if output_last_hiddens:
+            return encoding, embeddings, outputs.last_hidden_state.squeeze()[1:-1,:]
+        return encoding, embeddings
+        
     model.setMode("vanilla_grad")
     encoding, embeddings = encode(text, tokenizer, model, device)
     encoding.sum().backward()
@@ -136,24 +136,27 @@ def gradient_importance(tokenizer, model, text, device="cuda"):
     
 
 def token_encoding_relation(tokenizer, model, txt1, txt2, device="cuda"):
-    sent_enc1, embeddings1, encodings1 = encode(txt1, tokenizer, model, device, output_last_hiddens=True)
-    sent_enc2, embeddings2, encodings2 = encode(txt2, tokenizer, model, device, output_last_hiddens=True)
-
-    sentence_similarity = torch.inner(sent_enc1, sent_enc2)
-    sentence_similarity.backward()
-
-    importance1 = embeddings1.grad.sum(-1).squeeze().tolist()[1:-1]
-    importance2 = embeddings2.grad.sum(-1).squeeze().tolist()[1:-1]
+    def encode(text, tokenizer, model, device="cuda"):
+        tokenized_inputs = tokenizer(text, 
+                                    max_length=MAX_LENGTH, 
+                                    truncation=True, 
+                                    return_tensors="pt")
+        tokenized_inputs.to(device)
+        model.to(device)
+        
+        outputs = model(**tokenized_inputs,
+                            output_hidden_states=True)
+        return outputs.last_hidden_state.squeeze()[1:-1,:]
+    
+    encodings1 = encode(txt1, tokenizer, model, device)
+    encodings2 = encode(txt2, tokenizer, model, device)
 
     with torch.no_grad():
         token_similarities = torch.inner(encodings1, encodings2)
     
     return {"links": token_similarities.tolist(),
             "tokens1": tokenizer.tokenize(txt1),
-            "tokens2": tokenizer.tokenize(txt2),
-            "importance1": importance1,
-            "importance2": importance2,
-            "similarity": sentence_similarity.item()}
+            "tokens2": tokenizer.tokenize(txt2)}
 
 
 def integrad_relation(tokenizer, model, txt1, txt2, device="cuda"):
