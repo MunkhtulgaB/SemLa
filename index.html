@@ -245,6 +245,7 @@
           Summary
         </p>
         <div class="widget_content" style="height: 300px;">
+          <div id="summary"></div>
         </div>
       </div>
 
@@ -1300,6 +1301,43 @@
             } else {
               dp2 = support_dps.find(dp => dp.ground_truth_label_idx == d.ground_truth_label_idx);
             }
+
+            // Give summary of selected point
+            const is_prediction_correct = d.prediction == d.ground_truth;
+            const html = `<div>
+                            <p><b>Text: </b> ${d.text.split(" ").slice(0, 6).join(" ")} ${(d.text.split(" ").length > 6) ? "..." : ""}<p>
+                            <p><b>Predicted</b> intent was <b>${d.prediction}</b> ${ (is_prediction_correct) ? `(<span style="color: green">correct</span>)` : `(<span style="color: red">wrong</span>)` }
+                              based on closest support example.
+                            </p>
+                            ${ (!is_prediction_correct) ? `<p><b>Ground-truth</b> intent is <b>${d.ground_truth}</b>.</p>` : ""}
+                          </div>
+
+                          <hr>
+                          <div>
+                            <h5 style="margin-bottom: 0px"><b>Closest support example: </b></h5>
+                            ${ closest_dp.text.split(" ").slice(0, 6).join(" ") }
+                            ${ (closest_dp.text.split(" ").length > 6)? "..." : "" }
+                            (${ closest_dp.ground_truth })
+                            </div>
+
+                          <hr>
+                          <div>
+                            <h5 style="margin-bottom: 0px">
+                            <b>${ 
+                              (is_prediction_correct) ? "Next closest example:" 
+                              : "Correct support example:" 
+                            }</b>
+                            </h5>
+                            ${ dp2.text.split(" ").slice(0, 6).join(" ") }
+                            ${ (dp2.text.split(" ").length > 6)? "..." : "" }
+                            (${ dp2.ground_truth })
+                          </div>
+                          
+                          `;
+
+            d3.select("#summary")
+              .html(html)
+
 
             // populate the relchart automatically
             loadingImportanceChart();
