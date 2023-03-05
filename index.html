@@ -229,7 +229,7 @@
       </svg>
     </div>
 
-
+    <div id="rel_chart_tooltip" style="z-index: 100; visibility: hidden; position: absolute; padding: 5px; border-radius: 5px; font-weight: bold; font-size: 12px; background-color: black; opacity: 0.8; color: white"></div>
     <div id="dashboard" style="width: 0;">
       <div class="widget" style="width: 592px; border: 3px solid red; background-color: white;" >
         <p class="widget_title">
@@ -239,8 +239,6 @@
           <canvas id="importance_chart"></canvas>
         </div>
       </div>
-
-      <div id="rel_chart_tooltip" style="visibility: hidden; position: absolute; padding: 5px; border-radius: 5px; font-weight: bold; font-size: 12px; background-color: black; opacity: 0.8; color: white"></div>
       <div class="widget" style="width: fit-content; background-color: white;" >
         <p class="widget_title">
           Relation
@@ -1401,15 +1399,8 @@
               .attr("x", 0)
               .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
               .style("fill", "black")
-              .on("mouseover", function(d) {
-                relchart_left.selectAll(".rel_links_contrast")
-                  .filter(link => link.from == d.pos)
-                  .style("visibility", "visible");
-              })
-              .on("mouseout", function(d) {
-                relchart_left.selectAll(".rel_links_contrast")
-                  .style("visibility", "hidden");
-              });
+              .on("mouseover", relChartOnMouseOver)
+              .on("mouseout", relChartOnMouseOut);
 
             // Render token-to-token links that show on hover
             if (res.links) {
@@ -1483,6 +1474,7 @@
               .append("path")
               .attr("fill", "none")
               .attr("d", linkGenerator)
+              .attr("class", "rel_link left_links_contrast")
               .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
               .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
@@ -1509,7 +1501,7 @@
               .append("path")
               .attr("fill", "none")
               .attr("d", linkGenerator)
-              .attr("class", "relation right_links_contrast")
+              .attr("class", "rel_link right_links_contrast")
               .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
               .style("stroke-opacity", d => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance)));
@@ -1518,10 +1510,10 @@
             const block_width = 10;
             relchart_left.selectAll(".sim_block")
               .data([
-                {fill: "skyblue", stroke: "blue",
+                {sign: 1, fill: "skyblue", stroke: "blue",
                   height: max_pos.reduce((a,b)=>a+b, 0),
                   y: start_line_pos},
-                {fill: "pink", stroke: "red",
+                {sign: -1, fill: "pink", stroke: "red",
                   height: max_neg.reduce((a,b)=>a+b, 0), 
                   y: start_line_neg}
               ])
@@ -1532,7 +1524,17 @@
               .attr("x", chart_width/2 - block_width/2)
               .attr("y", d => d.y)
               .attr("height", d => d.height)
-              .attr("width", block_width);
+              .attr("width", block_width)
+              .on("mouseover", function(d) {
+                d3.selectAll(".rel_link")
+                  .filter(dp => (dp.importance > 0) != (d.sign > 0))
+                  .style("visibility", "hidden")
+              })
+              .on("mouseout", function(d) {
+                d3.selectAll(".rel_link")
+                  .filter(dp => (dp.importance > 0) != (d.sign > 0))
+                  .style("visibility", "visible")
+              });
 
             // Recalculate stroke opacity for previously visible lines
             d3.selectAll(".left_links")
@@ -1547,25 +1549,9 @@
             relchart.selectAll(".right_rect")
                   .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)): 0)
 
-            // Refresh the on-hover effect of each token, new and old
-            relchart.selectAll(".relchart_left")
-              .on("mouseover", function(d) {
-                relchart_left.selectAll(".rel_links_contrast")
-                  .filter(link => link.to == d.pos)
-                  .style("visibility", "visible");
-                relchart.selectAll(".rel_links")
-                  .filter(link => link.from == d.pos)
-                  .style("visibility", "visible");
-              })
-              .on("mouseout", function(d) {
-                relchart_left.selectAll(".rel_links_contrast")
-                  .style("visibility", "hidden");
-                relchart.selectAll(".rel_links")
-                  .style("visibility", "hidden");
-              });
 
             // Show importance value of link on hover
-            d3.selectAll(".relation")
+            d3.selectAll(".rel_link")
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
                   .style("visibility", "visible")
@@ -1576,6 +1562,20 @@
                 d3.select("#rel_chart_tooltip")
                   .style("visibility", "hidden");
               });
+          }
+
+          function relChartOnMouseOver(d) {
+            const tooltip = d3.select("#rel_chart_tooltip");
+            tooltip
+              .style("visibility", "visible")
+              .html(`Importance: ${(d.importance) ? d.importance.toFixed(3): ""}`)
+              .style("top", (event.pageY + 10) + "px")
+              .style("left", (event.pageX + 10) + "px");
+          }
+
+          function relChartOnMouseOut(d) {
+            d3.select("#rel_chart_tooltip")
+                  .style("visibility", "hidden");
           }
 
           function sum(values) {
@@ -1661,15 +1661,8 @@
               .attr("x", 0)
               .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_left_col)
               .style("fill", "black")
-              .on("mouseover", function(d) {
-                relchart.selectAll(".rel_links")
-                  .filter(link => link.from == d.pos)
-                  .style("visibility", "visible");
-              })
-              .on("mouseout", function(d) {
-                relchart.selectAll(".rel_links")
-                  .style("visibility", "hidden");
-              });
+              .on("mouseover", relChartOnMouseOver)
+              .on("mouseout", relChartOnMouseOut);
 
 
             var text_right = relchart.selectAll(".relchart_right")
@@ -1677,7 +1670,7 @@
               .enter()
               .append("text")
               .attr("text-anchor", "end")
-              .attr("class", "relchart_left")
+              .attr("class", "relchart_right")
               .text(d => d.token)
               .style("font-size", fontsize + "px")
               .attr("x", chart_width + "px")
@@ -1709,15 +1702,8 @@
               .attr("x", chart_width + "px")
               .attr("y", d => (d.pos + 1) * fontsize + d.pos * spacing_right_col)
               .style("fill", "black")
-              .on("mouseover", function(d) {
-                relchart.selectAll(".rel_links")
-                  .filter(link => link.to == d.pos)
-                  .style("visibility", "visible");
-              })
-              .on("mouseout", function(d) {
-                relchart.selectAll(".rel_links")
-                  .style("visibility", "hidden");
-              });
+              .on("mouseover", relChartOnMouseOver)
+              .on("mouseout", relChartOnMouseOut);
 
             if (res.links) {
               const link_data = [];
@@ -1773,6 +1759,7 @@
                 
                 // console.log(d.token, d.importance, y_offset, neg_right, neg_left)
                 return {
+                  pos: i,
                   source: {x: Math.max(...left_text_bboxes.map(b => b.width)) + 5,
                           y:  (d.pos + 1) * fontsize + d.pos * spacing_left_col},
                   target: {x: chart_width/2,
@@ -1783,7 +1770,7 @@
               .enter()
               .append("path")
               .attr("d", linkGenerator)
-              .attr("class", "relation left_links")
+              .attr("class", "left_links rel_link")
               .attr("fill", "none")
               .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)): 0)
@@ -1798,6 +1785,7 @@
                 const y_offset = (d.importance > 0) ? positives_so_far_sum : negatives_so_far_sum; 
                 
                 return {
+                  pos: i,
                   source: {x: chart_width/2,
                           y: y_start_line + y_offset + getWidth(d) / 2},
                   target: {x: chart_width - (Math.max(...right_text_bboxes.map(b => b.width)) + 5),
@@ -1808,7 +1796,7 @@
               .enter()
               .append("path")
               .attr("d", linkGenerator)
-              .attr("class", "relation right_links")
+              .attr("class", "right_links rel_link")
               .attr("fill", "none")
               .style("stroke", d => (d.importance > 0) ? "skyblue": "pink")
               .style("stroke-width", d => (d.importance) ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0)
@@ -1818,10 +1806,10 @@
             const block_width = 10;
             relchart.selectAll(".sim_block")
               .data([
-                {fill: "skyblue", stroke: "blue",
+                {sign: 1, fill: "skyblue", stroke: "blue",
                   height: max_pos.reduce((a,b)=>a+b, 0),
                   y: start_line_pos},
-                {fill: "pink", stroke: "red",
+                {sign: -1, fill: "pink", stroke: "red",
                   height: max_neg.reduce((a,b)=>a+b, 0), 
                   y: start_line_neg}
               ])
@@ -1832,9 +1820,19 @@
               .attr("x", chart_width/2 - block_width/2)
               .attr("y", d => d.y)
               .attr("height", d => d.height)
-              .attr("width", block_width);
+              .attr("width", block_width)
+              .on("mouseover", function(d) {
+                d3.selectAll(".rel_link")
+                  .filter(dp => (dp.importance > 0) != (d.sign > 0))
+                  .style("visibility", "hidden")
+              })
+              .on("mouseout", function(d) {
+                d3.selectAll(".rel_link")
+                  .filter(dp => (dp.importance > 0) != (d.sign > 0))
+                  .style("visibility", "visible")
+              });
 
-            d3.selectAll(".relation")
+            d3.selectAll(".rel_link")
               .on("mouseover", function(d) {
                 d3.select("#rel_chart_tooltip")
                   .style("visibility", "visible")
