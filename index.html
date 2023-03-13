@@ -26,15 +26,14 @@
       }
 
       .small_td {
-        width: 110px;
+        width: 220px;
         overflow-wrap: break-word;
         border-top: 1px solid lightgrey;
         padding-right: 10px;
       }
 
-      .large_td {
-        width: 250px;
-        overflow-wrap: break-word;
+      .xs_td {
+        width: 100px;
         border-top: 1px solid lightgrey;
       }
 
@@ -153,13 +152,13 @@
       }
 
       #summary-container {
-        width: 320px;
+        width: 450px;
         border: 3px solid red;  
         background-color: white;
       }
 
       #importance-container {
-        width: 320px; 
+        width: 450px; 
         background-color: white;
       }
     </style>
@@ -258,16 +257,16 @@
 
 
     <div id="intent-level" class="widget super-widget">
-      <div class="widget" style="width: 323px">
+      <div class="widget" style="width: 360px">
         <p class="widget_title">Intents &amp; Clusters</p>
         <div class="widget_content">  
-          <select style="width: 300px; height: 100%" size="8" name="intent_filter" id="intent_filter" multiple>
+          <select style="width: 338px; height: 100%" size="8" name="intent_filter" id="intent_filter" multiple>
             <option value=""></option>
           </select>
         </div>
       </div>
 
-      <div class="widget" style="width: 400px">
+      <div class="widget" style="width: 580px">
           <p class="widget_title">
             Confusions
           </p>
@@ -276,7 +275,7 @@
               <tr>
                 <th column_type="gt" class="small_td">Ground truth</th>
                 <th column_type="pred" class="small_td">Prediction</th>
-                <th column_type="num_confusions" class="small_td"># confusions</th>
+                <th column_type="num_confusions" class="xs_td"># confusions</th>
               </tr>
             </table>
           </div>
@@ -470,7 +469,7 @@
               html += `<tr class="error_tr" gt="${gt}" pred="${pred}">
                           <td class="small_td">${gt}</td>
                           <td class="small_td">${pred}</td>
-                          <td class="small_td">${num_confusions}</td>
+                          <td class="xs_td">${num_confusions}</td>
                         </tr>`
               }
             );
@@ -1397,8 +1396,7 @@
                           <hr>
                           <div>
                             <h5 style="margin-bottom: 0px"><b>Closest support example: </b></h5>
-                            ${ closest_dp.text.split(" ").slice(0, 6).join(" ") }
-                            ${ (closest_dp.text.split(" ").length > 6)? "..." : "" }
+                            ${ closest_dp.text }
                             (${ closest_dp.ground_truth })
                             </div>
 
@@ -1410,8 +1408,7 @@
                               : "Correct support example:" 
                             }</b>
                             </h5>
-                            ${ dp2.text.split(" ").slice(0, 6).join(" ") }
-                            ${ (dp2.text.split(" ").length > 6)? "..." : "" }
+                            ${ dp2.text }
                             (${ dp2.ground_truth })
                           </div>
                           
