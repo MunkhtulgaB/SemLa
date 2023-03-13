@@ -84,11 +84,19 @@ def lime_importance(tokenizer, model, text, support_set, device=None):
     return importance, tokens
 
 
-def integrad_importance(tokenizer, model, text, device="cuda"):
+def integrad_importance(tokenizer, model, text, txt2=None, device="cuda"):
     from captum.attr import LayerIntegratedGradients
 
-    model.setMode("integrad")
     model.to(device)
+    model.setMode("integrad_from_similarity")
+    with torch.no_grad():
+        tokenized_inputs2 = tokenizer(txt2, 
+                                max_length=MAX_LENGTH,
+                                truncation=True,
+                                return_tensors="pt")
+        tokenized_inputs2.to(device)
+        encoding2 = model(tokenized_inputs2["input_ids"])
+
     lig = LayerIntegratedGradients(model, model.embeddings)
     tokenized_inputs = tokenizer(text, 
                                 max_length=MAX_LENGTH, 
@@ -98,7 +106,7 @@ def integrad_importance(tokenizer, model, text, device="cuda"):
     input = tokenized_inputs["input_ids"]
     
     attributions_ig, delta = lig.attribute(
-        input, 
+        (input, encoding2), 
         return_convergence_delta=True,
         attribute_to_layer_input=False
     )
@@ -109,7 +117,7 @@ def integrad_importance(tokenizer, model, text, device="cuda"):
     return importance, tokens
 
 
-def gradient_importance(tokenizer, model, text, device="cuda"):
+def gradient_importance(tokenizer, model, text, txt2=None, device="cuda"):
     def encode(text, tokenizer, model, device="cuda", output_last_hiddens=False):
         tokenized_inputs = tokenizer(text, 
                                     max_length=MAX_LENGTH, 
@@ -125,10 +133,23 @@ def gradient_importance(tokenizer, model, text, device="cuda"):
         if output_last_hiddens:
             return encoding, embeddings, outputs.last_hidden_state.squeeze()[1:-1,:]
         return encoding, embeddings
-        
+
+    model.to(device)
+    model.setMode(None)
+    with torch.no_grad():
+        tokenized_inputs2 = tokenizer(txt2, 
+                                max_length=MAX_LENGTH,
+                                truncation=True,
+                                return_tensors="pt")
+        tokenized_inputs2.to(device)
+        encoding2 = model(tokenized_inputs2["input_ids"]).last_hidden_state[:,0]
+
     model.setMode("vanilla_grad")
+    
     encoding, embeddings = encode(text, tokenizer, model, device)
-    encoding.sum().backward()
+    similarity = torch.inner(encoding, encoding2)
+    similarity = similarity.sum(dim=-1).backward()
+    
     importance = embeddings.grad.abs().sum(-1).squeeze().tolist()[1:-1]
     tokens = tokenizer.tokenize(text)
     model.setMode(None)

@@ -140,20 +140,25 @@ class TextProcessor:
     def importance(self, index, method):
         text = self.raw_datasets["test"]["text"][index]
 
+
+        pred_data = self.prediction_data[index]
+        support_set_idxs = pred_data["support_set"]
+        support_set = self.raw_datasets["test"][support_set_idxs]
+        distances = np.array(pred_data["distances"]).squeeze()
+        closest_dp_idx = distances.argmax()
+        closest_text = support_set["text"][closest_dp_idx]
+
         if method == "attention":
             importance, tokens = attention_importance(self.tokenizer, self.model, text)
             return importance, tokens
         elif method == "lime":
-            pred_data = self.prediction_data[index]
-            support_set_idxs = pred_data["support_set"]
-            support_set = self.raw_datasets["test"][support_set_idxs]
             importance = lime_importance(self.tokenizer, self.model, text, support_set)
             return importance
         elif method == "integrad":
-            importance = integrad_importance(self.tokenizer, self.model, text)
+            importance = integrad_importance(self.tokenizer, self.model, text, txt2=closest_text)
             return importance
         elif method == "gradient":
-            importance = gradient_importance(self.tokenizer, self.model, text)
+            importance = gradient_importance(self.tokenizer, self.model, text, txt2=closest_text)
             return importance
 
     def importances_all(self, index):
