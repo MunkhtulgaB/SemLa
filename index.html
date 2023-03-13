@@ -504,7 +504,22 @@
 
 
             // Toggle local words
-            $("#show-local-words").change(updateLocalWords);
+            $("#show-local-words").change(function() {
+              // fade the datapoints
+              d3.selectAll("path.datapoint")
+                .style("stroke-opacity", function(d) {
+                  const current_opacity = d3.select(this).style("stroke-opacity");
+                  
+                  if (current_opacity == 1) {
+                    return 0.6;
+                  } else {
+                    return 1;
+                  }
+                });
+
+              // show the local words
+              updateLocalWords()
+            });
             $("#how-many-grams").change(updateLocalWords);
             stopwords = get_stopwords();
             $("#ignore-stopwords").change(updateLocalWords);
@@ -932,7 +947,10 @@
                 .attr("y", function(d) {
                   return d.y;
                 })
-                .style("fill", "#001617");
+                .style("fill", "#001617")
+                .style("font-weight", "bold")
+                .style("stroke", "white")
+                .style("stroke-width", 0.2);
 
             // Apply force to prevent collision between texts
             forceSimulation = d3.forceSimulation(localised_words)
@@ -951,7 +969,7 @@
           }
 
           function fontSize(d) {
-            return Math.min(10 + d.frequency*0.2, 80);
+            return Math.min(13 + d.frequency*0.2, 80);
           }
 
           function forceCollide() {
