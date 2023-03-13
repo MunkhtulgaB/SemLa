@@ -208,7 +208,7 @@
             <div>
               <label for="filter">Filter datapoints by words</label>
               <input name="filter" id="filter" style="width: 100px"></input>
-              <button id="clear-filter">Clear</button>
+              <button id="clear-filter">Reset</button>
             </div>
           </div>
         </div>
@@ -557,6 +557,9 @@
             intent_filter.change(function() {
               const intents = $(this).val();
               filterByIntents(intents);
+            }).click(function() {
+              const intents = $(this).val();
+              filterByIntents(intents);
             });
 
               
@@ -607,15 +610,21 @@
 
             // Filter input
             filter_input.on("input", function(e) {
+              var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateSymbols is called in the same context
+                
               filter_value = e.target.value;
               filter_phrases = filter_value.split(",");
               
-              const filter_idxs = data.filter(function(d) {
+              const filter_idxs = visibles.filter(function(d) {
                   return filter_phrases.every(function(phrase) {
                     return d.text.includes(phrase);
                   })
-                }).map(d => d.idx);
-              filterChart(filter_idxs)
+                }).data().map(d => d.idx);
+              if (filter_idxs.length == 0) {
+                filterChart([-1])
+              } else {
+                filterChart(filter_idxs)
+              }
             });
 
             // Clear button
