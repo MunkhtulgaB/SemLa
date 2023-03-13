@@ -177,23 +177,17 @@
       <div id="corpus-widget-container">
 
         <div class="widget" style="width: 355px;">
-          <p class="widget_title">Options</p>
+          <p class="widget_title">Map options</p>
           <div class="widget_content">
+
+    
             <label for="show-errors">Show misclassifications only</label>
             <input type="checkbox" id="show-errors" name="show-errors">
 
             <div>
-              <label for="dim-reduction">Position by (dimension reduction)</label>
-              <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
-              <input type="radio" name="dim-reduction" value="umap">umap</input>
-            </div>
-
-            <div>
-              <label for="group-by">Colour by</label>
-              <!-- <input type="radio" name="group-by" value="ground_truth_label_idx" checked>Ground truth</input>
-              <input type="radio" name="group-by" value="prediction_label_idx">Prediction</input> -->
-              <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
-              <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
+              <label for="filter">Filter datapoints by words</label>
+              <input name="filter" id="filter" style="width: 100px"></input>
+              <button id="clear-filter">Reset</button>
             </div>
 
             <div>
@@ -206,10 +200,21 @@
             </div>
 
             <div>
-              <label for="filter">Filter datapoints by words</label>
-              <input name="filter" id="filter" style="width: 100px"></input>
-              <button id="clear-filter">Reset</button>
+              <label for="group-by">Colour by</label>
+              <!-- <input type="radio" name="group-by" value="ground_truth_label_idx" checked>Ground truth</input>
+              <input type="radio" name="group-by" value="prediction_label_idx">Prediction</input> -->
+              <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
+              <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
             </div>
+
+            <div>
+              <label for="dim-reduction">Position by (dimension reduction)</label>
+              <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
+              <input type="radio" name="dim-reduction" value="umap">umap</input>
+            </div>
+
+            
+
           </div>
         </div>
 
@@ -217,22 +222,14 @@
           <p class="widget_title">Local words</p>
           <div class="widget_content">
             <div>
-              <label for="show-local-words">Show localised n-grams
+              <label for="show-local-words">Show local words
               <input type="checkbox" id="show-local-words" name="show-local-words">
             </div>
             <div>
               <label for="ignore-stopwords">Ignore stopwords
               <input type="checkbox" id="ignore-stopwords" name="ignore-stopwords">
             </div>
-            <div>
-              <label for="how-many-grams">Show localised
-              <input type="number" id="how-many-grams" name="how-many-grams" value=1>-grams
-            </div>
-            <div>
-              <label for="locality-shape">Locality shape</label>
-              <input type="radio" name="locality-shape" value="square">Square</input>
-              <input type="radio" name="locality-shape" value="gaussian" checked>Gaussian</input>
-            </div>
+            
             <div>
               <label>Frequency threshold</label>
               <input type="number" class="freqThreshold" data-index="0" value="10" />
@@ -241,6 +238,17 @@
             <div>
               <label for="localAreaThreshold">Locality threshold</label>
               <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="10" max="500" value=100 step="10">
+            </div>
+
+            <div>
+              <label for="locality-shape">Locality shape</label>
+              <input type="radio" name="locality-shape" value="square">Square</input>
+              <input type="radio" name="locality-shape" value="gaussian" checked>Gaussian</input>
+            </div>
+
+            <div>
+              <label for="how-many-grams">Show localized
+              <input type="number" id="how-many-grams" name="how-many-grams" value=1>-gram(s)
             </div>
           </div>
         </div>
@@ -261,7 +269,7 @@
 
       <div class="widget" style="width: 400px">
           <p class="widget_title">
-            Misclassifications
+            Confusions
           </p>
           <div class="widget_content" style="overflow: auto;">
             <table id="confusion-table">
