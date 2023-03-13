@@ -570,8 +570,11 @@
             Object.entries(cluster_to_intent).forEach(function(entry) {
               const [cluster, labels] = entry;
               const intent_set = new Set(labels);
+              var color = cluster_to_color[cluster];
+              color = d3.color(color).brighter(0.2);
+              
               var optgroup_content = "";
-              intent_set.forEach(intent => optgroup_content += `<option value="${intent}">${intent}</option>`);
+              intent_set.forEach(intent => optgroup_content += `<option value="${intent}" style="background-color: ${color}">${intent}</option>`);
               intent_filter.append(
                   `<optgroup label="Cluster #${cluster}">${optgroup_content}</optgroup>`
                 );
