@@ -572,7 +572,7 @@
               const intent_set = new Set(labels);
               var color = cluster_to_color[cluster];
               color = d3.color(color).brighter(0.2);
-              
+
               var optgroup_content = "";
               intent_set.forEach(intent => optgroup_content += `<option value="${intent}" style="background-color: ${color}">${intent}</option>`);
               intent_filter.append(
@@ -597,6 +597,7 @@
               drawHulls((dim_reduction == "tsne") ? intents_to_points_tsne: intents_to_points_umap);
               updatePositions(x, y);
               updateLocalWords();
+              filterHulls(currentHulls);
             });
 
             // Group-by (colour-by) option
@@ -1201,7 +1202,11 @@
             });
           }
 
+          var currentHulls = null;
+
           function filterHulls(intents) {
+            currentHulls = intents;
+
             scatter.selectAll("path.intentHull")
               .attr("visibility", function(d) {
               var [intent, pts] = d;
