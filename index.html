@@ -120,7 +120,7 @@
         background-color: white;
         width: 900px;
         flex-direction: column;
-        overflow: hidden;
+        overflow: initial;
       }
 
       #intent-level {
@@ -877,9 +877,13 @@
             .append("div")
               .style("position", "absolute")
               .style("visibility", "hidden")
-              .style("background-color", "white")
+              .style("background-color", "black")
+              .style("border-radius", "5px")
+              .style("opacity", 0.8)
+              .style("color", "white")
               .style("border", "2px solid black")
-              .style("padding", "10px");
+              .style("padding", "10px")
+              .style("z-index", 1000);
 
           var forceSimulation;
           updateLocalWords();
@@ -1331,8 +1335,10 @@
           function show_tooltip(d) { // TO REFACTOR: use either camelCase or snake_case but not both
             move_tooltip_to_cursor();
             $(this).addClass("ismouseover");
+
+            const attrs_to_show = ["idx", "text", "ground_truth", "prediction"];
             tooltip_html = Object.entries(d).reduce(
-              (acc, current) => acc + `<p><b>${ current[0] }</b>: ${ current[1] }</p>`,
+              (acc, current) => acc + ((attrs_to_show.includes(current[0]))? `<p><b>${ current[0] }</b>: ${ current[1] }</p>`: ""),
               ""
             );
             tooltip.html(tooltip_html);
