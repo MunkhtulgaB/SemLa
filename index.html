@@ -481,25 +481,14 @@
             $("#localAreaThreshold")
               .on("mousedown", function() {
                 const locality_shape = $('input[name="locality-shape"]:checked').val();
-                if (locality_shape == "square") {
-                  scatter.append("rect")
-                    .attr("id", "localitySizer")
-                    .attr("visibility", "hidden")
-                    .attr("stroke", "red")
-                    .attr("stroke-width", 1)
-                    .attr("fill", "rgba(255, 0, 0, 0.2)")
-                    .attr("x", width/2)
-                    .attr("y", height/2);
-                } else if (locality_shape == "gaussian") {
-                  scatter.append("circle")
-                    .attr("id", "localitySizer")
-                    .attr("visibility", "hidden")
-                    .attr("stroke", "red")
-                    .attr("stroke-width", 1)
-                    .attr("fill", "rgba(255, 0, 0, 0.2)")
-                    .attr("cx", width/2)
-                    .attr("cy", height/2);
-                }
+                scatter.append("rect")
+                  .attr("id", "localitySizer")
+                  .attr("visibility", "hidden")
+                  .attr("stroke", "red")
+                  .attr("stroke-width", 1)
+                  .attr("fill", "rgba(255, 0, 0, 0.2)")
+                  .attr("x", width/2)
+                  .attr("y", height/2);
               })
               .on("mouseup", function() {
                 d3.select("#localitySizer").remove();
