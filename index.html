@@ -1891,11 +1891,16 @@
             
             // Similarly, recalculate opacity of previously visible highlight rects
             const relchart = d3.select("svg#rel_chart");
-            relchart.selectAll(".left_rect")
-                  .attr("fill", "none")
+            
             relchart.selectAll(".right_rect")
                   .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)): 0)
+            // For the middle texts, highlight by contrastiveness
+            const contrastiveness_scores = res.importance1.map((s, i) => Math.abs(s - importance3[i])).filter(s => !isNaN(s));
+            const distinguishing_factor_idx = contrastiveness_scores.indexOf(Math.max(...contrastiveness_scores))
 
+            relchart.selectAll(".rect_left")
+                  .attr("fill", "yellow")
+                  .attr("fill-opacity", d => (distinguishing_factor_idx == d.pos) ? 1: 0);
 
             // Show importance value of link on hover
             d3.selectAll(".rel_link")
@@ -1916,7 +1921,7 @@
             if (d.importance) {
               tooltip
                 .style("visibility", "visible")
-                .html(`Importance (integrated gradient): ${d.importance.toFixed(3)}`)
+                .html(`Importance of token "${d.token}" (integrated gradient): ${d.importance.toFixed(3)}`)
                 .style("top", (event.pageY + 10) + "px")
                 .style("left", (event.pageX + 10) + "px");
             }
