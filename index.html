@@ -165,7 +165,13 @@
   </head>
   <body>
     <div id="corpus-level" class="widget super-widget">
-      
+      <div style="justify-self: flex-end;">
+        Model <span style="text-decoration: underline;"><b>metric_based_BERT</b></span> on
+        dataset <span id="dataset_name" style="text-decoration: underline;"></span>
+
+        (with <span id="accuracy"></span>% accuracy)
+      </div>
+
       <div id="container">
         <svg id="semantic_landscape">
         <g>
@@ -253,6 +259,7 @@
         </div>
 
       </div>
+
     </div>
 
 
@@ -380,8 +387,16 @@
 
       var dim_reduction = "tsne";
 
+
+      const DATASETS = ["banking", "hwu", "clinc"]
+      const DATASET_NAME = "banking";
+      const NUM_CLUSTERS = 12;
+
+      $("#dataset_name").html(`<b>${DATASET_NAME.toUpperCase()}</b>`)
+
+
       //Read the data
-      d3.json("static/data/banking-viz_data-12-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json", function(data) {
+      d3.json(`static/data/${DATASET_NAME.toLowerCase()}-viz_data-${NUM_CLUSTERS}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json`, function(data) {
           // Parse data structure
           const cluster_to_color = d3.schemeSet3;
           const cluster_to_intent = {};
@@ -435,6 +450,9 @@
               corrects.push(dp);
             }
           });
+
+          const accuracy = 100 - (errors.length / data.length * 100);
+          $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
 
           // Create the table data
           const confusion_table = []
