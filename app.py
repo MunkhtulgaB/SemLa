@@ -102,21 +102,24 @@ class TextProcessor:
         from datasets import Dataset, DatasetDict
         from sklearn import preprocessing
 
-        data = {
-            "train": "/home/mojo/projects/phd/stage1/dialogue_tasks/DialoGLUE/data_utils/dialoglue/" + DATASET + "/train.csv",
-            "val": "/home/mojo/projects/phd/stage1/dialogue_tasks/DialoGLUE/data_utils/dialoglue/" + DATASET + "/val.csv",
-            "test": "/home/mojo/projects/phd/stage1/dialogue_tasks/DialoGLUE/data_utils/dialoglue/" + DATASET + "/test.csv",
-        }
-        raw_datasets = DatasetDict.from_csv({key: path for key, path in data.items()})
-        le = preprocessing.LabelEncoder()
-        le.fit(raw_datasets["train"]["category"] + raw_datasets["test"]["category"])
-        self.class_names = le.classes_
-        self.raw_datasets = raw_datasets
+        self.datasets = dict()
+        self.prediction_data = dict()
 
-        import json
-        prediction_data_file = "static/data/" + dataset + "-viz_data-8-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json"
-        with open(prediction_data_file, "r") as f:
-            self.prediction_data = json.load(f)
+        for dataset in ["banking", "hwu", "clinc"]:
+            data = {
+                "train": "/home/mojo/projects/phd/stage1/dialogue_tasks/DialoGLUE/data_utils/dialoglue/" + dataset + "/train.csv",
+                "val": "/home/mojo/projects/phd/stage1/dialogue_tasks/DialoGLUE/data_utils/dialoglue/" + dataset + "/val.csv",
+                "test": "/home/mojo/projects/phd/stage1/dialogue_tasks/DialoGLUE/data_utils/dialoglue/" + dataset + "/test.csv",
+            }
+            raw_datasets = DatasetDict.from_csv({key: path for key, path in data.items()})
+            le = preprocessing.LabelEncoder()
+            le.fit(raw_datasets["train"]["category"] + raw_datasets["test"]["category"])
+            self.datasets[dataset] = raw_datasets
+
+            import json
+            prediction_data_file = "static/data/" + dataset + "-viz_data-8-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json"
+            with open(prediction_data_file, "r") as f:
+                self.prediction_data[dataset] = json.load(f)
 
         # Load model
         from transformers import AutoModel, AutoTokenizer
@@ -137,13 +140,12 @@ class TextProcessor:
         outputs = self.model(**tokenized)
         return outputs.last_hidden_state.squeeze()[0].detach().cpu().numpy()
     
-    def importance(self, index, method):
-        text = self.raw_datasets["test"]["text"][index]
+    def importance(self, dataset, index, method):
+        text = self.datasets[dataset]["test"]["text"][index]
 
-
-        pred_data = self.prediction_data[index]
+        pred_data = self.prediction_data[dataset][index]
         support_set_idxs = pred_data["support_set"]
-        support_set = self.raw_datasets["test"][support_set_idxs]
+        support_set = self.datasets[dataset]["test"][support_set_idxs]
         distances = np.array(pred_data["distances"]).squeeze()
         closest_dp_idx = distances.argmax()
         closest_text = support_set["text"][closest_dp_idx]
@@ -161,11 +163,11 @@ class TextProcessor:
             importance = gradient_importance(self.tokenizer, self.model, text, txt2=closest_text)
             return importance
 
-    def importances_all(self, index):
-        attn_importance, tokens = self.importance(index, "attention")
-        lime_importance, tokens = self.importance(index, "lime")
-        integrad_importance, tokens = self.importance(index, "integrad")
-        grad_importance, tokens = self.importance(index, "gradient")
+    def importances_all(self, dataset, index):
+        attn_importance, tokens = self.importance(dataset, index, "attention")
+        lime_importance, tokens = self.importance(dataset, index, "lime")
+        integrad_importance, tokens = self.importance(dataset, index, "integrad")
+        grad_importance, tokens = self.importance(dataset, index, "gradient")
 
         return {"tokens": tokens, 
                 "attn_importance": attn_importance,
@@ -173,9 +175,9 @@ class TextProcessor:
                 "grad_importance": grad_importance, 
                 "integrad_importance": integrad_importance}
     
-    def relation(self, index1, index2, reltype):
-        txt1 = self.raw_datasets["test"]["text"][index1]
-        txt2 = self.raw_datasets["test"]["text"][index2]
+    def relation(self, dataset, index1, index2, reltype):
+        txt1 = self.datasets[dataset]["test"]["text"][index1]
+        txt2 = self.datasets[dataset]["test"]["text"][index2]
 
         if reltype == "token2token":
             return token_encoding_relation(
@@ -229,7 +231,9 @@ def create_app(test_config=None):
     @app.route("/importances")
     def importance_all():
         index = int(request.args.get("index"))
-        result = text_processor.importances_all(index)
+        dataset = request.args.get("dataset")
+
+        result = text_processor.importances_all(dataset, index)
         return result
 
     @app.route("/relation")
@@ -237,8 +241,9 @@ def create_app(test_config=None):
         index1 = int(request.args.get("index1"))
         index2 = int(request.args.get("index2"))
         reltype = request.args.get("reltype")
+        dataset = request.args.get("dataset")
 
-        result = text_processor.relation(index1, index2, reltype)
+        result = text_processor.relation(dataset, index1, index2, reltype)
         return result
 
 
