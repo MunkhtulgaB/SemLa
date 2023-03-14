@@ -1507,7 +1507,7 @@
             const reltype = "integrad";
 
             return new Promise((resolve, reject) => {
-              $.ajax(`relation?index1=${idx1}&index2=${idx2}&reltype=${reltype}`)
+              $.ajax(`relation?dataset=${DATASET_NAME}&index1=${idx1}&index2=${idx2}&reltype=${reltype}`)
               .done(function(res) {
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
@@ -1542,7 +1542,7 @@
             const reltype = "token2token";
 
             return new Promise((resolve, reject) => {
-              $.ajax(`relation?index1=${idx1}&index2=${idx2}&reltype=${reltype}`)
+              $.ajax(`relation?dataset=${DATASET_NAME}&index1=${idx1}&index2=${idx2}&reltype=${reltype}`)
               .done(function(res) {
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
@@ -2149,7 +2149,7 @@
 
           function updateImportanceChart(d) {
             return new Promise((resolve, reject) => {
-              $.ajax(`importances?index=${d.idx}`)
+              $.ajax(`importances?dataset=${DATASET_NAME}&index=${d.idx}`)
               .done(function(res) {
                 const importanceData = formatImportanceData(res);
                 if (importanceChart) importanceChart.destroy();
