@@ -185,9 +185,18 @@
           <p class="widget_title">Map options</p>
           <div class="widget_content">
 
-    
-            <label for="show-errors">Show misclassifications only</label>
+            
+            <label for="show-errors">Errors only</label>
             <input type="checkbox" id="show-errors" name="show-errors">
+            
+            <label for="group-by">Switch to confidence heatmap</label>
+            <input type="checkbox" id="show-confidence" name="show-confidence">
+
+            <div>
+              <label>Confidence thresholds</label>
+              <input type="number" class="confThreshold" data-index="0" value="0" min="0"/>
+              <input type="number" class="confThreshold" data-index="1" value="100" max="100"/>
+            </div>
 
             <div>
               <label for="filter">Filter datapoints by words</label>
@@ -205,14 +214,6 @@
             </div>
 
             <div>
-              <label for="group-by">Colour by</label>
-              <!-- <input type="radio" name="group-by" value="ground_truth_label_idx" checked>Ground truth</input>
-              <input type="radio" name="group-by" value="prediction_label_idx">Prediction</input> -->
-              <input type="radio" name="group-by" value="intent_cluster" checked>Intent cluster</input>
-              <input type="radio" name="group-by" value="instance_cluster">Instance cluster</input>
-            </div>
-
-            <div>
               <label for="dim-reduction">Position by (dimension reduction)</label>
               <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
               <input type="radio" name="dim-reduction" value="umap">umap</input>
@@ -223,7 +224,7 @@
           </div>
         </div>
 
-        <div class="widget" style="width: 272px">
+        <div class="widget" style="width: 280px">
           <p class="widget_title">Local words</p>
           <div class="widget_content">
             <div>
@@ -236,9 +237,9 @@
             </div>
             
             <div>
-              <label>Frequency threshold</label>
-              <input type="number" class="freqThreshold" data-index="0" value="10" />
-              <input type="number" class="freqThreshold" data-index="1" value="100" />
+              <label>Frequency thresholds</label>
+              <input type="number" class="freqThreshold" data-index="0" value="10" min="0"/>
+              <input type="number" class="freqThreshold" data-index="1" value="100"/>
             </div>
             <div>
               <label for="localAreaThreshold">Locality threshold</label>
@@ -636,18 +637,35 @@
             // Show errors only?
             idxs_before_error_filter = null;
 
-            is_to_show_errors_only.on("change", function() {
-              if ($("#show-errors").is(":checked")) {
-                var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateSymbols is called in the same context
-                
-                idxs_before_error_filter = visibles.data().map(d => d.idx)
-                idxs = visibles.filter(d => errors_idxs.includes(d.idx))
-                  .data().map(d => d.idx);
-                filterChart(idxs);
+            is_to_show_errors_only.on("change", showCurrentErrors);
+                        
+
+            // Show confidence?
+            $("#show-confidence").on("change", function() {
+              if ($("#show-confidence").is(":checked")) {
+                // color in the same way and differentiate by opacity
+                const confidence_color = "#89A4C7";
+
+                d3.selectAll("path.datapoint")
+                  // .attr("stroke", d => d3.color(d3.interpolateMagma(0.9 * calculate_confidence(d))).darker())
+                  .attr("fill", d => confidence_color)
+                  .attr("stroke", d => d3.color(confidence_color).darker(0.3))
+                  .attr("fill-opacity", d => Math.max(0.2, calculate_confidence(d)));
+
               } else {
-                filterChart(idxs_before_error_filter || [])
+                // switch back to normal coloring
+                d3.selectAll("path.datapoint")
+                  .attr('fill',  function (d) {
+                    var label = parseInt(d["intent_cluster"])
+                    return cluster_to_color[label]; 
+                  })
+                  .attr("fill-opacity", 1)
+                  .attr("stroke", "#9299a1");
               }
             });
+
+            // Add a confidence range filter
+            $("input.confThreshold").change(filterByConfidence);       
 
             // Show local words?
             is_to_show_errors_only.change(updateLocalWords)
@@ -905,6 +923,46 @@
 
           var forceSimulation;
           updateLocalWords();
+          
+          
+          function showCurrentErrors() {
+            if ($("#show-errors").is(":checked")) {
+              var [visibles, gold_intent_set, predicted_intent_set] = getVisibleDatapoints(); // TO REFACTOR: reduce the call to getVisibleDatapoints() when updateSymbols is called in the same context
+              
+              idxs_before_error_filter = visibles.data().map(d => d.idx)
+              idxs = visibles.filter(d => errors_idxs.includes(d.idx))
+                .data().map(d => d.idx);
+              filterChart(idxs);
+            } else {
+              filterChart(idxs_before_error_filter || [])
+            }
+          }
+
+          function filterByConfidence() {
+            const conf_threshold_lower = parseInt($("input.confThreshold[data-index=0]").val()) || 0;
+            const conf_threshold_upper = parseInt($("input.confThreshold[data-index=1]").val()) || 100;
+
+            const filter_idxs = data.filter(function(d) {
+                const confidence = calculate_confidence(d) * 100;
+                return conf_threshold_lower < confidence && 
+                          confidence < conf_threshold_upper;
+            }).map(d => d.idx);
+            if (filter_idxs.length == 0) {
+              filterChart([-1])
+            } else {
+              filterChart(filter_idxs)
+            }
+
+          }
+
+          function calculate_confidence(d) {
+            tau = 15;
+
+            probs = softmax(d.distances[0].map(dist => dist/tau))
+            probs = probs.sort((a,b) => b-a);
+            confidence = probs[0] - probs[1];
+            return confidence;
+          }
 
           // A function that counts word frequency in all visible dps
           function updateLocalWords(mode) {
@@ -1000,7 +1058,7 @@
                   })
                 });
           }
-
+          
           function fontSize(d) {
             return Math.min(13 + d.frequency*0.2, 80);
           }
@@ -1338,9 +1396,10 @@
           function clear() {
             filter_input.val("");
             if ($("#show-errors").is(":checked")) {
-              filterChart(errors_idxs);
+              filterByConfidence();
+              showCurrentErrors();
             } else {
-              filterChart([]);
+              filterByConfidence();
             }
             filterHulls([])
 
@@ -2087,19 +2146,10 @@
             return values.reduce((a,b) => a+b, 0);
           }
 
-          function softmax(values, value) {
-            if (value && !values.includes(value)) {
-              throw new Error("value must be included in values");
-            }
+          function softmax(values) {
             const val_exps = values.map(val => Math.exp(val));
             const exps_sum = val_exps.reduce((a,b) => a + b, 0);
-            const to_return = Math.exp(value) / exps_sum;
-            if (value) {
-              return to_return;
-            } else {
-              return val_exps.map(val => val / exps_sum);
-            }
-            
+            return val_exps.map(val => val / exps_sum);      
           }
 
           function minmax(values, value) {
