@@ -1978,7 +1978,7 @@
             relchart.selectAll(".right_rect")
                   .attr("fill-opacity", d => (d.importance) ? 0.5 * minmax(all_importance, Math.abs(d.importance)): 0)
             // For the middle texts, highlight by contrastiveness
-            const contrastiveness_scores = res.importance1.map((s, i) => Math.abs(s - importance3[i])).filter(s => !isNaN(s));
+            const contrastiveness_scores = res.importance1.map((s, i) => Math.abs(s - importance4[i])).filter(s => !isNaN(s));
             const distinguishing_factor_idx = contrastiveness_scores.indexOf(Math.max(...contrastiveness_scores))
 
             relchart.selectAll(".rect_left")
