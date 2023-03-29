@@ -149,17 +149,34 @@
         justify-content: space-evenly;
         align-items: center;
         padding: 0 20px;
+        z-index: 100;
       }
 
       #summary-container {
-        width: 450px;
         border: 3px solid red;  
         background-color: white;
+        /* font-size: 18px; */
       }
 
       #importance-container {
-        width: 450px; 
         background-color: white;
+      }
+
+      .sample-lvl-viz {
+        width: 480px;
+        height: 350px;
+        padding: 10px 0;
+      }
+
+      .sample-lvl-content {
+        height: 300px;
+        width: 450px;
+        overflow-y: auto;
+        margin: auto;
+      }
+
+      .rel_chart_right {
+        width: 215px;
       }
     </style>
   </head>
@@ -294,47 +311,47 @@
     
     <div id="sample-level" class="widget super-widget">
       
-      <div id="summary-container" class="widget">
+      <div id="summary-container" class="widget sample-lvl-viz">
         <p class="widget_title">
           Sample summary
         </p>
-        <div class="widget_content" style="height: 300px; overflow: auto">
+        <div class="widget_content sample-lvl-content" style="overflow: auto">
           <div id="summary"></div>
         </div>
       </div>
 
-      <div class="widget" style="width: 492px; background-color: white;" >
+      <div class="widget sample-lvl-viz" style="background-color: white;" >
         <p class="widget_title">
           Relation (token-to-similarity)
         </p>
-        <div class="widget_content" style="display: flex; height: 300px; padding: 10px">
+        <div class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
             <div id="rel_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
               <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
             </div>
-            <div id="rel_chart_right_container" style="height: 100%; width: 250px;">
+            <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
               <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
             </div>
          </div>
       </div>
 
-      <div id="importance-container" class="widget">
+      <div id="importance-container" class="widget sample-lvl-viz">
         <p class="widget_title">
           Importance
         </p>
-        <div class="widget_content" style="height: 300px;">
+        <div class="widget_content sample-lvl-content">
           <canvas id="importance_chart"></canvas>
         </div>
       </div>
 
-      <div class="widget" style="width: 492px; background-color: white;" >
+      <div class="widget sample-lvl-viz" style="background-color: white;" >
         <p class="widget_title">
           Relation (token-to-token)
         </p>
-        <div class="widget_content" style="display: flex; height: 300px; padding: 10px">
+        <div class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
             <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
               <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
             </div>
-            <div id="token_chart_right_container" style="height: 100%; width: 250px;">
+            <div id="token_chart_right_container" class="rel_chart_right" style="height: 100%;">
               <svg id="token_chart" style="height: 100%; width: 100%"></svg>
             </div>
          </div>
@@ -344,6 +361,8 @@
     </div>
 
     <script>
+      RELCHART_LEFT_WIDTH = 215;
+
       // make widgets collapsible
       $(".widget_title").click(function() {
         $(this).parent().find(".widget_content").slideToggle();
@@ -1481,19 +1500,17 @@
 
                           <hr>
                           <div>
-                            <h5 style="margin-bottom: 0px"><b>Closest support example: </b></h5>
+                            <div><b>Closest support example: </b></div>
                             ${ closest_dp.text }
                             (${ closest_dp.ground_truth })
                             </div>
 
                           <hr>
                           <div>
-                            <h5 style="margin-bottom: 0px">
-                            <b>${ 
+                            <div><b>${ 
                               (is_prediction_correct) ? "Next closest example:" 
                               : "Correct support example:" 
-                            }</b>
-                            </h5>
+                            }</b></div>
                             ${ dp2.text }
                             (${ dp2.ground_truth })
                           </div>
@@ -1574,7 +1591,7 @@
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
                   $("#rel_chart_left_container").animate({
-                    width: "200px"
+                    width: RELCHART_LEFT_WIDTH + "px"
                   });
                   d3.selectAll("svg#rel_chart_left > *").remove();
                   renderSecondRelChart(res);
@@ -1609,7 +1626,7 @@
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
                   $("#token_chart_left_container").animate({
-                    width: "200px"
+                    width: RELCHART_LEFT_WIDTH + "px"
                   });
                   d3.selectAll("svg#token_chart_left > *").remove();
                   renderSecondTokenChart(res);
@@ -1871,7 +1888,7 @@
                                   .x(d => d.x)
                                   .y(d => d.y);
 
-            const chart_width = 200;
+            const chart_width = RELCHART_LEFT_WIDTH;
             const left_lines = relchart_left.selectAll(".left_links_contrast")
               .data(leftcol_data.filter(dp => !isNaN(dp.importance)).map(function(d,i) {
                 const positives_so_far_sum = leftcol_data.slice(0, i).filter(dp => dp.importance > 0).map(getWidth).reduce((a,b) => a+b, 0);
