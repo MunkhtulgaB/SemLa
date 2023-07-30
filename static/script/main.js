@@ -240,6 +240,7 @@ d3.json(
                             .attr("r", localitySize)
                             .attr("x", width / 2 - localitySize / 2)
                             .attr("y", height / 2 - localitySize / 2);
+                        updateLocalWords();
                     });
 
                 // Frequency threshold
@@ -687,7 +688,7 @@ d3.json(
         }
 
         // A function that counts word frequency in all visible dps
-        function updateLocalWords(mode) {
+        function updateLocalWords(disableForce) {
             if (forceSimulation) {
                 forceSimulation.stop();
             }
@@ -774,8 +775,9 @@ d3.json(
                 .style("stroke", "white")
                 .style("stroke-width", 0.4);
 
-            // Apply force to prevent collision between texts
-            forceSimulation = d3
+            if (!disableForce) {
+                // Apply force to prevent collision between texts
+                forceSimulation = d3
                 .forceSimulation(localised_words)
                 // .force("x", d3.forceX().x(d => d.x).strength(d => d.frequency/100))
                 // .force("y", d3.forceY().y(d => d.y).strength(d => d.frequency/100))
@@ -790,6 +792,7 @@ d3.json(
                             return d.y; // + this.getBBox().height/2;
                         });
                 });
+            }
         }
 
         function fontSize(d) {
@@ -990,6 +993,7 @@ d3.json(
                 .attr("y2", function (d) {
                     return newY(d.y2);
                 });
+            updateLocalWords(true);
         }
 
         function getXYScales(data) {
