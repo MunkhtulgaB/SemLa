@@ -17,67 +17,54 @@ import { clear,
          calculateConfidence } from "./global-level/filters.js";
 import { showLocalWords } from "./global-level/local-words.js";
 import { initializeMap } from "./global-level/map.js";
+import { updateSymbols } from "./global-level/symbols.js";
 
 
 let filterByIdxAndUpdate = function(idxs) { 
     filterChart(idxs);
-    updateSymbols();
+    let [visibles, gold_intent_set, _] =
+        getVisibleDatapoints(width, height);
+    updateSymbols(visibles, gold_intent_set);
     updateLocalWords();
 }
 
 let filterByDatapointAndUpdate = function(dp, data) {
     const filter_by = $('input[name="filter-by"]:checked').val();
     filterByDatapoint(dp, data, filter_by);
-    updateSymbols();
+    let [visibles, gold_intent_set, _] =
+        getVisibleDatapoints(width, height);
+    updateSymbols(visibles, gold_intent_set);
     updateLocalWords();
 }
 
 let filterByIntentsAndUpdate = function(data, intents, bbox) {
     filterByIntents(data, intents, bbox);
-    updateSymbols();
+    let [visibles, gold_intent_set, _] =
+        getVisibleDatapoints(width, height);
+    updateSymbols(visibles, gold_intent_set);
     updateLocalWords();
 }
 
 let filterByConfidenceAndUpdate = function(data) {
     filterByConfidence(data);
-    updateSymbols();
+    let [visibles, gold_intent_set, _] =
+        getVisibleDatapoints(width, height);
+    updateSymbols(visibles, gold_intent_set);
     updateLocalWords();
 }
 
 let clearAndUpdate = function(data) {
     clear(data);
-    updateSymbols();
+    let [visibles, gold_intent_set, _] =
+        getVisibleDatapoints(width, height);
+    updateSymbols(visibles, gold_intent_set);
     updateLocalWords();
 }
 
 let updateLocalWords = function(disableForce) {
-    let [visibles, __, ___] = getVisibleDatapoints(width, height); // TO REFACTOR: reduce the call to getVisibleDatapoints(width, height) when updateSymbols is called in the same context
+    let [visibles, __, ___] = getVisibleDatapoints(width, height);
     showLocalWords(visibles, disableForce);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// INIT the SVG
-
-
-
 
 
 
@@ -126,261 +113,6 @@ svg_canvas.append("line")
     .attr("stroke-width", "3");
 
 let dim_reduction = "tsne";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// GLOBAL CONSTANTS
-
-
-let previous_intent_symbol_map = {};
-
-
-// Initialise a variable for keeping track of currently visible datapoints
-let currently_visible_dps = d3.selectAll(".datapoint");
-
-
-
-const symbolNames = [
-    "Circle",
-    "Cross",
-    "Diamond",
-    "Square",
-    "Star",
-    "Triangle",
-    "Wye",
-];
-const symbols = symbolNames.map((name) =>
-d3.symbol().type(d3[`symbol${name}`]).size(150)
-);
-
-let customSymbolDownTriangle = {
-draw: function (context, size) {
-    let s = Math.sqrt(size);
-    context.moveTo(0, s / 2);
-    context.lineTo(s, -s);
-    context.lineTo(-s, -s);
-    // context.lineTo(-s,s);
-    context.closePath();
-},
-};
-
-symbols.push(d3.symbol().type(customSymbolDownTriangle).size(100));
-
-
-
-function updateSymbols() {
-    let [visibles, gold_intent_set, predicted_intent_set] =
-        getVisibleDatapoints(width, height);
-
-    currently_visible_dps = visibles;
-
-    if (gold_intent_set.length <= symbols.length) {
-        const intents_with_symbols = Object.keys(previous_intent_symbol_map)
-            .map((k) => parseInt(k))
-            .filter((k) => gold_intent_set.includes(k));
-        const intents_without_symbols = gold_intent_set.filter(
-            (intent) => !intents_with_symbols.includes(intent)
-        );
-        const used_symbols = intents_with_symbols.map(
-            (k) => previous_intent_symbol_map[k]
-        );
-        const remaining_symbols = symbols.filter(
-            (sym) => !used_symbols.includes(sym)
-        );
-
-        if (intents_without_symbols.length > remaining_symbols.length) {
-            throw new Error(
-                "There aren't enough symbols to assign to the newly visible intents: " +
-                `${intents_without_symbols.length} !< ${remaining_symbols.length}`
-            );
-        }
-
-        const intent_to_symbol = Object.fromEntries(
-            intents_without_symbols.map((intent, i) => [
-                intent,
-                remaining_symbols[i],
-            ])
-        );
-        currently_visible_dps.attr("d", function (d) {
-            const intent = d.ground_truth_label_idx;
-            if (intents_with_symbols.includes(intent)) {
-                return previous_intent_symbol_map[intent](d);
-            } else {
-                return intent_to_symbol[intent](d);
-            }
-        });
-
-        previous_intent_symbol_map = Object.assign(
-            previous_intent_symbol_map,
-            intent_to_symbol
-        );
-    } else {
-        currently_visible_dps.attr(
-            "d",
-            d3.symbol().type(d3.symbolCircle).size(150)
-        );
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Map initialization
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -710,68 +442,6 @@ function getXYScales(data) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// On click, start instance-level explanations
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function onClick(d, data, newX, newY) {
     filterByDatapointAndUpdate(d, data);
 
@@ -886,8 +556,3 @@ function onClick(d, data, newX, newY) {
             .style("visibility", "visible");
     }
 }
-
-
-
-
-

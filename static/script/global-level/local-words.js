@@ -1,4 +1,3 @@
-import { getVisibleDatapoints } from "./filters.js";
 import { getStopwords } from "./stopwords.js";
 
 

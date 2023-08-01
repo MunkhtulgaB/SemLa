@@ -1,9 +1,3 @@
-// filters
-
-
-
-
-
 let currentHulls = null;
 
 function filterHulls(intents) {
