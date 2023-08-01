@@ -20,6 +20,7 @@ import { initializeMap } from "./global-level/map.js";
 import { updateSymbols } from "./global-level/symbols.js";
 
 
+// Wrappers around the filter functions
 let filterByIdxAndUpdate = function(idxs) { 
     filterChart(idxs);
     let [visibles, gold_intent_set, _] =
@@ -45,16 +46,16 @@ let filterByIntentsAndUpdate = function(data, intents, bbox) {
     updateLocalWords();
 }
 
-let filterByConfidenceAndUpdate = function(data) {
-    filterByConfidence(data);
+let filterByConfidenceAndUpdate = function(data, errors_idxs) {
+    filterByConfidence(data, errors_idxs);
     let [visibles, gold_intent_set, _] =
         getVisibleDatapoints(width, height);
     updateSymbols(visibles, gold_intent_set);
     updateLocalWords();
 }
 
-let clearAndUpdate = function(data) {
-    clear(data);
+let clearAndUpdate = function(data, errors_idxs) {
+    clear(data, errors_idxs);
     let [visibles, gold_intent_set, _] =
         getVisibleDatapoints(width, height);
     updateSymbols(visibles, gold_intent_set);
@@ -97,6 +98,7 @@ let clip = svg_canvas.append("defs")
     .attr("x", 0)
     .attr("y", 0);
 
+// Add the lines that appear when you drag from a node
 svg_canvas.append("line")
     .attr("clip-path", "url(#clip)")
     .attr("id", "drag-line-0")
@@ -322,7 +324,10 @@ d3.json(
                 // Show errors only?
                 let idxs_before_error_filter = null;
                 is_to_show_errors_only.on("change", function() {
-                    idxs_before_error_filter = showCurrentErrors(idxs_before_error_filter)
+                    idxs_before_error_filter = showCurrentErrors(
+                                            errors_idxs,
+                                            idxs_before_error_filter
+                                        );
                 });
 
                 // Show confidence?
@@ -352,7 +357,7 @@ d3.json(
 
                 // Add a confidence range filter
                 $("input.confThreshold").change(() => 
-                                    filterByConfidenceAndUpdate(data));
+                                    filterByConfidenceAndUpdate(data, errors_idxs));
 
                 // Show local words?
                 is_to_show_errors_only.change(updateLocalWords);
@@ -382,38 +387,35 @@ d3.json(
 
                 // Clear button
                 clear_btn.on("click", function (e) {
-                    clearAndUpdate(data);
+                    clearAndUpdate(data, errors_idxs);
                 });
             })
             .keyup(function (e) {
                 if (e.key === "Escape") {
                     // escape key maps to keycode `27`
-                    clearAndUpdate(data);
+                    clearAndUpdate(data, errors_idxs);
                 }
             });
-
-        updateLocalWords();
-
-        function showCurrentErrors(idxs_before_error_filter) {
-            if ($("#show-errors").is(":checked")) {
-                let [visibles, gold_intent_set, predicted_intent_set] =
-                    getVisibleDatapoints(width, height); // TO REFACTOR: reduce the call to getVisibleDatapoints(width, height) when updateSymbols is called in the same context
-
-                idxs_before_error_filter = visibles.data().map((d) => d.idx);
-                const idxs = visibles
-                    .filter((d) => errors_idxs.includes(d.idx))
-                    .data()
-                    .map((d) => d.idx);
-                filterByIdxAndUpdate(idxs);
-            } else {
-                filterByIdxAndUpdate(idxs_before_error_filter || []);
-            }
-            return idxs_before_error_filter
-        }
-
     }
 );
 
+
+function showCurrentErrors(errors_idxs, idxs_before_error_filter) {
+    if ($("#show-errors").is(":checked")) {
+        let [visibles, gold_intent_set, predicted_intent_set] =
+            getVisibleDatapoints(width, height); // TO REFACTOR: reduce the call to getVisibleDatapoints(width, height) when updateSymbols is called in the same context
+
+        idxs_before_error_filter = visibles.data().map((d) => d.idx);
+        const idxs = visibles
+            .filter((d) => errors_idxs.includes(d.idx))
+            .data()
+            .map((d) => d.idx);
+        filterByIdxAndUpdate(idxs);
+    } else {
+        filterByIdxAndUpdate(idxs_before_error_filter || []);
+    }
+    return idxs_before_error_filter
+}
 
 
 function getXYScales(data) {

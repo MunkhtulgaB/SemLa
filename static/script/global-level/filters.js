@@ -32,7 +32,7 @@ function filterByIntents(data, intents, bbox) {
 }
 
 
-function filterByConfidence(data) {
+function filterByConfidence(data, errors_idxs) {
     const conf_threshold_lower =
         parseInt($("input.confThreshold[data-index=0]").val()) || 0;
     const conf_threshold_upper =
@@ -76,10 +76,10 @@ function filterChart(idxs) {
     d3.selectAll(".drag_line").style("visibility", "hidden");
 }
 
-function clear(data) {
+function clear(data, errors_idxs) {
     $("#filter").val("");
 
-    filterByConfidence(data);
+    filterByConfidence(data, errors_idxs);
     filterHulls([]);
 
     $(".selected-dp")
