@@ -1,5 +1,6 @@
 import { updateRelationChart, 
         updateImportanceChart,
+        updateTextSummary,
         updateTokenChart,
         loadingImportanceChart, 
         emptyRelationChart, 
@@ -422,8 +423,8 @@ function showCurrentErrors(errors_idxs, idxs_before_error_filter) {
 
 
 function onClick(d, data, newX, newY) {
+    // Filter the related nodes and highlight the selected node
     filterByDatapointAndUpdate(d, data);
-
     $(".selected-dp")
         .removeClass("selected-dp")
         .attr("stroke", "#9299a1")
@@ -433,7 +434,7 @@ function onClick(d, data, newX, newY) {
         .attr("stroke-width", "3px")
         .addClass("selected-dp");
     
-    // Update importance and relations charts
+    // Identify the closest datapoint
     const similarities_sorted = Array.from(d.distances[0].entries()).sort(
         (a, b) => b[1] - a[1]
     );
@@ -453,44 +454,7 @@ function onClick(d, data, newX, newY) {
         );
     }
 
-    // Give summary of selected point
-    const is_prediction_correct = d.prediction == d.ground_truth;
-    const html = `<div>
-            <p><b>Text: </b> ${d.text}<p>
-            <p><b>Predicted</b> intent was <b>${d.prediction}</b> ${is_prediction_correct
-                ? `(<span style="color: green">correct</span>)`
-                : `(<span style="color: red">wrong</span>)`
-            }
-                based on closest support example.
-            </p>
-            ${!is_prediction_correct
-                ? `<p><b>Ground-truth</b> intent is <b>${d.ground_truth}</b>.</p>`
-                : ""
-            }
-            </div>
-
-            <hr>
-            <div>
-            <div><b>Closest support example: </b></div>
-            ${closest_dp.text}
-            (${closest_dp.ground_truth})
-            </div>
-
-            <hr>
-            <div>
-            <div><b>${is_prediction_correct
-                ? "Next closest example:"
-                : "Correct support example:"
-            }</b></div>
-            ${dp2.text}
-            (${dp2.ground_truth})
-            </div>
-            
-            `;
-
-    d3.select("#summary").html(html);
-
-    // populate the relchart automatically
+    updateTextSummary(d, closest_dp, dp2);
     loadingImportanceChart();
     emptyRelationChart();
     emptyTokenChart();

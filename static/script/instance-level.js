@@ -1154,6 +1154,45 @@ function renderSecondTokenChart(res) {
 }
 
 
+function updateTextSummary(d, closest_dp, dp2) {
+    const is_prediction_correct = d.prediction == d.ground_truth;
+    const html = `<div>
+            <p><b>Text: </b> ${d.text}<p>
+            <p><b>Predicted</b> intent was <b>${d.prediction}</b> ${is_prediction_correct
+                ? `(<span style="color: green">correct</span>)`
+                : `(<span style="color: red">wrong</span>)`
+            }
+                based on closest support example.
+            </p>
+            ${!is_prediction_correct
+                ? `<p><b>Ground-truth</b> intent is <b>${d.ground_truth}</b>.</p>`
+                : ""
+            }
+            </div>
+
+            <hr>
+            <div>
+            <div><b>Closest support example: </b></div>
+            ${closest_dp.text}
+            (${closest_dp.ground_truth})
+            </div>
+
+            <hr>
+            <div>
+            <div><b>${is_prediction_correct
+                ? "Next closest example:"
+                : "Correct support example:"
+            }</b></div>
+            ${dp2.text}
+            (${dp2.ground_truth})
+            </div>
+            
+            `;
+
+    d3.select("#summary").html(html);
+}
+
+
 function minmax(values, value) {
     if (value && !values.includes(value)) {
         throw new Error("value must be included in values");
@@ -1174,6 +1213,7 @@ function minmax(values, value) {
 export { updateRelationChart, 
         updateImportanceChart,
         updateTokenChart,
+        updateTextSummary,
         loadingImportanceChart, 
         emptyRelationChart,
         emptyTokenChart }
