@@ -175,31 +175,17 @@ function initializeMap(svg_canvas,
                         onClick,
                         onDragEnd,
                         dataset_name) {
-   let xMin = Math.min(...data.map((d) => d["tsne-dim0"]));
-   let xMax = Math.max(...data.map((d) => d["tsne-dim0"]));
-   let xRange = xMax - xMin;
-
-   let yMin = Math.min(...data.map((d) => d["tsne-dim1"]));
-   let yMax = Math.max(...data.map((d) => d["tsne-dim1"]));
-   let yRange = yMax - yMin;
-
-   // Add X axis
-   let x = d3.scaleLinear()
-   .domain([xMin - 0.1 * xRange, xMax + 0.1 * xRange])
-   .range([0, width]);
-
-   // Add Y axis
-   let y = d3.scaleLinear()
-   .domain([yMin - 0.1 * yRange, yMax + 0.1 * yRange])
-   .range([height, 0]);
+   // Initialize axes
+   const [x, y] = getXYScales(data, dim_reduction, width, height);
    let xAxis = svg_canvas.append("g")
-   .attr("transform", "translate(0," + height + ")")
-   .call(d3.axisBottom(x));
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
    let yAxis = svg_canvas.append("g").call(d3.axisLeft(y));
 
    newX = x;
    newY = y;
 
+   // Initialize zoom
    initializeZoom(svg_canvas, 
                     margin, 
                     width, 
@@ -211,16 +197,17 @@ function initializeMap(svg_canvas,
                     dim_reduction,
                     onZoom);
 
-   // Create the scatter variable
+   // Create the scatter plot
    let scatter = svg_canvas.append("g")
                    .attr("id", "scatter")
                    .attr("clip-path", "url(#clip)");
 
+   // Initialize dragging behaviour and intent hulls
    const drag = initializeDragging(dim_reduction, onDragEnd, dataset_name);
    const [intents_to_points_tsne, intents_to_points_umap] = initializeHulls(data, cluster_to_color, intent_to_cluster, 
                    dim_reduction, newX, newY);
 
-   // draw the points
+   // Draw the points
    scatter
    .selectAll("path.datapoint")
    .data(data)
@@ -252,7 +239,33 @@ function initializeMap(svg_canvas,
 }
 
 
-export { initializeMap }
+function getXYScales(data, dim_reduction, width, height) {
+    const xMin = Math.min(...data.map((d) => d[`${dim_reduction}-dim0`]));
+    const xMax = Math.max(...data.map((d) => d[`${dim_reduction}-dim0`]));
+    const xRange = xMax - xMin;
+
+    const yMin = Math.min(...data.map((d) => d[`${dim_reduction}-dim1`]));
+    const yMax = Math.max(...data.map((d) => d[`${dim_reduction}-dim1`]));
+    const yRange = yMax - yMin;
+
+    // Add X axis
+    let x = d3
+        .scaleLinear()
+        .domain([xMin - 0.1 * xRange, xMax + 0.1 * xRange])
+        .range([0, width]);
+
+    // Add Y axis
+    let y = d3
+        .scaleLinear()
+        .domain([yMin - 0.1 * yRange, yMax + 0.1 * yRange])
+        .range([height, 0]);
+
+        
+    return [x, y];
+}
+
+
+export { initializeMap, getXYScales, updatePositions }
 
 
 

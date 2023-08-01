@@ -16,7 +16,9 @@ import { clear,
          getVisibleDatapoints, 
          calculateConfidence } from "./global-level/filters.js";
 import { showLocalWords } from "./global-level/local-words.js";
-import { initializeMap } from "./global-level/map.js";
+import { initializeMap, 
+         getXYScales,
+         updatePositions } from "./global-level/map.js";
 import { updateSymbols } from "./global-level/symbols.js";
 
 
@@ -292,16 +294,17 @@ d3.json(
                         'input[name="dim-reduction"]:checked'
                     ).val(); // TO REFACTOR: use const and let instead of let or vice versa consistently
                     dim_reduction = dim_reduction_attr;
-                    const [x, y] = getXYScales(data);
+                    const [x, y] = getXYScales(data, dim_reduction, 
+                                                width, height);
                     drawHulls(
                         dim_reduction == "tsne"
                             ? intents_to_points_tsne
                             : intents_to_points_umap,
                         cluster_to_color, 
                         intent_to_cluster,
-                        newX, newY
+                        x, y
                     );
-                    updatePositions(x, y);
+                    updatePositions(x, y, dim_reduction);
                     updateLocalWords();
                     filterHulls([]);
                 });
@@ -418,32 +421,6 @@ function showCurrentErrors(errors_idxs, idxs_before_error_filter) {
 }
 
 
-function getXYScales(data) {
-    // TO REFACTOR: use this instead of repetition
-    const xMin = Math.min(...data.map((d) => d[`${dim_reduction}-dim0`]));
-    const xMax = Math.max(...data.map((d) => d[`${dim_reduction}-dim0`]));
-    const xRange = xMax - xMin;
-
-    const yMin = Math.min(...data.map((d) => d[`${dim_reduction}-dim1`]));
-    const yMax = Math.max(...data.map((d) => d[`${dim_reduction}-dim1`]));
-    const yRange = yMax - yMin;
-
-    // Add X axis
-    let x = d3
-        .scaleLinear()
-        .domain([xMin - 0.1 * xRange, xMax + 0.1 * xRange])
-        .range([0, width]);
-
-    // Add Y axis
-    let y = d3
-        .scaleLinear()
-        .domain([yMin - 0.1 * yRange, yMax + 0.1 * yRange])
-        .range([height, 0]);
-
-    return [x, y];
-}
-
-
 function onClick(d, data, newX, newY) {
     filterByDatapointAndUpdate(d, data);
 
@@ -481,15 +458,15 @@ function onClick(d, data, newX, newY) {
     const html = `<div>
             <p><b>Text: </b> ${d.text}<p>
             <p><b>Predicted</b> intent was <b>${d.prediction}</b> ${is_prediction_correct
-            ? `(<span style="color: green">correct</span>)`
-            : `(<span style="color: red">wrong</span>)`
-        }
+                ? `(<span style="color: green">correct</span>)`
+                : `(<span style="color: red">wrong</span>)`
+            }
                 based on closest support example.
             </p>
             ${!is_prediction_correct
-            ? `<p><b>Ground-truth</b> intent is <b>${d.ground_truth}</b>.</p>`
-            : ""
-        }
+                ? `<p><b>Ground-truth</b> intent is <b>${d.ground_truth}</b>.</p>`
+                : ""
+            }
             </div>
 
             <hr>
@@ -502,9 +479,9 @@ function onClick(d, data, newX, newY) {
             <hr>
             <div>
             <div><b>${is_prediction_correct
-            ? "Next closest example:"
-            : "Correct support example:"
-        }</b></div>
+                ? "Next closest example:"
+                : "Correct support example:"
+            }</b></div>
             ${dp2.text}
             (${dp2.ground_truth})
             </div>
