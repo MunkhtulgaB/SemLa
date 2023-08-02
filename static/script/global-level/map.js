@@ -20,7 +20,8 @@ class Map {
     #dim_reduction;
     #newX;
     #newY;
-    #onZoom;
+    #onUpdate;
+    #updateCount = 0;
 
     constructor(svg_canvas, 
                 margin,
@@ -30,7 +31,7 @@ class Map {
                 cluster_to_color, 
                 intent_to_cluster,
                 dim_reduction,
-                onZoom,
+                onUpdate,
                 onClick,
                 onDragEnd,
                 dataset_name) {
@@ -43,7 +44,7 @@ class Map {
         this.#cluster_to_color = cluster_to_color;
         this.#intent_to_cluster = intent_to_cluster;
         this.#dim_reduction = dim_reduction;
-        this.#onZoom = onZoom; 
+        this.#onUpdate = onUpdate; 
         
         // Initialize axes
         const [x, y] = this.getXYScales(dim_reduction, width, height);
@@ -69,7 +70,7 @@ class Map {
             xAxis, 
             yAxis, 
             dim_reduction,
-            onZoom);
+            onUpdate);
 
         // Create the scatter plot
         let scatter = svg_canvas.append("g")
@@ -185,7 +186,7 @@ class Map {
                     margin, 
                     width, 
                     height,
-                    onZoom) {
+                    onUpdate) {
         // Set the zoom and Pan features: how much you can zoom, on which part, and what to do when there is a zoom
         let zoom = d3.zoom()
                     .scaleExtent([0.5, 100]) // This control how much you can unzoom (x0.5) and zoom (x20)
@@ -194,12 +195,12 @@ class Map {
                         [width, height],
                     ])
         .on("zoom", function() {
-            this.updateChart(onZoom)
+            this.updateChart()
         }.bind(this))
         .on("start", function () {
             d3.select("#scatter").selectAll(".local_word").remove();
         })
-        .on("end", onZoom);
+        .on("end", onUpdate);
 
         // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
         svg_canvas.append("rect")
@@ -217,9 +218,8 @@ class Map {
         if (msg == "clear") {
             this.clearSelectedNode();
             this.hideHulls();
-        } else if (msg == "Intent") {
-            // filter hulls by intents
         }
+        this.#onUpdate();
     }
 
     // A function that updates the chart when a user zooms
@@ -236,7 +236,9 @@ class Map {
 
         this.updatePositions(newX, newY, this.#dim_reduction); 
         this.updateDragLines();
-        this.#onZoom();
+
+        if (this.#updateCount % 2 == 0) this.#onUpdate();
+        this.#updateCount++;
     }
 
     updateDragLines() {

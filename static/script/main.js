@@ -307,7 +307,6 @@ d3.json(
                 $("input.confThreshold").change(() => {
                     const filter = filterByConfidenceAndUpdate(data);
                     dataset.addFilter(filter);
-                    dataset.filteredData;
                 });
 
                 // Show local words?
