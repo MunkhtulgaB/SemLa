@@ -1,14 +1,22 @@
 let currentHulls = null;
 
 
+function filterBySubstring(data, search_phrases) {
+    const filter_idxs = data
+        .filter(function (d) {
+            return search_phrases.every(function (phrase) {
+                return d.text.includes(phrase);
+            });
+        })
+        .map((d) => d.idx);
+    return filter_idxs;
+}
+
+
 function filterByIntents(data, intents, bbox) {
     const dp_idxs = data
         .filter((d) => intents.includes(d.ground_truth))
         .map((d) => d.idx);
-    // filterChart(dp_idxs);
-    // let [visibles, gold_intent_set, predicted_intent_set] =
-    //     getVisibleDatapoints(width, height);
-    // filterHulls(gold_intent_set);
     return dp_idxs;
 }
 
@@ -25,11 +33,6 @@ function filterByConfidence(data,
             );
         })
         .map((d) => d.idx);
-    // if (filter_idxs.length == 0) {
-    //     filterChart([-1]);
-    // } else {
-    //     filterChart(filter_idxs);
-    // }
     return filter_idxs;
 }
 
@@ -51,8 +54,6 @@ function filterByDatapoint(d, data, filter_by) {
     }
     return idxs;
 }
-
-
 
 
 function calculateConfidence(d) {
@@ -105,5 +106,6 @@ export {
     filterByConfidence,
     filterByDatapoint,
     getVisibleDatapoints, 
-    calculateConfidence 
+    calculateConfidence,
+    filterBySubstring
 }

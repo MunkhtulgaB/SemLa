@@ -8,6 +8,7 @@ import { updateRelationChart,
 import { populateConfusionTable,
         populateIntentTable } from "./intent-level.js";
 import { filterByIntents, 
+         filterBySubstring,
          filterByConfidence,
          filterByDatapoint,
          getVisibleDatapoints, 
@@ -19,13 +20,9 @@ import { Dataset, Filter } from "./data.js"
 
 
 // Wrappers around the filter functions
-let filterByIdxAndUpdate = function(idxs) { 
-    const filter = new Filter("Errors", "", idxs);
-    // filterChart(idxs);
-    // let [visibles, gold_intent_set, _] =
-    //     getVisibleDatapoints(width, height);
-    // updateSymbols(visibles, gold_intent_set);
-    // updateLocalWords();
+let filterBySearch = function(data, search_phrases) {
+    const filter_idxs = filterBySubstring(data, search_phrases);
+    const filter = new Filter("Search", "", filter_idxs);
     return filter;
 }
 
@@ -135,7 +132,6 @@ d3.json(
     function (data) {
         const cluster_to_color = d3.schemeSet3;
         const dataset = new Dataset(data);
-        const errors_idxs = dataset.errors.map(error => error.idx);
 
         // Initialize the global and intent level visualizations
         let filterBySelectedIntents = function() {
@@ -186,7 +182,7 @@ d3.json(
                 const groupby_option = $('input[name="group-by"]');
                 const filterby_option = $('input[name="filter-by"]');
                 const is_to_show_errors_only = $("#show-errors");
-                const filter_input = $("#filter");
+                const search_input = $("#filter");
                 const clear_btn = $("#clear-filter");
             
                 // Toggle local words
@@ -273,14 +269,13 @@ d3.json(
                 });
 
                 // Show errors only?
-                let idxs_before_error_filter = null;
                 is_to_show_errors_only.on("change", function() {
-                    const [filter, before_filter] = showCurrentErrors(
-                                            errors_idxs,
-                                            idxs_before_error_filter
-                                        );
-                    idxs_before_error_filter = before_filter;
-                    dataset.addFilter(filter);
+                    if ($("#show-errors").is(":checked")) {
+                        const filter = new Filter("Errors", "", dataset.errors_idxs);
+                        dataset.addFilter(filter);
+                    } else {
+                        dataset.removeFilter("Errors");
+                    }
                 });
 
                 // Show confidence?
@@ -319,26 +314,11 @@ d3.json(
                 is_to_show_errors_only.change(updateLocalWords);
 
                 // Filter input
-                filter_input.on("input", function (e) {
-                    let [visibles, gold_intent_set, predicted_intent_set] =
-                        getVisibleDatapoints(width, height); // TO REFACTOR: reduce the call to getVisibleDatapoints(width, height) when updateSymbols is called in the same context
-
-                    const filter_value = e.target.value;
-                    const filter_phrases = filter_value.split(",");
-
-                    const filter_idxs = visibles
-                        .filter(function (d) {
-                            return filter_phrases.every(function (phrase) {
-                                return d.text.includes(phrase);
-                            });
-                        })
-                        .data()
-                        .map((d) => d.idx);
-                    if (filter_idxs.length == 0) {
-                        filterByIdxAndUpdate([-1]);
-                    } else {
-                        filterByIdxAndUpdate(filter_idxs);
-                    }
+                search_input.on("input", function (e) {
+                    const search_value = e.target.value;
+                    const search_phrases = search_value.split(";");
+                    const filter = filterBySearch(data, search_phrases);
+                    dataset.addFilter(filter);
                 });
 
                 // Clear button
@@ -363,26 +343,6 @@ function resetFilterControls() {
     $("#show-errors").prop("checked", false);
     $("input.confThreshold[data-index=0]").val(0);
     $("input.confThreshold[data-index=1]").val(100);
-}
-
-
-function showCurrentErrors(errors_idxs, idxs_before_error_filter) {
-    if ($("#show-errors").is(":checked")) {
-        let [visibles, gold_intent_set, predicted_intent_set] =
-            getVisibleDatapoints(width, height); // TO REFACTOR: reduce the call to getVisibleDatapoints(width, height) when updateSymbols is called in the same context
-
-        idxs_before_error_filter = visibles.data().map((d) => d.idx);
-        const idxs = visibles
-            .filter((d) => errors_idxs.includes(d.idx))
-            .data()
-            .map((d) => d.idx);
-        return [filterByIdxAndUpdate(idxs), idxs_before_error_filter];
-    } else {
-        return [
-            filterByIdxAndUpdate(idxs_before_error_filter || []),
-            idxs_before_error_filter
-        ]
-    }
 }
 
 

@@ -9,7 +9,6 @@ class Map {
     #intents_to_points_tsne;
     #intents_to_points_umap;
     #data;
-    #dataset;
     #width;
     #height;
     #cluster_to_color;
@@ -37,7 +36,6 @@ class Map {
                 dataset_name) {
         const data = dataset.data;
         dataset.addObserver(this);
-        this.#dataset = dataset;
         
         this.#data = data;
         this.#width = width;
@@ -333,7 +331,6 @@ class Map {
 
     filterNodes(idxs) {
         d3.selectAll(".datapoint").attr("visibility", function (d) {
-            if (idxs.length == 0) return "visible";
             if (idxs.includes(d.idx)) {
                 return "visible";
             } else {

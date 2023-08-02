@@ -30,6 +30,7 @@ class Dataset {
     #data;
     #corrects;
     #errors;
+    #errors_idxs
     #confusions;
     #cluster_to_intent;
     #intent_to_cluster;
@@ -104,6 +105,7 @@ class Dataset {
 
         this.#corrects = corrects;
         this.#errors = errors;
+        this.#errors_idxs = errors_idxs;
         this.#confusions = confusions;
         this.#gt_counts = gt_counts;
         this.#pred_counts = pred_counts;
@@ -122,10 +124,17 @@ class Dataset {
         this.notifyObservers(newFilter.type);
     }
 
+    removeFilter(filterType) {
+        delete this.#filters[filterType];
+        this.#filteredData = this.refilterData();
+        this.notifyObservers();
+    }
+
     refilterData() {
         const filters = Object.values(this.#filters);
+        if (filters.length == 0) return this.#data;
         const idxs = filters.map(filter => filter.idxs);
-        console.log(filters.map(filter => filter.type))
+        console.log(filters.map(filter => filter.type));
         let idxs_intersection = idxs[0];
         const other_idxs = idxs.slice(1,);
         
@@ -166,6 +175,10 @@ class Dataset {
 
     get errors() {
         return this.#errors;
+    }
+
+    get errors_idxs() {
+        return this.#errors_idxs;
     }
 
     get confusions() {
