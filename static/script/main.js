@@ -386,6 +386,25 @@ function onClick(d, dataset) {
     // draw the draglines to the two support examples
     const filter_by = $('input[name="filter-by"]:checked').val();
     if (filter_by == "support_set") {
+        // if the nodes are currently filtered out, show them half transparent
+        const closest_node =  d3.select(`#node-${closest_dp.idx}`);
+        const dp2_node = d3.select(`#node-${dp2.idx}`);
+
+        closest_node
+            .style("opacity", function() {
+                if (closest_node.style("visibility") == "hidden") {
+                    return 0.3;
+                }
+            })
+            .style("visibility", "visible");
+        dp2_node
+            .style("opacity", function() {
+                if (dp2_node.style("visibility") == "hidden") {
+                    return 0.3;
+                }
+            })
+            .style("visibility", "visible");
+
         d3.select("#drag-line-0")
             .attr("x1", (d[`${dim_reduction}-dim0`]))
             .attr("y1", (d[`${dim_reduction}-dim1`]))

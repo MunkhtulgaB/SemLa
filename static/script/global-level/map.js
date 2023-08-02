@@ -88,33 +88,33 @@ class Map {
 
         // Draw the points
         const self = this;
-        scatter
-        .selectAll("path.datapoint")
-        .data(data)
-        .enter()
-        .append("path")
-        .attr("class", "datapoint")
-        .attr("d", d3.symbol().type(d3.symbolCircle).size(150))
-        .attr("stroke", "#9299a1")
-        .attr("fill", function (d) {
-            let label = parseInt(d["intent_cluster"]);
-            return cluster_to_color[label];
-        })
-        .attr("transform", function (d) {
-            const x_pos = d[`${dim_reduction}-dim0`];
-            const y_pos = d[`${dim_reduction}-dim1`];
-            const translation = "translate(" + x(x_pos) + "," + y(y_pos) + ")";
-            return translation;
-        })
-        .on("mouseover", showTooltip)
-        .on("mousemove", moveTooltipToCursor)
-        .on("mouseout", hideTooltip)
-        .on("click", function(d) {
-            self.selectNode(this);
-            onClick(d, dataset);
-            self.updateDragLines();
-        })
-        .call(drag);
+        scatter.selectAll("path.datapoint")
+            .data(data)
+            .enter()
+            .append("path")
+            .attr("id", d => `node-${d.idx}`)
+            .attr("class", "datapoint")
+            .attr("d", d3.symbol().type(d3.symbolCircle).size(150))
+            .attr("stroke", "#9299a1")
+            .attr("fill", function (d) {
+                let label = parseInt(d["intent_cluster"]);
+                return cluster_to_color[label];
+            })
+            .attr("transform", function (d) {
+                const x_pos = d[`${dim_reduction}-dim0`];
+                const y_pos = d[`${dim_reduction}-dim1`];
+                const translation = "translate(" + x(x_pos) + "," + y(y_pos) + ")";
+                return translation;
+            })
+            .on("mouseover", showTooltip)
+            .on("mousemove", moveTooltipToCursor)
+            .on("mouseout", hideTooltip)
+            .on("click", function(d) {
+                self.selectNode(this);
+                onClick(d, dataset);
+                self.updateDragLines();
+            })
+            .call(drag);
 
         initializeTooltip();
 
@@ -330,13 +330,13 @@ class Map {
     }
 
     filterNodes(idxs) {
-        d3.selectAll(".datapoint").attr("visibility", function (d) {
+        d3.selectAll(".datapoint").style("visibility", function (d) {
             if (idxs.includes(d.idx)) {
                 return "visible";
             } else {
                 return "hidden";
             }
-        });
+        }).style("opacity", 1);
     
         d3.selectAll(".drag_line").style("visibility", "hidden");
     }
