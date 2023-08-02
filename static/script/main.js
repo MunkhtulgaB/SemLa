@@ -7,62 +7,64 @@ import { updateRelationChart,
         emptyTokenChart } from "./instance-level.js";
 import { populateConfusionTable,
         populateIntentTable } from "./intent-level.js";
-import { drawHulls } from "./global-level/hulls.js";
-import { clear, 
-         filterByIntents, 
+import { filterByIntents, 
          filterByConfidence,
-         filterByDatapoint, 
-         filterChart, 
-         filterHulls,
+         filterByDatapoint,
          getVisibleDatapoints, 
          calculateConfidence } from "./global-level/filters.js";
 import { showLocalWords } from "./global-level/local-words.js";
-import { initializeMap, 
-         getXYScales,
-         updatePositions } from "./global-level/map.js";
+import { Map } from "./global-level/map.js";
 import { updateSymbols } from "./global-level/symbols.js";
+import { Dataset, Filter } from "./data.js"
 
 
 // Wrappers around the filter functions
 let filterByIdxAndUpdate = function(idxs) { 
-    filterChart(idxs);
-    let [visibles, gold_intent_set, _] =
-        getVisibleDatapoints(width, height);
-    updateSymbols(visibles, gold_intent_set);
-    updateLocalWords();
+    const filter = new Filter("Errors", "", idxs);
+    // filterChart(idxs);
+    // let [visibles, gold_intent_set, _] =
+    //     getVisibleDatapoints(width, height);
+    // updateSymbols(visibles, gold_intent_set);
+    // updateLocalWords();
+    return filter;
+}
+
+let filterByIntentsAndUpdate = function(data, intents, bbox) {
+    const filter_idxs = filterByIntents(data, intents, bbox);
+    const filter = new Filter("Intent", "", filter_idxs);
+    // let [visibles, gold_intent_set, _] =
+    //     getVisibleDatapoints(width, height);
+    // updateSymbols(visibles, gold_intent_set);
+    // updateLocalWords();
+    return filter;
+}
+
+let filterByConfidenceAndUpdate = function(data) {
+    const conf_threshold_lower =
+        parseInt($("input.confThreshold[data-index=0]").val()) || 0;
+    const conf_threshold_upper =
+        parseInt($("input.confThreshold[data-index=1]").val()) || 100;
+    const filter_idxs = filterByConfidence(data, 
+                                            conf_threshold_lower, 
+                                            conf_threshold_upper);
+    const filter = new Filter("Confidence", "", filter_idxs);
+    // let [visibles, gold_intent_set, _] =
+    //     getVisibleDatapoints(width, height);
+    // updateSymbols(visibles, gold_intent_set);
+    // updateLocalWords();
+    return filter;
 }
 
 let filterByDatapointAndUpdate = function(dp, data) {
     const filter_by = $('input[name="filter-by"]:checked').val();
-    filterByDatapoint(dp, data, filter_by);
-    let [visibles, gold_intent_set, _] =
-        getVisibleDatapoints(width, height);
-    updateSymbols(visibles, gold_intent_set);
-    updateLocalWords();
-}
+    const filter_idxs = filterByDatapoint(dp, data, filter_by);
+    const filter = new Filter("Datapoint", "", filter_idxs);
 
-let filterByIntentsAndUpdate = function(data, intents, bbox) {
-    filterByIntents(data, intents, bbox);
-    let [visibles, gold_intent_set, _] =
-        getVisibleDatapoints(width, height);
-    updateSymbols(visibles, gold_intent_set);
-    updateLocalWords();
-}
-
-let filterByConfidenceAndUpdate = function(data, errors_idxs) {
-    filterByConfidence(data, errors_idxs);
-    let [visibles, gold_intent_set, _] =
-        getVisibleDatapoints(width, height);
-    updateSymbols(visibles, gold_intent_set);
-    updateLocalWords();
-}
-
-let clearAndUpdate = function(data, errors_idxs) {
-    clear(data, errors_idxs);
-    let [visibles, gold_intent_set, _] =
-        getVisibleDatapoints(width, height);
-    updateSymbols(visibles, gold_intent_set);
-    updateLocalWords();
+    // let [visibles, gold_intent_set, _] =
+    //     getVisibleDatapoints(width, height);
+    // updateSymbols(visibles, gold_intent_set);
+    // updateLocalWords();
+    return filter;
 }
 
 let updateLocalWords = function(disableForce) {
@@ -131,98 +133,53 @@ $("#dataset_name").html(`<b>${DATASET_NAME.toUpperCase()}</b>`);
 d3.json(
     `static/data/${DATASET_NAME.toLowerCase()}-viz_data-${NUM_CLUSTERS}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json`,
     function (data) {
-        // Parse data structure
         const cluster_to_color = d3.schemeSet3;
-        const cluster_to_intent = {};
-        const intent_to_cluster = {};
+        const dataset = new Dataset(data);
+        const errors_idxs = dataset.errors.map(error => error.idx);
 
-        data.forEach(function (d) {
-            if (!cluster_to_intent[d.intent_cluster]) {
-                cluster_to_intent[d.intent_cluster] = new Set([d.ground_truth]);
-            } else {
-                cluster_to_intent[d.intent_cluster].add(d.ground_truth);
-            }
-
-            if (!intent_to_cluster[d.prediction_label_idx]) {
-                intent_to_cluster[d.prediction_label_idx] = d.intent_cluster;
-            }
-        });
-
-        // Identify errors
-        const errors = [];
-        const confusions = {};
-        const gt_counts = {};
-        const pred_counts = {};
-        const errors_idxs = [];
-        const corrects = [];
-        data.forEach((dp, idx) => {
-            if (dp["ground_truth_label_idx"] != dp["prediction_label_idx"]) {
-                errors.push(dp);
-                errors_idxs.push(idx);
-
-                const confusion_key = dp.ground_truth + "," + dp.prediction;
-
-                if (confusion_key in confusions) {
-                    confusions[confusion_key].push(dp.text);
-                } else {
-                    confusions[confusion_key] = [dp.text];
-                }
-
-                if (dp.ground_truth in gt_counts) {
-                    gt_counts[dp.ground_truth] += 1;
-                } else {
-                    gt_counts[dp.ground_truth] = 0;
-                }
-
-                if (dp.prediction in pred_counts) {
-                    pred_counts[dp.prediction] += 1;
-                } else {
-                    pred_counts[dp.prediction] = 0;
-                }
-            } else if (dp["ground_truth_label_idx"] == dp["prediction_label_idx"]) {
-                corrects.push(dp);
-            }
-        });
-
+        // Initialize the global and intent level visualizations
         let filterBySelectedIntents = function() {
             const intents = $(this).val();
-            filterByIntentsAndUpdate(data, intents, bbox);
+            const filter = filterByIntentsAndUpdate(data, intents, bbox);
+            dataset.addFilter(filter)
+            map.filterHulls(intents)
         }
 
         let filterBySelectedConfusion = function() {
             const gt = d3.select(this).attr("gt");
             const pred = d3.select(this).attr("pred");
-            filterByIntentsAndUpdate(data, [gt, pred], bbox);
-
+            const filter = filterByIntentsAndUpdate(data, [gt, pred], bbox);
+            dataset.addFilter(filter);
+            map.filterHulls([gt, pred])
+            
             $(".selected-tr").removeClass("selected-tr");
             $(this).addClass("selected-tr");
         }
 
-        const [intents_to_points_tsne, intents_to_points_umap] = 
-                initializeMap(svg_canvas, 
+        const map = new Map(svg_canvas, 
                                 margin,
                                 width, 
                                 height, 
-                                data, 
+                                dataset, 
                                 cluster_to_color, 
-                                intent_to_cluster,
+                                dataset.intentToCluster,
                                 dim_reduction,
                                 updateLocalWords,
                                 onClick,
                                 updateRelationChart,
                                 DATASET_NAME);
-        populateIntentTable(cluster_to_intent, 
+        populateIntentTable(dataset.clusterToIntent, 
                             cluster_to_color, 
                             filterBySelectedIntents);
-        populateConfusionTable(confusions, 
-                                gt_counts, 
-                                pred_counts,
+        populateConfusionTable(dataset.confusions, 
+                                dataset.gtCounts, 
+                                dataset.predCounts,
                                 filterBySelectedConfusion);
 
-        const accuracy = 100 - (errors.length / data.length) * 100;
+        const accuracy = 100 - (dataset.errors.length / data.length) * 100;
         $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
 
-
+        // Initialize the input widgets
         $(document)
             .ready(function () {
                 const dim_reduction_option = $('input[name="dim-reduction"]');
@@ -295,19 +252,8 @@ d3.json(
                         'input[name="dim-reduction"]:checked'
                     ).val(); // TO REFACTOR: use const and let instead of let or vice versa consistently
                     dim_reduction = dim_reduction_attr;
-                    const [x, y] = getXYScales(data, dim_reduction, 
-                                                width, height);
-                    drawHulls(
-                        dim_reduction == "tsne"
-                            ? intents_to_points_tsne
-                            : intents_to_points_umap,
-                        cluster_to_color, 
-                        intent_to_cluster,
-                        x, y
-                    );
-                    updatePositions(x, y, dim_reduction);
+                    map.switchDimReduction(dim_reduction);
                     updateLocalWords();
-                    filterHulls([]);
                 });
 
                 // Group-by (colour-by) option
@@ -322,16 +268,19 @@ d3.json(
                 // Filter-by (filter-by) option
                 filterby_option.change(function () {
                     const d = d3.select("#scatter").select(".selected-dp").data();
-                    filterByDatapointAndUpdate(d[0], data);
+                    const filter = filterByDatapointAndUpdate(d[0], data);
+                    dataset.addFilter(filter);
                 });
 
                 // Show errors only?
                 let idxs_before_error_filter = null;
                 is_to_show_errors_only.on("change", function() {
-                    idxs_before_error_filter = showCurrentErrors(
+                    const [filter, before_filter] = showCurrentErrors(
                                             errors_idxs,
                                             idxs_before_error_filter
                                         );
+                    idxs_before_error_filter = before_filter;
+                    dataset.addFilter(filter);
                 });
 
                 // Show confidence?
@@ -360,8 +309,11 @@ d3.json(
                 });
 
                 // Add a confidence range filter
-                $("input.confThreshold").change(() => 
-                                    filterByConfidenceAndUpdate(data, errors_idxs));
+                $("input.confThreshold").change(() => {
+                    const filter = filterByConfidenceAndUpdate(data);
+                    dataset.addFilter(filter);
+                    dataset.filteredData;
+                });
 
                 // Show local words?
                 is_to_show_errors_only.change(updateLocalWords);
@@ -391,17 +343,27 @@ d3.json(
 
                 // Clear button
                 clear_btn.on("click", function (e) {
-                    clearAndUpdate(data, errors_idxs);
+                    resetFilterControls();
+                    dataset.clearFilters();
                 });
             })
             .keyup(function (e) {
                 if (e.key === "Escape") {
                     // escape key maps to keycode `27`
-                    clearAndUpdate(data, errors_idxs);
+                    resetFilterControls();                   
+                    dataset.clearFilters();
                 }
             });
     }
 );
+
+
+function resetFilterControls() {
+    $("#filter").val("");
+    $("#show-errors").prop("checked", false);
+    $("input.confThreshold[data-index=0]").val(0);
+    $("input.confThreshold[data-index=1]").val(100);
+}
 
 
 function showCurrentErrors(errors_idxs, idxs_before_error_filter) {
@@ -414,25 +376,21 @@ function showCurrentErrors(errors_idxs, idxs_before_error_filter) {
             .filter((d) => errors_idxs.includes(d.idx))
             .data()
             .map((d) => d.idx);
-        filterByIdxAndUpdate(idxs);
+        return [filterByIdxAndUpdate(idxs), idxs_before_error_filter];
     } else {
-        filterByIdxAndUpdate(idxs_before_error_filter || []);
+        return [
+            filterByIdxAndUpdate(idxs_before_error_filter || []),
+            idxs_before_error_filter
+        ]
     }
-    return idxs_before_error_filter
 }
 
 
-function onClick(d, data, newX, newY) {
+function onClick(d, dataset) {
     // Filter the related nodes and highlight the selected node
-    filterByDatapointAndUpdate(d, data);
-    $(".selected-dp")
-        .removeClass("selected-dp")
-        .attr("stroke", "#9299a1")
-        .attr("stroke-width", "1px");
-    $(this)
-        .attr("stroke", "red")
-        .attr("stroke-width", "3px")
-        .addClass("selected-dp");
+    const data = dataset.data;
+    const newFilter = filterByDatapointAndUpdate(d, data);
+    dataset.addFilter(newFilter);
     
     // Identify the closest datapoint
     const similarities_sorted = Array.from(d.distances[0].entries()).sort(
@@ -469,10 +427,10 @@ function onClick(d, data, newX, newY) {
     const filter_by = $('input[name="filter-by"]:checked').val();
     if (filter_by == "support_set") {
         d3.select("#drag-line-0")
-            .attr("x1", newX(d[`${dim_reduction}-dim0`]))
-            .attr("y1", newY(d[`${dim_reduction}-dim1`]))
-            .attr("x2", newX(closest_dp[`${dim_reduction}-dim0`]))
-            .attr("y2", newY(closest_dp[`${dim_reduction}-dim1`]))
+            .attr("x1", (d[`${dim_reduction}-dim0`]))
+            .attr("y1", (d[`${dim_reduction}-dim1`]))
+            .attr("x2", (closest_dp[`${dim_reduction}-dim0`]))
+            .attr("y2", (closest_dp[`${dim_reduction}-dim1`]))
             .data([
                 {
                     x1: d[`${dim_reduction}-dim0`],
@@ -484,10 +442,10 @@ function onClick(d, data, newX, newY) {
             .style("visibility", "visible");
 
         d3.select("#drag-line-1")
-            .attr("x1", newX(d[`${dim_reduction}-dim0`]))
-            .attr("y1", newY(d[`${dim_reduction}-dim1`]))
-            .attr("x2", newX(dp2[`${dim_reduction}-dim0`]))
-            .attr("y2", newY(dp2[`${dim_reduction}-dim1`]))
+            .attr("x1", (d[`${dim_reduction}-dim0`]))
+            .attr("y1", (d[`${dim_reduction}-dim1`]))
+            .attr("x2", (dp2[`${dim_reduction}-dim0`]))
+            .attr("y2", (dp2[`${dim_reduction}-dim1`]))
             .data([
                 {
                     x1: d[`${dim_reduction}-dim0`],

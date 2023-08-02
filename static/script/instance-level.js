@@ -142,70 +142,7 @@ function formatImportanceData(res) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// RELCHARTS
-
-
-
-// Relation
+// Relation charts
 let relChart1;
 let relChart2;
 

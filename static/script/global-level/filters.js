@@ -1,51 +1,22 @@
 let currentHulls = null;
 
-function filterHulls(intents) {
-    currentHulls = intents;
-
-    d3.selectAll("path.intentHull").attr("visibility", function (d) {
-        let [intent, pts] = d;
-        intent = parseInt(intent);
-        if (intents.includes(intent)) {
-            return "visible";
-        } else {
-            return "hidden";
-        }
-    });
-}
-
 
 function filterByIntents(data, intents, bbox) {
-    const width = bbox.width;
-    const height = bbox.height;
-    if (intents.length < 1) {
-        clear();
-    } else {
-        const dp_idxs = data
-            .filter((d) => intents.includes(d.ground_truth))
-            .map((d) => d.idx);
-        filterChart(dp_idxs);
-        let [visibles, gold_intent_set, predicted_intent_set] =
-            getVisibleDatapoints(width, height);
-        filterHulls(gold_intent_set);
-    }
+    const dp_idxs = data
+        .filter((d) => intents.includes(d.ground_truth))
+        .map((d) => d.idx);
+    // filterChart(dp_idxs);
+    // let [visibles, gold_intent_set, predicted_intent_set] =
+    //     getVisibleDatapoints(width, height);
+    // filterHulls(gold_intent_set);
+    return dp_idxs;
 }
 
 
-function filterByConfidence(data, errors_idxs) {
-    const conf_threshold_lower =
-        parseInt($("input.confThreshold[data-index=0]").val()) || 0;
-    const conf_threshold_upper =
-        parseInt($("input.confThreshold[data-index=1]").val()) || 100;
-
-    let starting_list;
-    if ($("#show-errors").is(":checked")) {
-        starting_list = data.filter((d) => errors_idxs.includes(d.idx));
-    } else {
-        starting_list = data;
-    }
-
-    const filter_idxs = starting_list
+function filterByConfidence(data, 
+                            conf_threshold_lower, 
+                            conf_threshold_upper) {
+    const filter_idxs = data
         .filter(function (d) {
             const confidence = calculateConfidence(d) * 100;
             return (
@@ -54,40 +25,13 @@ function filterByConfidence(data, errors_idxs) {
             );
         })
         .map((d) => d.idx);
-    if (filter_idxs.length == 0) {
-        filterChart([-1]);
-    } else {
-        filterChart(filter_idxs);
-    }
+    // if (filter_idxs.length == 0) {
+    //     filterChart([-1]);
+    // } else {
+    //     filterChart(filter_idxs);
+    // }
+    return filter_idxs;
 }
-
-
-
-function filterChart(idxs) {
-    d3.selectAll(".datapoint").attr("visibility", function (d) {
-        if (idxs.length == 0) return "visible";
-        if (idxs.includes(d.idx)) {
-            return "visible"; // TO REFACTOR: use semi-colons consistently
-        } else {
-            return "hidden";
-        }
-    });
-
-    d3.selectAll(".drag_line").style("visibility", "hidden");
-}
-
-function clear(data, errors_idxs) {
-    $("#filter").val("");
-
-    filterByConfidence(data, errors_idxs);
-    filterHulls([]);
-
-    $(".selected-dp")
-        .attr("stroke", "#9299a1")
-        .attr("stroke-width", "1px")
-        .removeClass("selected-dp");
-}
-
 
 
 function filterByDatapoint(d, data, filter_by) {
@@ -95,7 +39,6 @@ function filterByDatapoint(d, data, filter_by) {
         return;
     }
 
-    
     let idxs = [];
     if (filter_by == "support_set") {
         idxs = d[filter_by].concat([d["idx"]]);
@@ -106,8 +49,7 @@ function filterByDatapoint(d, data, filter_by) {
             }
         });
     }
-    filterChart(idxs);
-    filterHulls([]);
+    return idxs;
 }
 
 
@@ -158,11 +100,10 @@ function getVisibleDatapoints(width, height) {
 }
 
 
-export { clear,
-        filterByIntents, 
-        filterByConfidence, 
-        filterChart,
-        filterHulls,
-        filterByDatapoint,
-        getVisibleDatapoints, 
-        calculateConfidence }
+export { 
+    filterByIntents, 
+    filterByConfidence,
+    filterByDatapoint,
+    getVisibleDatapoints, 
+    calculateConfidence 
+}

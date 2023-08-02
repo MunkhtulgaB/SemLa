@@ -11,23 +11,23 @@ function initializeHulls(data, cluster_to_color,
         const y_pos_umap = d[`umap-dim1`];
 
         // save the locations for later
-        if (!intents_to_points_tsne[d.ground_truth_label_idx]) {
-            intents_to_points_tsne[d.ground_truth_label_idx] = [
+        if (!intents_to_points_tsne[d.ground_truth]) {
+            intents_to_points_tsne[d.ground_truth] = [
                 [x_pos_tsne, y_pos_tsne],
             ];
         } else {
-            intents_to_points_tsne[d.ground_truth_label_idx].push([
+            intents_to_points_tsne[d.ground_truth].push([
                 x_pos_tsne,
                 y_pos_tsne,
             ]);
         }
 
-        if (!intents_to_points_umap[d.ground_truth_label_idx]) {
-            intents_to_points_umap[d.ground_truth_label_idx] = [
+        if (!intents_to_points_umap[d.ground_truth]) {
+            intents_to_points_umap[d.ground_truth] = [
                 [x_pos_umap, y_pos_umap],
             ];
         } else {
-            intents_to_points_umap[d.ground_truth_label_idx].push([
+            intents_to_points_umap[d.ground_truth].push([
                 x_pos_umap,
                 y_pos_umap,
             ]);

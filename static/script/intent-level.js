@@ -85,8 +85,7 @@ function populateIntentTable(cluster_to_intent,
     });
 
     intent_filter
-        .change(onChange)
-        .click(onChange);
+        .change(onChange);
 }
 
 export { populateConfusionTable, populateIntentTable }
