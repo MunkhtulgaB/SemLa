@@ -12,9 +12,10 @@ import { filterByIntents,
          filterByConfidence,
          filterByDatapoint,
          getVisibleDatapoints, 
-         calculateConfidence } from "./global-level/filters.js";
+         calculateConfidence,
+         FilterView } from "./global-level/filters.js";
 import { showLocalWords } from "./global-level/local-words.js";
-import { Map } from "./global-level/map.js";
+import { MapView } from "./global-level/map.js";
 import { updateSymbols } from "./global-level/symbols.js";
 import { Dataset, Filter } from "./data.js"
 
@@ -36,11 +37,9 @@ let filterByIntentsAndUpdate = function(data, intents, bbox) {
     return filter;
 }
 
-let filterByConfidenceAndUpdate = function(data) {
-    const conf_threshold_lower =
-        parseInt($("input.confThreshold[data-index=0]").val()) || 0;
-    const conf_threshold_upper =
-        parseInt($("input.confThreshold[data-index=1]").val()) || 100;
+let filterByConfidenceAndUpdate = function(data, 
+                                            conf_threshold_lower,
+                                            conf_threshold_upper) {
     const filter_idxs = filterByConfidence(data, 
                                             conf_threshold_lower, 
                                             conf_threshold_upper);
@@ -152,7 +151,8 @@ d3.json(
             $(this).addClass("selected-tr");
         }
 
-        const map = new Map(svg_canvas, 
+        const filter_view = new FilterView(dataset);
+        const map = new MapView(svg_canvas, 
                                 margin,
                                 width, 
                                 height, 
@@ -305,8 +305,20 @@ d3.json(
 
                 // Add a confidence range filter
                 $("input.confThreshold").change(() => {
-                    const filter = filterByConfidenceAndUpdate(data);
-                    dataset.addFilter(filter);
+                    const conf_threshold_lower =
+                        parseInt($("input.confThreshold[data-index=0]").val()) || 0;
+                    const conf_threshold_upper =
+                        parseInt($("input.confThreshold[data-index=1]").val()) || 100;
+                    
+                    if (conf_threshold_lower == 0 && 
+                        conf_threshold_upper == 100) {
+                        dataset.removeFilter("Confidence")
+                    } else {
+                        const filter = filterByConfidenceAndUpdate(data,
+                            conf_threshold_lower,
+                            conf_threshold_upper);
+                        dataset.addFilter(filter);
+                    }
                 });
 
                 // Show local words?
@@ -315,9 +327,13 @@ d3.json(
                 // Filter input
                 search_input.on("input", function (e) {
                     const search_value = e.target.value;
-                    const search_phrases = search_value.split(";");
-                    const filter = filterBySearch(data, search_phrases);
-                    dataset.addFilter(filter);
+                    if (search_value == "") {
+                        dataset.removeFilter("Search")
+                    } else {
+                        const search_phrases = search_value.split(";");
+                        const filter = filterBySearch(data, search_phrases);
+                        dataset.addFilter(filter);
+                    }
                 });
 
                 // Clear button

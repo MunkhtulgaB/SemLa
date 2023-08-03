@@ -5,7 +5,7 @@ import { initializeTooltip,
 import { initializeHulls, drawHulls } from "./hulls.js";
     
 
-class Map {
+class MapView {
     #intents_to_points_tsne;
     #intents_to_points_umap;
     #data;
@@ -391,7 +391,7 @@ function getPosition(dp_element) {
 }
 
 
-export { Map }
+export { MapView }
 
 
 

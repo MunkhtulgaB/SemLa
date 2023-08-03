@@ -121,20 +121,19 @@ class Dataset {
             this.#filters[newFilter.type] = newFilter;
             this.#filteredData = this.refilterData();
         }
-        this.notifyObservers(newFilter.type);
+        this.notifyObservers(this.#filters);
     }
 
     removeFilter(filterType) {
         delete this.#filters[filterType];
         this.#filteredData = this.refilterData();
-        this.notifyObservers();
+        this.notifyObservers(this.#filters);
     }
 
     refilterData() {
         const filters = Object.values(this.#filters);
         if (filters.length == 0) return this.#data;
         const idxs = filters.map(filter => filter.idxs);
-        console.log(filters.map(filter => filter.type));
         let idxs_intersection = idxs[0];
         const other_idxs = idxs.slice(1,);
         
