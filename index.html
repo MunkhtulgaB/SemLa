@@ -36,9 +36,9 @@
 
       <div class="mx-5" id="filter-container">
         <!-- <p class="widget_title">Filters</p> -->
-        <div id="current-filters">
-          Current filters: None
-        </div>
+        Current filters: 
+        <span id="current-filters"></span>
+        <button id="clear-filter" class="badge text-bg-light">Clear</button>
       </div>
       
       <div id="corpus-widget-container">
@@ -63,7 +63,6 @@
             <div>
               <label for="filter">Filter datapoints by words</label>
               <input name="filter" id="filter" style="width: 100px"></input>
-              <button id="clear-filter">Reset</button>
             </div>
 
             <div>

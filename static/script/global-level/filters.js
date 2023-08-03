@@ -11,10 +11,10 @@ class FilterView {
         
         const filterView = $("#current-filters");
         if (msg == "clear") {
-            filterView.html("Current filters: None")
+            filterView.html("")
         } else {
             const currentFilters = msg;
-            let html = "Current filters: ";
+            let html = "";
             for (const [type, filter] of Object.entries(currentFilters)) {
                 html += `<span class="p-1 m-1 badge text-bg-primary">${type} ${filter.value}</span>`;
             }
