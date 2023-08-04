@@ -1,7 +1,7 @@
 
 
 
-const RELCHART_LEFT_WIDTH = 275;
+const RELCHART_LEFT_WIDTH = 255;
 
 
 
