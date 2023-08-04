@@ -1,17 +1,27 @@
+body {
+height: 100vh;
+padding: 0;
+margin: 0;
+overflow: auto;
+background-color: lightgrey;
+font-size: 15px;
+}
+
+
 table {
 table-layout: fixed;
 width: 360px;
 }
 
 .small_td {
-width: 220px;
+width: 300px;
 overflow-wrap: break-word;
 border-top: 1px solid lightgrey;
 padding-right: 10px;
 }
 
 .xs_td {
-width: 100px;
+width: 120px;
 border-top: 1px solid lightgrey;
 }
 
@@ -56,14 +66,6 @@ input[type=number] {
 width: 50px;
 }
 
-body {
-height: 100vh;
-padding: 0;
-margin: 0;
-overflow: hidden;
-background-color: lightgrey;
-font-size: 15px;
-}
 
 html {
 padding: 0;
@@ -93,14 +95,21 @@ height: 240px;
 justify-content: space-evenly;
 }
 
-#corpus-level {
+#super-container {
 position: relative;
+height: 1350px; 
+width: 2400px;
+}
+
+#corpus-level {
+position: absolute;
 display: flex;
-height: 1295px;
+height: auto;
 top: 10px;
+bottom: 10px;
 left: 10px;
 background-color: white;
-width: 1000px;
+width: 1120px;
 flex-direction: column;
 overflow: initial;
 }
@@ -117,11 +126,11 @@ height: 100%;
 
 /* INTENT LEVEL */
 #intent-level {
-position: fixed;
+position: absolute;
 bottom: 10px;
-right: 10px;
-width: 1040px;
-height: 300px;
+left: 1150px;
+width: 1230px;
+height: 330px;
 display: flex;
 flex-direction: row;
 justify-content: space-evenly;
@@ -130,22 +139,22 @@ align-items: center;
 
 #intent-clusters {
 width: 410px;
-height: 270px;
+height: 300px;
 }
 
 #confusions {
-width: 560px;
-height: 270px;
+width: 760px;
+height: 300px;
 }
 
 /* SAMPLE LEVEL */
 #sample-level {
-position: fixed;
+position: absolute;
 overflow: hidden;
 top: 10px;
-right: 10px;
-height: 885px; 
-width: 1040px; 
+left: 1150px;
+height: 980px; 
+width: 1230px; 
 opacity: 1; 
 display: flex; 
 flex-wrap: wrap; 
@@ -167,21 +176,21 @@ background-color: white;
 }
 
 .sample-lvl-viz {
-width: 485px;
-height: 425px;
-padding: 0px 0;
+width: 590px;
+height: 460px;
+padding: 5px;
 }
 
 .sample-lvl-content {
 height: 390px;
-width: 480px;
+width: 575px;
 overflow-y: auto;
 margin: 0;
 padding: 5px;
 }
 
 .rel_chart_right {
-width: 260px;
+width: 295px;
 }
 
 #corpus-lvl-title {

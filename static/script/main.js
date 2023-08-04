@@ -1,10 +1,8 @@
 import { updateRelationChartFromCache,
         updateImportanceChartFromCache,
         updateTokenChartFromCache,
-        updateRelationChart, 
-        updateImportanceChart,
+        updateRelationChart,
         updateTextSummary,
-        updateTokenChart,
         loadingImportanceChart, 
         emptyRelationChart, 
         emptyTokenChart } from "./instance-level.js";
@@ -81,8 +79,8 @@ $(".widget_title").click(function () {
 
 // set the dimensions and margins of the graph
 let margin = { top: 10, right: 30, bottom: 30, left: 60 },
-    width = 1000 - margin.left - margin.right,
-    height = 900 - margin.top - margin.bottom,
+    width = 1120 - margin.left - margin.right,
+    height = 1000 - margin.top - margin.bottom,
     bbox = {"width": width, "height": height};
 
 // append the SVG object to the body of the page
