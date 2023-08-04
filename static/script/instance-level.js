@@ -156,6 +156,63 @@ function emptyTokenChart() {
     d3.selectAll("svg#token_chart_left > *").remove();
 }
 
+function updateRelationChartFromCache(res) {
+    console.log(res)
+    const tokens1 = res.tokens1;
+
+    const current_tokens1 = d3
+        .selectAll("svg#rel_chart > .text_left")
+        .data()
+        .map((d) => d.token);
+    
+    if (current_tokens1.join(" ") == tokens1.join(" ")) {
+        $("#rel_chart_left_container").animate({
+            width: RELCHART_LEFT_WIDTH + "px",
+        });
+        d3.selectAll("svg#rel_chart_left > *").remove();
+        renderSecondRelChart(res);
+    } else {
+        $("#rel_chart_left_container").animate({
+            width: "0px",
+        });
+        d3.selectAll("svg#rel_chart > *").remove();
+        renderRelChart(res);
+    }
+}
+
+function updateImportanceChartFromCache(res) {
+    const importanceData = formatImportanceData(res);
+    if (importanceChart) importanceChart.destroy();
+    importanceChart = createImportanceChart(
+        "importance_chart",
+        importanceData
+    );
+}
+
+function updateTokenChartFromCache(res) {
+    console.log(res)
+    const current_tokens1 = d3
+        .selectAll("svg#token_chart > .text_left")
+        .data()
+        .map((d) => d.token);
+
+    const tokens1 = res.tokens1;
+    if (current_tokens1.join(" ") == tokens1.join(" ")) {
+        $("#token_chart_left_container").animate({
+            width: RELCHART_LEFT_WIDTH + "px",
+        });
+        d3.selectAll("svg#token_chart_left > *").remove();
+        renderSecondTokenChart(res);
+    } else {
+        $("#token_chart_left_container").animate({
+            width: "0px",
+        });
+        d3.selectAll("svg#token_chart > *").remove();
+        renderTokenChart(res);
+    }
+
+}
+
 function updateRelationChart(idx1, idx2, dataset_name) {
     if (idx1 == idx2) return;
 
@@ -1147,7 +1204,10 @@ function minmax(values, value) {
     }
 }
 
-export { updateRelationChart, 
+export { updateRelationChartFromCache,
+        updateImportanceChartFromCache,
+        updateTokenChartFromCache,
+        updateRelationChart, 
         updateImportanceChart,
         updateTokenChart,
         updateTextSummary,

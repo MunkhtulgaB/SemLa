@@ -28,6 +28,7 @@ class MapView {
                 width, 
                 height, 
                 dataset, 
+                explanation_set,
                 cluster_to_color, 
                 intent_to_cluster,
                 dim_reduction,
@@ -112,7 +113,7 @@ class MapView {
             .on("mouseout", hideTooltip)
             .on("click", function(d) {
                 self.selectNode(this);
-                onClick(d, dataset);
+                onClick(d, dataset, explanation_set);
                 self.updateDragLines();
             })
             .call(drag);

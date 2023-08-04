@@ -1,4 +1,7 @@
-import { updateRelationChart, 
+import { updateRelationChartFromCache,
+        updateImportanceChartFromCache,
+        updateTokenChartFromCache,
+        updateRelationChart, 
         updateImportanceChart,
         updateTextSummary,
         updateTokenChart,
@@ -16,6 +19,7 @@ import { filterByIntents,
          FilterView } from "./global-level/filters.js";
 import { showLocalWords } from "./global-level/local-words.js";
 import { MapView } from "./global-level/map.js";
+import { ExplanationSet } from "./explanation.js";
 import { updateSymbols } from "./global-level/symbols.js";
 import { Dataset, Filter } from "./data.js"
 
@@ -131,6 +135,7 @@ d3.json(
     function (data) {
         const cluster_to_color = d3.schemeSet3;
         const dataset = new Dataset(data);
+        const explanations = new ExplanationSet(DATASET_NAME);
 
         // Initialize the global and intent level visualizations
         let filterBySelectedIntents = function() {
@@ -156,7 +161,8 @@ d3.json(
                                 margin,
                                 width, 
                                 height, 
-                                dataset, 
+                                dataset,
+                                explanations,
                                 cluster_to_color, 
                                 dataset.intentToCluster,
                                 dim_reduction,
@@ -361,7 +367,8 @@ function resetFilterControls() {
 }
 
 
-function onClick(d, dataset) {
+function onClick(d, dataset, explanation_set) {
+    console.log(explanation_set)
     // Filter the related nodes and highlight the selected node
     const data = dataset.data;
     const newFilter = filterByDatapointAndUpdate(d, data);
@@ -392,11 +399,20 @@ function onClick(d, dataset) {
     emptyRelationChart();
     emptyTokenChart();
 
-    updateRelationChart(d.idx, closest_dp.idx, DATASET_NAME)
-        .then((_) => updateRelationChart(d.idx, dp2.idx, DATASET_NAME))
-        .then((_) => updateImportanceChart(d, DATASET_NAME))
-        .then((_) => updateTokenChart(d.idx, closest_dp.idx, DATASET_NAME))
-        .then((_) => updateTokenChart(d.idx, dp2.idx, DATASET_NAME));
+    const tok2sim_relations = explanation_set.token2similarity_relations;
+    const importances = explanation_set.importances;
+    const tok2token_relations =  explanation_set.token2token_relations;
+    updateRelationChartFromCache(tok2sim_relations[d.idx].left);
+    updateRelationChartFromCache(tok2sim_relations[d.idx].right);
+    updateImportanceChartFromCache(importances[d.idx]);
+    updateTokenChartFromCache(tok2token_relations[d.idx].right);
+    updateTokenChartFromCache(tok2token_relations[d.idx].left);
+
+    // updateRelationChart(d.idx, closest_dp.idx, DATASET_NAME)
+    //     .then((_) => updateRelationChart(d.idx, dp2.idx, DATASET_NAME))
+    //     .then((_) => updateImportanceChart(d, DATASET_NAME))
+    //     .then((_) => updateTokenChart(d.idx, closest_dp.idx, DATASET_NAME))
+    //     .then((_) => updateTokenChart(d.idx, dp2.idx, DATASET_NAME));
 
     // draw the draglines to the two support examples
     const filter_by = $('input[name="filter-by"]:checked').val();
