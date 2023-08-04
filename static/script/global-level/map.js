@@ -151,6 +151,7 @@ class MapView {
 
         this.#intents_to_points_tsne = intents_to_points_tsne;
         this.#intents_to_points_umap = intents_to_points_umap;
+        onUpdate();
     }
 
     initializeDragging(dim_reduction, onDragEnd, dataset_name) {
