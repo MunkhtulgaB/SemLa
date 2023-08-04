@@ -5,6 +5,34 @@ import { initializeTooltip,
 import { initializeHulls, drawHulls } from "./hulls.js";
     
 
+const symbolNames = [
+    "Circle",
+    "Cross",
+    "Diamond",
+    "Square",
+    "Star",
+    "Triangle",
+    "Wye",
+];
+const symbols = symbolNames.map((name) =>
+    d3.symbol().type(d3[`symbol${name}`]).size(150)
+);
+
+let customSymbolDownTriangle = {
+    draw: function (context, size) {
+        let s = Math.sqrt(size);
+        context.moveTo(0, s / 2);
+        context.lineTo(s, -s);
+        context.lineTo(-s, -s);
+        // context.lineTo(-s,s);
+        context.closePath();
+    },
+};
+
+symbols.push(d3.symbol().type(customSymbolDownTriangle).size(100));
+
+
+
 class MapView {
     #intents_to_points_tsne;
     #intents_to_points_umap;
@@ -22,6 +50,7 @@ class MapView {
     #newY;
     #onUpdate;
     #updateCount = 0;
+    #previous_intent_symbol_map = {};
 
     constructor(svg_canvas, 
                 margin,
@@ -196,7 +225,8 @@ class MapView {
                         [width, height],
                     ])
         .on("zoom", function() {
-            this.updateChart()
+            this.updateChart();
+            this.updateSymbols();
         }.bind(this))
         .on("start", function () {
             d3.select("#scatter").selectAll(".local_word").remove();
@@ -215,7 +245,7 @@ class MapView {
 
     update(newData, msg) {
         this.filterNodes(newData.map(d => d.idx));
-
+        this.updateSymbols();
         if (msg == "clear") {
             this.clearSelectedNode();
             this.hideHulls();
@@ -283,6 +313,58 @@ class MapView {
             const scaled_hull = pts.map((pt) => [xScale(pt[0]), yScale(pt[1])]);
             return `M${scaled_hull.join("L")}Z`;
         });
+    }
+
+    updateSymbols() {
+        const [currently_visible_dps, gold_intent_set, _] = this.getVisibleDatapoints();
+
+        const self = this;
+        if (gold_intent_set.length <= symbols.length) {
+            const intents_with_symbols = Object.keys(self.#previous_intent_symbol_map)
+                .map((k) => parseInt(k))
+                .filter((k) => gold_intent_set.includes(k));
+            const intents_without_symbols = gold_intent_set.filter(
+                (intent) => !intents_with_symbols.includes(intent)
+            );
+            const used_symbols = intents_with_symbols.map(
+                (k) => self.#previous_intent_symbol_map[k]
+            );
+            const remaining_symbols = symbols.filter(
+                (sym) => !used_symbols.includes(sym)
+            );
+    
+            if (intents_without_symbols.length > remaining_symbols.length) {
+                throw new Error(
+                    "There aren't enough symbols to assign to the newly visible intents: " +
+                    `${intents_without_symbols.length} !< ${remaining_symbols.length}`
+                );
+            }
+    
+            const intent_to_symbol = Object.fromEntries(
+                intents_without_symbols.map((intent, i) => [
+                    intent,
+                    remaining_symbols[i],
+                ])
+            );
+            currently_visible_dps.attr("d", function (d) {
+                const intent = d.ground_truth_label_idx;
+                if (intents_with_symbols.includes(intent)) {
+                    return self.#previous_intent_symbol_map[intent](d);
+                } else {
+                    return intent_to_symbol[intent](d);
+                }
+            });
+    
+            self.#previous_intent_symbol_map = Object.assign(
+                self.#previous_intent_symbol_map,
+                intent_to_symbol
+            );
+        } else {
+            currently_visible_dps.attr(
+                "d",
+                d3.symbol().type(d3.symbolCircle).size(150)
+            );
+        }
     }
 
     switchDimReduction(dim_reduction) {
@@ -373,6 +455,36 @@ class MapView {
             .attr("stroke-width", "3px")
             .addClass("selected-dp");
     }
+
+    getVisibleDatapoints() {
+        const width = this.#width;
+        const height = this.#height;
+        let gold_intents = [];
+        let predicted_intents = [];
+    
+        const visibles = d3.selectAll(".datapoint").filter(function (d) {
+            let x = this.transform.baseVal[0].matrix.e;
+            let y = this.transform.baseVal[0].matrix.f;
+    
+            let is_visible = d3.select(this).style("visibility") == "visible";
+            is_visible = is_visible && 0 < x && x < width && 0 < y && y < height;
+            if (is_visible) {
+                gold_intents.push(d["ground_truth_label_idx"]);
+                predicted_intents.push(d["prediction_label_idx"]);
+            }
+            return is_visible;
+        });
+    
+        let gold_intent_set = [...new Set(gold_intents)];
+        let predicted_intent_set = [...new Set(predicted_intents)];
+    
+        return [
+            visibles,
+            Array.from(gold_intent_set),
+            Array.from(predicted_intent_set),
+        ];
+    }
+    
 
     get intentsToPointsTSNE() {
         return this.#intents_to_points_tsne;

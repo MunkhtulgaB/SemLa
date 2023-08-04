@@ -18,7 +18,6 @@ import { filterByIntents,
 import { showLocalWords } from "./global-level/local-words.js";
 import { MapView } from "./global-level/map.js";
 import { ExplanationSet } from "./explanation.js";
-import { updateSymbols } from "./global-level/symbols.js";
 import { Dataset, Filter } from "./data.js"
 
 
@@ -32,10 +31,6 @@ let filterBySearch = function(data, search_phrases) {
 let filterByIntentsAndUpdate = function(data, intents, bbox) {
     const filter_idxs = filterByIntents(data, intents, bbox);
     const filter = new Filter("Intent", "", filter_idxs);
-    // let [visibles, gold_intent_set, _] =
-    //     getVisibleDatapoints(width, height);
-    // updateSymbols(visibles, gold_intent_set);
-    // updateLocalWords();
     return filter;
 }
 
@@ -46,10 +41,6 @@ let filterByConfidenceAndUpdate = function(data,
                                             conf_threshold_lower, 
                                             conf_threshold_upper);
     const filter = new Filter("Confidence", "", filter_idxs);
-    // let [visibles, gold_intent_set, _] =
-    //     getVisibleDatapoints(width, height);
-    // updateSymbols(visibles, gold_intent_set);
-    // updateLocalWords();
     return filter;
 }
 
@@ -57,11 +48,6 @@ let filterByDatapointAndUpdate = function(dp, data) {
     const filter_by = $('input[name="filter-by"]:checked').val();
     const filter_idxs = filterByDatapoint(dp, data, filter_by);
     const filter = new Filter("Datapoint", "", filter_idxs);
-
-    // let [visibles, gold_intent_set, _] =
-    //     getVisibleDatapoints(width, height);
-    // updateSymbols(visibles, gold_intent_set);
-    // updateLocalWords();
     return filter;
 }
 
@@ -366,7 +352,6 @@ function resetFilterControls() {
 
 
 function onClick(d, dataset, explanation_set) {
-    console.log(explanation_set)
     // Filter the related nodes and highlight the selected node
     const data = dataset.data;
     const newFilter = filterByDatapointAndUpdate(d, data);

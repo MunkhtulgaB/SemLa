@@ -157,7 +157,6 @@ function emptyTokenChart() {
 }
 
 function updateRelationChartFromCache(res) {
-    console.log(res)
     const tokens1 = res.tokens1;
 
     const current_tokens1 = d3
@@ -190,7 +189,6 @@ function updateImportanceChartFromCache(res) {
 }
 
 function updateTokenChartFromCache(res) {
-    console.log(res)
     const current_tokens1 = d3
         .selectAll("svg#token_chart > .text_left")
         .data()
