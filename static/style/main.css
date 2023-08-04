@@ -196,3 +196,12 @@ width: 300px;
 #corpus-lvl-title {
 margin: 10px;
 }
+
+.instance-level-placeholder {
+    height: 350px;
+    width: 100%;
+    text-align: center;
+    vertical-align: middle;
+    padding: 160px 0;
+    color: grey;
+}

@@ -45,7 +45,7 @@
         <div id="corpus-widget-container">
 
           <div class="widget" id="map_options">
-            <p class="widget_title">Map options</p>
+            <p class="widget_title">Map view options</p>
             <div class="widget_content">
 
               
@@ -62,8 +62,8 @@
               </div>
 
               <div>
-                <label for="filter">Filter datapoints by words</label>
-                <input name="filter" id="filter" style="width: 100px"></input>
+                <label for="filter">Filter datapoints by substrings</label>
+                <input name="filter" id="filter" style="width: 120px"></input>
               </div>
 
               <div>
@@ -87,7 +87,7 @@
           </div>
 
           <div class="widget" id="local-words">
-            <p class="widget_title">Local words</p>
+            <p class="widget_title">Local words options</p>
             <div class="widget_content">
               <div>
                 <label for="show-local-words">Show local words
@@ -161,7 +161,11 @@
             Sample summary
           </p>
           <div class="widget_content sample-lvl-content" style="overflow: auto">
-            <div id="summary"></div>
+            <div id="summary">
+              <div class="instance-level-placeholder">
+                Click on a node on the map view to start.
+              </div>
+            </div>
           </div>
         </div>
 
