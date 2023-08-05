@@ -145,6 +145,16 @@ $(document)
 
 function clearSystem() {
     svg_canvas.html(null);
+    // Add a clipPath: everything out of this area won't be drawn.
+    svg_canvas.append("defs")
+    .append("SVG:clipPath")
+    .attr("id", "clip")
+    .append("SVG:rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("x", 0)
+    .attr("y", 0);
+
     $("#intent_filter").html(`<option value=""></option>`);
     $("#confusion-table").html(`
         <tr>
