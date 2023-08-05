@@ -256,12 +256,12 @@ function initializeSystem(dataset_name, model) {
             const accuracy = 100 - (dataset.errors.length / data.length) * 100;
             $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
 
-            initializeControlWidgets(dataset, map);
+            initializeControlWidgets(dataset, map, cluster_to_color);
     });
 }
 
 
-function initializeControlWidgets(dataset, map) {
+function initializeControlWidgets(dataset, map, cluster_to_color) {
     // Initialize the input widgets
     const dim_reduction_option = $('input[name="dim-reduction"]');
     const groupby_option = $('input[name="group-by"]');

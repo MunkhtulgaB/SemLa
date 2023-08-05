@@ -221,7 +221,7 @@ function extractFeatures(d, feature, n_grams) {
         const regex = `\\b(\\w+${"\\s\\w+[.!?\\-']?\\w*".repeat(
             n_grams - 1
         )})\\b`;
-        const words = txt.match(new RegExp(regex, "g"));
+        const words = txt.toLowerCase().match(new RegExp(regex, "g"));
         return words;
     } else if (feature == "word_len") {
         const word_len = d.text.split(" ").length;
