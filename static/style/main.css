@@ -53,7 +53,8 @@ cursor: pointer;
 }
 
 .widget_content {
-height: 225px;
+height: fit-content;
+max-height: 290px;
 padding: 0 8px;
 }
 
@@ -97,19 +98,19 @@ justify-content: space-evenly;
 
 #super-container {
 position: relative;
-height: 1350px; 
-width: 2400px;
+height: 1440px; 
+width: 2560px;
 }
 
 #corpus-level {
 position: absolute;
 display: flex;
 height: auto;
-top: 10px;
-bottom: 10px;
-left: 10px;
+top: 20px;
+bottom: 20px;
+left: 20px;
 background-color: white;
-width: 1120px;
+width: 1220px;
 flex-direction: column;
 overflow: initial;
 }
@@ -131,12 +132,16 @@ height: 100%;
 
 
 /* INTENT LEVEL */
+#intent-cluster-table-content {
+    height: 300px;
+}
+
 #intent-level {
 position: absolute;
-bottom: 10px;
-left: 1150px;
-width: 1230px;
-height: 330px;
+bottom: 20px;
+left: 1260px;
+width: 1280px;
+height: 380px;
 display: flex;
 flex-direction: row;
 justify-content: space-evenly;
@@ -144,23 +149,23 @@ align-items: center;
 }
 
 #intent-clusters {
-width: 410px;
-height: 300px;
+width: 430px;
+height: 350px;
 }
 
 #confusions {
 width: 760px;
-height: 300px;
+height: 350px;
 }
 
 /* SAMPLE LEVEL */
 #sample-level {
 position: absolute;
 overflow: hidden;
-top: 10px;
-left: 1150px;
-height: 980px; 
-width: 1230px; 
+top: 20px;
+left: 1260px;
+height: 1000px; 
+width: 1280px; 
 opacity: 1; 
 display: flex; 
 flex-wrap: wrap; 
@@ -182,14 +187,15 @@ background-color: white;
 }
 
 .sample-lvl-viz {
-width: 590px;
-height: 460px;
+width: 600px;
+height: 470px;
 padding: 5px;
 }
 
 .sample-lvl-content {
-height: 390px;
-width: 575px;
+height: 410px;
+max-height: 410px;
+width: 585px;
 overflow-y: auto;
 margin: 0;
 padding: 5px;

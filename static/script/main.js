@@ -65,8 +65,8 @@ $(".widget_title").click(function () {
 
 // set the dimensions and margins of the graph
 let margin = { top: 10, right: 30, bottom: 30, left: 60 },
-    width = 1120 - margin.left - margin.right,
-    height = 1035 - margin.top - margin.bottom,
+    width = 1220 - margin.left - margin.right,
+    height = 1090 - margin.top - margin.bottom,
     bbox = {"width": width, "height": height};
 
 // append the SVG object to the body of the page
