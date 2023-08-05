@@ -229,3 +229,7 @@ margin: 10px;
 #local-feature-type-select {
     width: 180px !important;
 }
+
+.freqThreshold {
+    width: 60px !important;
+}
