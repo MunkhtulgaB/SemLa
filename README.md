@@ -1,4 +1,4 @@
-# Semantic Landscape Visualization for Intent Recognition
+# Semantic Landscape Visualization for Trustworthy Intent Recognition
 
 This repository contains the source code for the demonstration of the visual analytics system SemLa (Semantic Landscape).
 
