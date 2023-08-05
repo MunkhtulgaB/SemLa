@@ -218,9 +218,7 @@ function initializeSystem(dataset_name, model) {
                                     dataset.intentToCluster,
                                     dim_reduction,
                                     updateLocalWords,
-                                    (model == "GPT")? function() {
-                                        alert("Instance-level explanation data for this model is currently unavailable");
-                                    } : onClick,
+                                    (model == "GPT")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
             populateIntentTable(dataset.clusterToIntent, 
@@ -513,6 +511,97 @@ function onClick(d, dataset, explanation_set) {
                 },
             ])
             .style("visibility", "visible");
+    }
+}
+
+
+let alertCount = 0;
+
+function onClickSummaryOnly(d, dataset, explanation_set) {
+    // Filter the related nodes and highlight the selected node
+    const data = dataset.data;
+    const newFilter = filterByDatapointAndUpdate(d, data);
+    dataset.addFilter(newFilter);
+    
+    console.log(calculateConfidence(d));
+    // Identify the closest datapoint
+    const similarities_sorted = Array.from(d.distances[0].entries()).sort(
+        (a, b) => b[1] - a[1]
+    );
+    const support_dps = d.support_set.map((idx) => data[idx]);
+    const closest_dp = support_dps[similarities_sorted[0][0]]; // closest dp
+
+    if (closest_dp.ground_truth_label_idx != d.prediction_label_idx) {
+        throw new Error();
+    }
+    let dp2;
+
+    if (d.prediction == d.ground_truth) {
+        dp2 = support_dps[similarities_sorted[1][0]]; // second closest dp
+    } else {
+        dp2 = support_dps.find(
+            (dp) => dp.ground_truth_label_idx == d.ground_truth_label_idx
+        );
+    }
+
+    updateTextSummary(d, closest_dp, dp2);
+    
+    // draw the draglines to the two support examples
+    const filter_by = $('input[name="filter-by"]:checked').val();
+    if (filter_by == "support_set") {
+        // if the nodes are currently filtered out, show them half transparent
+        const closest_node =  d3.select(`#node-${closest_dp.idx}`);
+        const dp2_node = d3.select(`#node-${dp2.idx}`);
+
+        closest_node
+            .style("opacity", function() {
+                if (closest_node.style("visibility") == "hidden") {
+                    return 0.3;
+                }
+            })
+            .style("visibility", "visible");
+        dp2_node
+            .style("opacity", function() {
+                if (dp2_node.style("visibility") == "hidden") {
+                    return 0.3;
+                }
+            })
+            .style("visibility", "visible");
+
+        d3.select("#drag-line-0")
+            .attr("x1", (d[`${dim_reduction}-dim0`]))
+            .attr("y1", (d[`${dim_reduction}-dim1`]))
+            .attr("x2", (closest_dp[`${dim_reduction}-dim0`]))
+            .attr("y2", (closest_dp[`${dim_reduction}-dim1`]))
+            .data([
+                {
+                    x1: d[`${dim_reduction}-dim0`],
+                    y1: d[`${dim_reduction}-dim1`],
+                    x2: closest_dp[`${dim_reduction}-dim0`],
+                    y2: closest_dp[`${dim_reduction}-dim1`],
+                },
+            ])
+            .style("visibility", "visible");
+
+        d3.select("#drag-line-1")
+            .attr("x1", (d[`${dim_reduction}-dim0`]))
+            .attr("y1", (d[`${dim_reduction}-dim1`]))
+            .attr("x2", (dp2[`${dim_reduction}-dim0`]))
+            .attr("y2", (dp2[`${dim_reduction}-dim1`]))
+            .data([
+                {
+                    x1: d[`${dim_reduction}-dim0`],
+                    y1: d[`${dim_reduction}-dim1`],
+                    x2: dp2[`${dim_reduction}-dim0`],
+                    y2: dp2[`${dim_reduction}-dim1`],
+                },
+            ])
+            .style("visibility", "visible");
+    }
+
+    if (alertCount == 0) {
+        alert("Instance-level explanation data for this model is currently unavailable. Only a simple summary will be shown.");
+        alertCount++;
     }
 }
 
