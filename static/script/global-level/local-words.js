@@ -13,6 +13,7 @@ function showLocalWords(visibles, disableForce) {
 
     const is_to_show_local_words = $("#show-local-words").is(":checked");
     const is_to_ignore_stopwords = $("#ignore-stopwords").is(":checked");
+    const invert = $("#invert").is(":checked");
     const n_grams = $("#how-many-grams").val();
     const locality_threshold = $("#localAreaThreshold").val();
     const freq_threshold_lower = parseInt(
@@ -21,6 +22,7 @@ function showLocalWords(visibles, disableForce) {
     const freq_threshold_upper = parseInt(
         $("input.freqThreshold[data-index=1]").val()
     );
+    const feature = $("#local-feature-type-select").val();
 
     if (!is_to_show_local_words || !n_grams || n_grams < 1) {
         d3.selectAll(".local_word").remove();
@@ -31,11 +33,8 @@ function showLocalWords(visibles, disableForce) {
     visibles.each(function (d) {
         const pos_x = this.transform.baseVal[0].matrix.e;
         const pos_y = this.transform.baseVal[0].matrix.f;
-        const txt = d.text;
-        const regex = `\\b(\\w+${"\\s\\w+[.!?\\-']?\\w*".repeat(
-            n_grams - 1
-        )})\\b`;
-        const words = txt.match(new RegExp(regex, "g"));
+
+        const words = extractFeatures(d, feature, n_grams)
         if (words) {
             words.forEach(function (word) {
                 if (
@@ -53,8 +52,6 @@ function showLocalWords(visibles, disableForce) {
         }
     });
 
-    word_positions = Object.entries(word_positions);
-
     const locality_shape = $('input[name="locality-shape"]:checked').val();
     let locality_fn = null;
     if (locality_shape == "square") {
@@ -65,10 +62,11 @@ function showLocalWords(visibles, disableForce) {
 
     // if a word is localised, then we display that word there
     const localised_words = locality_fn(
-        word_positions,
+        Object.entries(word_positions),
         freq_threshold_lower,
         freq_threshold_upper,
-        locality_threshold
+        locality_threshold,
+        invert
     );
 
     d3.selectAll(".local_word").remove();
@@ -116,7 +114,8 @@ function filterLocalWordsWithSquareLocality(
     word_positions,
     freq_threshold_lower,
     freq_threshold_upper,
-    locality_threshold
+    locality_threshold,
+    invert
 ) {
     const localised_words = [];
     word_positions.forEach(function (entry) {
@@ -134,12 +133,15 @@ function filterLocalWordsWithSquareLocality(
 
         const x_range = max_x - min_x;
         const y_range = max_y - min_y;
-        if (
-            positions.length >= freq_threshold_lower &&
-            positions.length <= freq_threshold_upper &&
-            x_range < locality_threshold &&
-            y_range < locality_threshold
-        ) {
+
+        const is_within_frequency_threshold = positions.length >= freq_threshold_lower &&
+                                            positions.length <= freq_threshold_upper;
+        const is_within_locality_threshold = x_range < locality_threshold &&
+                                            y_range < locality_threshold;
+
+        const condition = is_within_frequency_threshold && is_within_locality_threshold;
+        const inverted_condition = is_within_frequency_threshold && !is_within_locality_threshold;
+        if ((invert) ? inverted_condition : condition) {
             localised_words.push({
                 word: word,
                 frequency: positions.length,
@@ -156,7 +158,8 @@ function filterLocalWordsWithGaussianLocality(
     word_positions,
     freq_threshold_lower,
     freq_threshold_upper,
-    locality_threshold
+    locality_threshold,
+    invert
 ) {
     // Assume the positions are normally distributed
     let get_mean = function (samples) {
@@ -189,14 +192,17 @@ function filterLocalWordsWithGaussianLocality(
 
         const [mean_x, mean_y] = [get_mean(xs), get_mean(ys)];
         const [std_x, std_y] = [get_std(xs, mean_x), get_std(ys, mean_y)];
+
+        const is_within_frequency_threshold = positions.length >= freq_threshold_lower &&
+                                            positions.length <= freq_threshold_upper;
+        const is_within_locality_threshold = 2 * std_x < locality_threshold &&
+                                                2 * std_y < locality_threshold
+
+        const condition = is_within_frequency_threshold && is_within_locality_threshold;
+        const inverted_condition = is_within_frequency_threshold && !is_within_locality_threshold;
         // if the word is frequent enough and
         // if 2*std is in locality threshold
-        if (
-            positions.length >= freq_threshold_lower &&
-            positions.length <= freq_threshold_upper &&
-            2 * std_x < locality_threshold &&
-            2 * std_y < locality_threshold
-        ) {
+        if ((invert) ? inverted_condition: condition) {
             localised_words.push({
                 word: word,
                 frequency: positions.length,
@@ -206,6 +212,37 @@ function filterLocalWordsWithGaussianLocality(
         }
     });
     return localised_words;
+}
+
+
+function extractFeatures(d, feature, n_grams) {
+    if (["text", "ground_truth", "prediction"].includes(feature)) {
+        const txt = d[feature || "text"];
+        const regex = `\\b(\\w+${"\\s\\w+[.!?\\-']?\\w*".repeat(
+            n_grams - 1
+        )})\\b`;
+        const words = txt.match(new RegExp(regex, "g"));
+        return words;
+    } else if (feature == "word_len") {
+        const word_len = d.text.split(" ").length;
+        const bucket = bucketNumber(word_len);
+        return [`${bucket} words`];
+    } else if (feature == "char_len") {
+        const word_len = d.text.length;
+        const bucket = bucketNumber(word_len);
+        return [`${bucket} characters`];
+    }
+}
+
+
+function bucketNumber(num) {
+    const bucket_bottom = 10 * Math.floor(num / 10);
+    const bucket_top = 10 * Math.ceil(num / 10);
+    if (bucket_bottom == bucket_top) {
+        return `${bucket_bottom+1}-${bucket_bottom+10}`;
+    } else {
+        return `${bucket_bottom+1}-${bucket_top}`;
+    }  
 }
 
 

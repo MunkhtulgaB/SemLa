@@ -126,7 +126,7 @@ height: 100%;
 }
 
 #local-words {
-width: 310px;
+width: 360px;
 height: 100%;
 }
 
@@ -224,4 +224,8 @@ margin: 10px;
     font-weight: bold;
     border-color: lightgray;
     background-color: whitesmoke;
+}
+
+#local-feature-type-select {
+    width: 180px !important;
 }

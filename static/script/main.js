@@ -19,6 +19,10 @@ import { showLocalWords } from "./global-level/local-words.js";
 import { MapView } from "./global-level/map.js";
 import { ExplanationSet } from "./explanation.js";
 import { Dataset, Filter } from "./data.js"
+import { initializeTooltip, 
+         showTooltip, 
+         moveTooltipToCursor,
+         hideTooltip } from "./global-level/tooltip.js";
 
 
 // Wrappers around the filter functions
@@ -56,6 +60,15 @@ let updateLocalWords = function(disableForce) {
     showLocalWords(visibles, disableForce);
 }
 
+let addTooltip = function(selector, content) {
+    const selected_element = $(selector);
+    selected_element.on("mouseover", function() {
+        showTooltip("super-tooltip", content)
+        moveTooltipToCursor("#super-tooltip", 
+                                {X: 20, Y: 0});
+    })
+    .on("mouseout", () => hideTooltip("#super-tooltip"));
+}
 
 
 // make widgets collapsible
@@ -90,7 +103,6 @@ let clip = svg_canvas.append("defs")
 
 let dim_reduction = "tsne";
         
-
 const NUM_CLUSTERS = 12;
 const system_config = {
     dataset: "banking",
@@ -101,6 +113,8 @@ const system_config = {
 $(document)
     .ready(function () {
 
+    initializeTooltip("super-tooltip", "super-container",
+                        "black", "white", 0.95);
     initializeDragLines();
     initializeSystem(system_config.dataset, system_config.model);
 
@@ -274,9 +288,32 @@ function initializeControlWidgets(dataset, map) {
     });
     $("#how-many-grams").change(updateLocalWords);
     $("#ignore-stopwords").change(updateLocalWords);
+    addTooltip("label[for=show-local-words]", "Show localized features");
+    addTooltip("label[for=how-many-grams]", "Show localized n-grams instead of unigrams");
+    addTooltip("label[for=ignore-stopwords]", "Do not show stop words");
+    
+
+    // Local word (feature) type
+    $("#local-feature-type-select").change(function() {
+        if ($(this).val() != "text") {
+            d3.select("#word-only-options").style("visibility", "hidden");
+        } else {
+            d3.select("#word-only-options").style("visibility", "visible");
+        }
+        updateLocalWords();
+    })
+    addTooltip("label[for=local-feature-type-select]", 
+                `Select the type of feature you would like to investigate the localization of.
+                <br>For example, choose feature type "Gold label" to see where certain labels are localized.`)
 
     // Locality shape
     $('input[name="locality-shape"]').change(updateLocalWords);
+    addTooltip(
+        "label[for=locality-shape]", 
+        `The square locality shape requires all occurrences of the shown localized features to be strictly contained <br>
+        within the locality threshold size, i.e., does not allow outliers.
+        <br>The Gaussian locality shape allows outliers.`
+    )
 
     // Local area size threshold
     $("#localAreaThreshold")
@@ -297,7 +334,9 @@ function initializeControlWidgets(dataset, map) {
         .on("mouseup", function () {
             d3.select("#localitySizer").remove();
         })
-        .on("change", updateLocalWords)
+        .on("change", function() {
+            updateLocalWords
+        })
         .on("input", function () {
             const localitySize = $(this).val();
             d3.select("#localitySizer")
@@ -309,9 +348,31 @@ function initializeControlWidgets(dataset, map) {
                 .attr("y", height / 2 - localitySize / 2);
             updateLocalWords();
         });
+    addTooltip(
+        "label[for=localAreaThreshold]",
+        `The size of the locality is defined by this threshold.
+        <br>
+        The red box that appears on the map as you move the slider indicates the current threshold size.
+        The shown features are localized within the same size box as this.
+        `
+    )
+    $("#invert").change(updateLocalWords);
+    addTooltip(
+        "label[for=invert]",
+        `<p>Checking "Invert" will show features that are opposite of localized, 
+        i.e., <i>outside</i> the locality threshold. <br>    This can for example be used to 
+        identify the least localized labels as opposed to the most localized.
+        </p>
+        By default, when unchecked, the shown features are localized <i>within<i> the threshold.
+        `
+    )
 
     // Frequency threshold
     $("input.freqThreshold").change(updateLocalWords);
+    addTooltip(
+        "label[for=freqThreshold]",
+        `The frequency of the shown localized features (across all currently visible nodes) is within this range.`
+    );
 
     // Dimension reduction method
     dim_reduction_option.change(function () {

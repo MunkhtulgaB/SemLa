@@ -1,14 +1,18 @@
-function initializeTooltip() {
-    if ($("#map-tooltip").length == 0) {
-        d3.select("#container")
+function initializeTooltip(tooltip_id,
+                             container_id,
+                             text_color,
+                             background_color,
+                             opacity) {
+    if ($(`#${tooltip_id}`).length == 0) {
+        d3.select(`#${container_id}`)
         .append("div")
-        .attr("id", "map-tooltip")
+        .attr("id", tooltip_id)
         .style("position", "absolute")
         .style("visibility", "hidden")
-        .style("background-color", "black")
+        .style("background-color", background_color || "black")
         .style("border-radius", "5px")
-        .style("opacity", 0.8)
-        .style("color", "white")
+        .style("opacity", opacity || 0.8)
+        .style("color", text_color || "white")
         .style("border", "2px solid black")
         .style("padding", "10px")
         .style("z-index", 1000);
@@ -16,7 +20,7 @@ function initializeTooltip() {
 }
 
 
-function showTooltip(d) {
+function showMapTooltip(d) {
     // TO REFACTOR: use either camelCase or snake_case but not both
     moveTooltipToCursor();
     $(this).addClass("ismouseover");
@@ -35,24 +39,32 @@ function showTooltip(d) {
     return tooltip.style("visibility", "visible");
 }
 
+function showTooltip(tooltip_id, 
+                    content_html) {
+    const tooltip = d3.select(`#${tooltip_id}`);
+    tooltip.html(content_html);
+    return tooltip.style("visibility", "visible");
+}
 
-function moveTooltipToCursor() {
-    const tooltip = d3.select("#map-tooltip");
+function moveTooltipToCursor(tooltip_selector, offset) {
+    const tooltip = d3.select(tooltip_selector);
+    offset = offset || {Y: -200, X: 30};
     return tooltip
-        .style("top", event.pageY - 230 + "px")
-        .style("left", event.pageX + 20 + "px");
+        .style("top", event.pageY + offset.Y + "px")
+        .style("left", event.pageX + offset.X + "px");
 }
 
 
-function hideTooltip() {
-    const tooltip = d3.select("#map-tooltip");
+function hideTooltip(tooltip_selector) {
+    const tooltip = d3.select(tooltip_selector);
     $(this).removeClass("ismouseover");
     return tooltip.style("visibility", "hidden");
 }
 
 
 export { initializeTooltip, 
-        showTooltip, 
+        showTooltip,
+        showMapTooltip, 
         moveTooltipToCursor, 
         hideTooltip }
 

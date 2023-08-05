@@ -1,6 +1,6 @@
 import { initializeTooltip, 
     hideTooltip, 
-    showTooltip,
+    showMapTooltip,
     moveTooltipToCursor } from "./tooltip.js";
 import { initializeHulls, drawHulls } from "./hulls.js";
     
@@ -136,16 +136,16 @@ class MapView {
                 const translation = "translate(" + x(x_pos) + "," + y(y_pos) + ")";
                 return translation;
             })
-            .on("mouseover", showTooltip)
-            .on("mousemove", moveTooltipToCursor)
-            .on("mouseout", hideTooltip)
+            .on("mouseover", showMapTooltip)
+            .on("mousemove", () => moveTooltipToCursor("#map-tooltip"))
+            .on("mouseout", () => hideTooltip("#map-tooltip"))
             .on("click", function(d) {
                 self.selectNode(this);
                 onClick(d, dataset, explanation_set);
                 self.updateDragLines();
             });
 
-        initializeTooltip();
+        initializeTooltip("map-tooltip", "container");
 
         this.#intents_to_points_tsne = intents_to_points_tsne;
         this.#intents_to_points_umap = intents_to_points_umap;
