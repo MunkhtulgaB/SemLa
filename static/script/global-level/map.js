@@ -108,7 +108,6 @@ class MapView {
         .attr("clip-path", "url(#clip)");
 
         // Initialize dragging behaviour and intent hulls
-        const drag = this.initializeDragging(dim_reduction, onDragEnd, dataset_name);
         const [intents_to_points_tsne, 
                 intents_to_points_umap] = initializeHulls(data, 
                                                     cluster_to_color, 
@@ -144,8 +143,7 @@ class MapView {
                 self.selectNode(this);
                 onClick(d, dataset, explanation_set);
                 self.updateDragLines();
-            })
-            .call(drag);
+            });
 
         initializeTooltip();
 
@@ -216,8 +214,7 @@ class MapView {
     initializeZoom(svg_canvas, 
                     margin, 
                     width, 
-                    height,
-                    onUpdate) {
+                    height) {
         // Set the zoom and Pan features: how much you can zoom, on which part, and what to do when there is a zoom
         let zoom = d3.zoom()
                     .scaleExtent([0.5, 100]) // This control how much you can unzoom (x0.5) and zoom (x20)
@@ -232,7 +229,7 @@ class MapView {
         .on("start", function () {
             d3.select("#scatter").selectAll(".local_word").remove();
         })
-        .on("end", onUpdate);
+        .on("end", this.#onUpdate);
 
         // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
         svg_canvas.append("rect")

@@ -22,13 +22,11 @@
     <div id="super-container">
       <div id="corpus-level" class="widget super-widget">
         <div id="corpus-lvl-title" style="justify-self: flex-end;">
-          Model <span style="text-decoration: underline;"><b>metric_based_BERT</b></span> on
-          dataset <span id="dataset_name" style="text-decoration: underline;"></span>
-
-          (with <span id="accuracy"></span>% accuracy)
+          <div class="widget_title">Map view</div>
         </div>
 
         <div id="container">
+          
           <svg id="semantic_landscape">
           <g>
           </g>
@@ -44,17 +42,14 @@
         
         <div id="corpus-widget-container">
 
-          <div class="widget" id="map_options">
-            <p class="widget_title">Map view options</p>
+          <div class="widget" id="filter-options">
+            <p class="widget_title">Filter options</p>
             <div class="widget_content">
 
               
-              <label for="show-errors">Errors only</label>
+              <label for="show-errors">Show errors only</label>
               <input type="checkbox" id="show-errors" name="show-errors">
               
-              <label for="group-by">Switch to confidence heatmap</label>
-              <input type="checkbox" id="show-confidence" name="show-confidence">
-
               <div>
                 <label>Confidence thresholds</label>
                 <input type="number" class="confThreshold" data-index="0" value="0" min="0"/>
@@ -67,22 +62,13 @@
               </div>
 
               <div>
-                <label for="group-by">Upon select, filter:</label>
+                <label for="group-by">Upon selecting a node, filter:</label>
                 <div>
                   <input type="radio" name="filter-by" value="support_set" checked>Support set</input>
                   <input type="radio" name="filter-by" value="ground_truth">Same label</input>
                   <input type="radio" name="filter-by" value="prediction">Same prediction</input>
                 </div>
               </div>
-
-              <div>
-                <label for="dim-reduction">Position by (dimension reduction)</label>
-                <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
-                <input type="radio" name="dim-reduction" value="umap">umap</input>
-              </div>
-
-              
-
             </div>
           </div>
 
@@ -92,8 +78,7 @@
               <div>
                 <label for="show-local-words">Show local words
                 <input type="checkbox" id="show-local-words" name="show-local-words" checked>
-              </div>
-              <div>
+
                 <label for="ignore-stopwords">Ignore stopwords
                 <input type="checkbox" id="ignore-stopwords" name="ignore-stopwords">
               </div>
@@ -118,6 +103,43 @@
                 <label for="how-many-grams">Show localized
                 <input type="number" id="how-many-grams" name="how-many-grams" value=1>-gram(s)
               </div>
+            </div>
+          </div>
+
+          <div class="widget" id="map_options">
+            <p class="widget_title">Map view options</p>
+            <div class="widget_content">
+              <div>
+                Model
+                <select id="model-select" class="mb-1 form-select-sm inline-select">
+                  <option value="BERT" selected>BERT</option>
+                  <option value="GPT">GPT-3</option>
+                </select>
+              </div>
+              <div>
+                Dataset
+                <select id="dataset-select" class="form-select-sm inline-select">
+                  <option value="banking" selected>BANKING</option>
+                  <option value="hwu">HWU</option>
+                  <option value="clinc">CLINC</option>
+                </select>
+              </div>
+              <div>
+                Accuracy: <span id="accuracy"></span>%
+              </div>
+              <div>
+                <label for="dim-reduction">Dimension reduction</label>
+                <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
+                <input type="radio" name="dim-reduction" value="umap">umap</input>
+              </div>
+
+              <label for="group-by">Confidence heatmap</label>
+              <input type="checkbox" id="show-confidence" name="show-confidence">
+
+
+              
+              
+
             </div>
           </div>
 
@@ -173,7 +195,7 @@
           <p class="widget_title">
             Relation (token-to-similarity)
           </p>
-          <div class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
+          <div id="relchart-container" class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
               <div id="rel_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
                 <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
               </div>
@@ -187,7 +209,7 @@
           <p class="widget_title">
             Importance
           </p>
-          <div class="widget_content sample-lvl-content">
+          <div id="importance-chart-container" class="widget_content sample-lvl-content">
             <canvas id="importance_chart"></canvas>
           </div>
         </div>
@@ -196,7 +218,7 @@
           <p class="widget_title">
             Relation (token-to-token)
           </p>
-          <div class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
+          <div id="tokenchart-container" class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
               <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
                 <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
               </div>

@@ -1,5 +1,6 @@
 function initializeTooltip() {
-    d3.select("#container")
+    if ($("#map-tooltip").length == 0) {
+        d3.select("#container")
         .append("div")
         .attr("id", "map-tooltip")
         .style("position", "absolute")
@@ -11,6 +12,7 @@ function initializeTooltip() {
         .style("border", "2px solid black")
         .style("padding", "10px")
         .style("z-index", 1000);
+    }
 }
 
 

@@ -91,7 +91,7 @@ display: flex;
 flex-direction: row;
 width: 100%;
 padding: 10px;
-height: 240px;
+height: 210px;
 justify-content: space-evenly;
 }
 
@@ -114,15 +114,21 @@ flex-direction: column;
 overflow: initial;
 }
 
+#filter-options {
+width: 375px;
+height: 100%;
+}
+
 #map_options {
-width: 400px;
+width: 330px;
 height: 100%;
 }
 
 #local-words {
-width: 400px;
+width: 310px;
 height: 100%;
 }
+
 
 /* INTENT LEVEL */
 #intent-level {
@@ -204,4 +210,12 @@ margin: 10px;
     vertical-align: middle;
     padding: 160px 0;
     color: grey;
+}
+
+.inline-select {
+    display: inline !important;
+    width: 100px !important;
+    font-weight: bold;
+    border-color: lightgray;
+    background-color: whitesmoke;
 }

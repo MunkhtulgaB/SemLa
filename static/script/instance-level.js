@@ -1,8 +1,4 @@
-
-
-
 const RELCHART_LEFT_WIDTH = 255;
-
 
 
 // Importance
@@ -59,6 +55,7 @@ function updateImportanceChart(d, dataset_name) {
 function createImportanceChart(container_id, data) {
     const ctx = document.getElementById(container_id);
 
+    Chart.defaults.font.size = 15;
     const config = {
         type: "bar",
         data: data,
@@ -296,7 +293,7 @@ function renderRelTexts(
     onMouseOver,
     onMouseOut
 ) {
-    const fontsize = 13;
+    const fontsize = 15;
     const relchart = d3.select(container_selector);
 
     const chart_height = relchart.node().clientHeight;
