@@ -219,7 +219,7 @@ function extractFeatures(d, feature, n_grams) {
     if (["text", "ground_truth", "prediction"].includes(feature)) {
         const txt = d[feature || "text"];
         const regex = `\\b(\\w+${"\\s\\w+[.!?\\-']?\\w*".repeat(
-            n_grams - 1
+            (feature == "text") ? n_grams - 1 : 0
         )})\\b`;
         const words = txt.toLowerCase().match(new RegExp(regex, "g"));
         return words;
