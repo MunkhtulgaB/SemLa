@@ -55,9 +55,9 @@ let filterByDatapointAndUpdate = function(dp, data) {
     return filter;
 }
 
-let updateLocalWords = function(disableForce) {
+let updateLocalWords = function(isHighFrequencyCall) {
     let [visibles, __, ___] = getVisibleDatapoints(width, height);
-    showLocalWords(visibles, disableForce);
+    showLocalWords(visibles, isHighFrequencyCall);
 }
 
 let addTooltip = function(selector, content) {
@@ -204,7 +204,7 @@ function clearSystem() {
 function initializeSystem(dataset_name, model) {
     // Load data
     $("#dataset_name").html(`<b>${dataset_name.toUpperCase()}</b>`);
-
+    $("#dataset-select").val(dataset_name)
     d3.json(
         `static/data/${dataset_name.toLowerCase()}-viz_data-${NUM_CLUSTERS}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent-with-${model.toLowerCase()}.json`,
         function (data) {
@@ -263,6 +263,14 @@ function initializeSystem(dataset_name, model) {
 
 function initializeControlWidgets(dataset, map, cluster_to_color) {
     // Initialize the input widgets
+    const local_word_toggle = $("#show-local-words");
+    const how_many_grams = $("#how-many-grams");
+    const ignore_stop_words = $("#ignore-stopwords");
+    const feature_type = $("#local-feature-type-select");
+    const area_threshold = $("#localAreaThreshold");
+    const show_confidence = $("#show-confidence");
+    const confidence_range = $("input.confThreshold");
+
     const dim_reduction_option = $('input[name="dim-reduction"]');
     const groupby_option = $('input[name="group-by"]');
     const filterby_option = $('input[name="filter-by"]');
@@ -270,8 +278,30 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
     const search_input = $("#filter");
     const clear_btn = $("#clear-filter");
 
+    // First, remove all the currently registered event handlers
+    [local_word_toggle, 
+        how_many_grams,
+        ignore_stop_words,
+        feature_type,
+        area_threshold,
+        show_confidence,
+        confidence_range,
+        dim_reduction_option,
+        groupby_option,
+        filterby_option,
+        is_to_show_errors_only,
+        search_input,
+        clear_btn
+    ].forEach((elem) => {
+        elem.unbind("change");
+        elem.unbind("mouseup");
+        elem.unbind("input");
+        elem.unbind("click");
+    });
+    $(document).unbind("keyup");
+
     // Toggle local words
-    $("#show-local-words").change(function () {
+    local_word_toggle.change(function () {
         // fade the datapoints
         d3.selectAll("path.datapoint").style("stroke-opacity", function (d) {
             const current_opacity = d3.select(this).style("stroke-opacity");
@@ -286,15 +316,15 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
         // show the local words
         updateLocalWords();
     });
-    $("#how-many-grams").change(updateLocalWords);
-    $("#ignore-stopwords").change(updateLocalWords);
+    how_many_grams.change(updateLocalWords);
+    ignore_stop_words.change(updateLocalWords);
     addTooltip("label[for=show-local-words]", "Show localized features");
     addTooltip("label[for=how-many-grams]", "Show localized n-grams instead of unigrams");
     addTooltip("label[for=ignore-stopwords]", "Do not show stop words");
     
 
     // Local word (feature) type
-    $("#local-feature-type-select").change(function() {
+    feature_type.change(function() {
         if ($(this).val() != "text") {
             d3.select("#word-only-options").style("visibility", "hidden");
         } else {
@@ -316,8 +346,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
     )
 
     // Local area size threshold
-    $("#localAreaThreshold")
-        .on("mousedown", function () {
+    area_threshold.on("mousedown", function () {
             const locality_shape = $(
                 'input[name="locality-shape"]:checked'
             ).val();
@@ -335,7 +364,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
             d3.select("#localitySizer").remove();
         })
         .on("change", function() {
-            updateLocalWords
+            updateLocalWords()
         })
         .on("input", function () {
             const localitySize = $(this).val();
@@ -346,7 +375,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
                 .attr("r", localitySize)
                 .attr("x", width / 2 - localitySize / 2)
                 .attr("y", height / 2 - localitySize / 2);
-            updateLocalWords();
+            updateLocalWords(true);
         });
     addTooltip(
         "label[for=localAreaThreshold]",
@@ -411,7 +440,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
     });
 
     // Show confidence?
-    $("#show-confidence").on("change", function () {
+    show_confidence.on("change", function () {
         if ($("#show-confidence").is(":checked")) {
             // color in the same way and differentiate by opacity
             const confidence_color = "#89A4C7";
@@ -436,7 +465,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
     });
 
     // Add a confidence range filter
-    $("input.confThreshold").change(() => {
+    confidence_range.change(() => {
         const conf_threshold_lower =
             parseInt($("input.confThreshold[data-index=0]").val()) || 0;
         const conf_threshold_upper =
@@ -474,7 +503,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
         dataset.clearFilters();
     });
 
-    $(document).keyup(function(e) {
+    $(document).bind("keyup", function(e) {
         if (e.key == "Escape") {
             resetFilterControls();
             dataset.clearFilters();
@@ -486,8 +515,8 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
 function resetFilterControls() {
     $("#filter").val("");
     $("#show-errors").prop("checked", false);
-    $("input.confThreshold[data-index=0]").val(0).change();
-    $("input.confThreshold[data-index=1]").val(100).change();
+    $("input.confThreshold[data-index=0]").val(0);
+    $("input.confThreshold[data-index=1]").val(100);
 }
 
 
@@ -694,4 +723,4 @@ function initializeDragLines() {
         .attr("stroke-width", "3");
 }
 
-alert("This demo is optimized for a 16:9 high resolution screen. Please zoom out to fit to your screen.")
+// alert("This demo is optimized for a 16:9 high resolution screen. Please zoom out to fit to your screen.")
