@@ -19,10 +19,11 @@ class ExplanationSet {
 
     loadImportances() {
         return new Promise((resolve, reject) => {
+            const startTime = new Date();
             $.ajax(`static/data/cached-explanations/${this.#dataset_name}/importances.json`)
                 .done(function (res) {
                     this.importances = res;
-                    console.log("Importances loaded");
+                    console.log(`Importances loaded (in ${new Date() - startTime}ms)`);
                     resolve();
                 }.bind(this))
                 .fail(function () {
@@ -34,10 +35,11 @@ class ExplanationSet {
 
     loadToken2TokenRelations() {
         return new Promise((resolve, reject) => {
+            const startTime = new Date();
             $.ajax(`static/data/cached-explanations/${this.#dataset_name}/token2token_relations.json`)
                 .done(function (res) {
                     this.token2token_relations = res;
-                    console.log("Token-to-token relations loaded");
+                    console.log(`Token-to-token relations loaded (in ${new Date() - startTime}ms)`);
                     resolve();
                 }.bind(this))
                 .fail(function () {
@@ -49,10 +51,11 @@ class ExplanationSet {
 
     loadToken2SimRelations() {
         return new Promise((resolve, reject) => {
+            const startTime = new Date();
             $.ajax(`static/data/cached-explanations/${this.#dataset_name}/token2similarity_relations.json`)
                 .done(function (res) {
                     this.token2similarity_relations = res;
-                    console.log("Token-to-similarity relations loaded");
+                    console.log(`Token-to-similarity relations loaded (in ${new Date() - startTime}ms)`);
                     resolve();
                 }.bind(this))
                 .fail(function () {
