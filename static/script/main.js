@@ -15,7 +15,7 @@ import { filterByIntents,
          getVisibleDatapoints, 
          calculateConfidence,
          FilterView } from "./global-level/filters.js";
-import { showLocalWords } from "./global-level/local-words.js";
+import { showLocalWords, hideProgress } from "./global-level/local-words.js";
 import { MapView } from "./global-level/map.js";
 import { ExplanationSet } from "./explanation.js";
 import { Dataset, Filter } from "./data.js"
@@ -331,6 +331,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
             d3.select("#word-only-options").style("visibility", "hidden");
         }
         updateLocalWords();
+        hideProgress();
     })
     addTooltip("label[for=local-feature-type-select]", 
                 `Select the type of feature you would like to investigate the localization of.

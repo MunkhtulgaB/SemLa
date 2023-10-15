@@ -537,4 +537,4 @@ function convertCamelCaseToText(camelCaseString) {
     return camelCaseString.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
 }
 
-export { showLocalWords }
+export { showLocalWords, hideProgress }
