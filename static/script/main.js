@@ -723,4 +723,4 @@ function initializeDragLines() {
         .attr("stroke-width", "3");
 }
 
-// alert("This demo is optimized for a 16:9 high resolution screen. Please zoom out to fit to your screen.")
+alert("This demo is optimized for a 16:9 high resolution screen. Please zoom out to fit to your screen.")
