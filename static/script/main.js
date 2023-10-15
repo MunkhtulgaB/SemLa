@@ -325,10 +325,10 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
 
     // Local word (feature) type
     feature_type.change(function() {
-        if ($(this).val() != "text") {
-            d3.select("#word-only-options").style("visibility", "hidden");
-        } else {
+        if (["text", "concept"].includes($(this).val())) {
             d3.select("#word-only-options").style("visibility", "visible");
+        } else {
+            d3.select("#word-only-options").style("visibility", "hidden");
         }
         updateLocalWords();
     })

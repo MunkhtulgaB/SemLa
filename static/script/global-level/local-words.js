@@ -12,6 +12,7 @@ function showLocalConcepts(local_words) {
     // characterize each word with various features
     const local_concepts = {};
 
+    showProgress(0, local_words.length);
     local_words.forEach((word_data) => {   
         loadConceptCache()
         .then(() => getConcepts(word_data.word))
@@ -52,10 +53,10 @@ function showLocalConcepts(local_words) {
                 return word_data.word in local_concepts;
             });
 
-            showProgress(progress, local_words.length);
+            updateProgress(progress, local_words.length);
 
             if (isComplete) {
-                $("#progress-cover").remove();
+                hideProgress();
                 // then apply the localization algorithm on those features
                 const localConcepts = extractLocalFeatures(local_words, "concept");
                 render_local_words(localConcepts);
@@ -94,16 +95,34 @@ function loadConceptCache() {
 }
 
 
-function showProgress(progress, total) {
+function showProgress(progress, total, msg) {
     $("#progress-cover").remove();
     $("#container").append(`
         <div id="progress-cover">
-            <span>Loading concepts:
+            <div id="progress-current">
+                Loading concepts:
                 ${(100 * progress/total).toFixed(0)}%
-                (${progress} out of ${total})
-            </span>
+                (${progress} out of ${total}).
+            </div>
+            <div id="progress-msg">${msg || ""}</div>
         </div>
-    `)
+    `);
+}
+
+function updateProgress(progress, total) {
+    $("#progress-current").html(`
+        Loading concepts:
+        ${(100 * progress/total).toFixed(0)}%
+        (${progress} out of ${total}).
+    `);
+}
+
+function updateProgressMessage(msg) {
+    $("#progress-msg").html(msg);
+}
+
+function hideProgress() {
+    $("#progress-cover").remove();
 }
 
 
@@ -114,8 +133,13 @@ function getConcepts(word) {
 
             // $.get("https://api.conceptnet.io/related/c/en/"+word.replace(" ", "_")+`?filter=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {   
             $.get("https://api.conceptnet.io/query?node=/c/en/"+word.replace(" ", "_")+`&other=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {
+                console.log(status)
                 conceptCache[word] = data;
                 resolve(data);
+            }).fail(function(e) {
+                if ([0, 429].includes(e.status)) {
+                    updateProgressMessage("<b>Too many requests at once, please try again in about a minute.</b>");
+                }
             })
         } else {
             resolve(conceptCache[word]);
