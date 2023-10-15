@@ -1,16 +1,130 @@
 import { getStopwords } from "./stopwords.js";
 
 
+const LIMIT_CONCEPTS = 5;
+
 const STOP_WORDS = getStopwords();
 let forceSimulation;
 
 
-// A function that counts word frequency in all visible dps
-function showLocalWords(visibles, disableForce) {
-    if (forceSimulation) {
-        forceSimulation.stop();
-    }
+function showLocalConcepts(local_words) {
+    console.log("showLocalConcepts");
+    // characterize each word with various features
+    const local_concepts = {};
 
+    local_words.forEach((word_data) => {   
+        loadConceptCache()
+        .then(() => getConcepts(word_data.word))
+        .then((concepts) => {
+            local_concepts[word_data.word] = concepts;
+
+            // // console.log(concepts.related)
+            // concepts.related.forEach((related, i) => {
+            //     const related_concept = related["@id"].replace("/c/en/", "");
+            //     word_data["concepts-"+i] = related_concept;
+            // })
+
+            let edges = concepts.edges
+                .filter((edge) => 
+                    edge.start.language == "en" &&
+                    edge.end.language == "en")
+                .map((edge, i) => (edge.start.label + "+" +
+                                    edge.rel.label + "+" +
+                                    edge.end.label));
+
+            edges = Array.from(new Set(edges));
+            edges.forEach((edge, i) => {
+                let [start, rel, end] = edge.split("+");
+
+                // rel = convertCamelCaseToText(rel);
+                if (start == word_data.word) {
+                    word_data["concepts-"+i] = rel + " " + end;
+                } else if (end == word_data.word) {
+                    word_data["concepts-"+i] = start + " " + rel;
+                }
+                word_data["rel-"+i] = rel;
+            })
+
+            // check all words are processed
+            let progress = 0;
+            const isComplete = local_words.every((word_data, i) => {
+                progress++;
+                return word_data.word in local_concepts;
+            });
+
+            showProgress(progress, local_words.length);
+
+            if (isComplete) {
+                $("#progress-cover").remove();
+                // then apply the localization algorithm on those features
+                const localConcepts = extractLocalFeatures(local_words, "concept");
+                render_local_words(localConcepts);
+            }
+        });
+    });
+}
+
+const conceptCache = {}
+let isAlreadyLoading = false;
+
+
+function loadConceptCache() {
+    return new Promise((resolve, reject) => {
+        if (isAlreadyLoading) {
+            const checker = setInterval(() => {
+                if (Object.keys(conceptCache).length > 0) {
+                    resolve(conceptCache);
+                    clearInterval(checker);
+                }
+            }, 500);
+        } else if (Object.keys(conceptCache).length == 0) {
+            isAlreadyLoading = true;
+
+            const startTime = new Date();
+            console.log("Populating concepts cache from local file...")
+            d3.json("static/data/concepts.json", function(conceptsFromFile) {
+                Object.assign(conceptCache, conceptsFromFile);
+                console.log(`Populating concepts cache from local file... (complete in ${new Date() - startTime}ms)`)
+                resolve(conceptCache);
+            });
+        } else {
+            resolve(conceptCache);
+        }
+    });
+}
+
+
+function showProgress(progress, total) {
+    $("#progress-cover").remove();
+    $("#container").append(`
+        <div id="progress-cover">
+            <span>Loading concepts:
+                ${(100 * progress/total).toFixed(0)}%
+                (${progress} out of ${total})
+            </span>
+        </div>
+    `)
+}
+
+
+function getConcepts(word) {
+    return new Promise((resolve, reject) => {
+        if (!Object.hasOwn(conceptCache, word)) {
+            console.log("getting concepts from ConceptNet");
+
+            // $.get("https://api.conceptnet.io/related/c/en/"+word.replace(" ", "_")+`?filter=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {   
+            $.get("https://api.conceptnet.io/query?node=/c/en/"+word.replace(" ", "_")+`&other=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {
+                conceptCache[word] = data;
+                resolve(data);
+            })
+        } else {
+            resolve(conceptCache[word]);
+        }
+    })
+}
+
+
+function extractLocalFeatures(visible_dps, feature) {
     const is_to_show_local_words = $("#show-local-words").is(":checked");
     const is_to_ignore_stopwords = $("#ignore-stopwords").is(":checked");
     const invert = $("#invert").is(":checked");
@@ -22,19 +136,15 @@ function showLocalWords(visibles, disableForce) {
     const freq_threshold_upper = parseInt(
         $("input.freqThreshold[data-index=1]").val()
     );
-    const feature = $("#local-feature-type-select").val();
 
     if (!is_to_show_local_words || !n_grams || n_grams < 1) {
         d3.selectAll(".local_word").remove();
         return;
     }
 
-    let word_positions = {};
-    visibles.each(function (d) {
-        const pos_x = this.transform.baseVal[0].matrix.e;
-        const pos_y = this.transform.baseVal[0].matrix.f;
-
-        const words = extractFeatures(d, feature, n_grams)
+    let word_occurrences = {};
+    visible_dps.forEach(function (d, i) {
+        const words = extractFeatures(d, feature, n_grams);
         if (words) {
             words.forEach(function (word) {
                 if (
@@ -43,10 +153,10 @@ function showLocalWords(visibles, disableForce) {
                 )
                     return;
 
-                if (word in word_positions) {
-                    word_positions[word].push([pos_x, pos_y]);
+                if (word in word_occurrences) {
+                    word_occurrences[word].push(d);
                 } else {
-                    word_positions[word] = [[pos_x, pos_y]];
+                    word_occurrences[word] = [d];
                 }
             });
         }
@@ -62,13 +172,48 @@ function showLocalWords(visibles, disableForce) {
 
     // if a word is localised, then we display that word there
     const localised_words = locality_fn(
-        Object.entries(word_positions),
-        freq_threshold_lower,
-        freq_threshold_upper,
+        Object.entries(word_occurrences),
+        (feature == "concept") ? 2 : freq_threshold_lower,
+        (feature == "concept") ? 1000 : freq_threshold_upper,
         locality_threshold,
         invert
     );
+    return localised_words;
+}
 
+
+
+// A function that counts word frequency in all visible dps
+function showLocalWords(visibles, isHighFrequencyCall) {
+    if (forceSimulation) {
+        forceSimulation.stop();
+    }
+    
+    const feature_type = $("#local-feature-type-select").val();
+    
+    if (isHighFrequencyCall == true && feature_type == "concept") {
+        return;
+    }
+
+    visibles.each(function (d) {
+        d.x = this.transform.baseVal[0].matrix.e;
+        d.y = this.transform.baseVal[0].matrix.f;
+    });
+
+    const localised_words = extractLocalFeatures(
+        visibles.data(),
+        (feature_type == "concept")? "text":feature_type
+    );
+    
+    if (feature_type == "concept") {
+        showLocalConcepts(localised_words);
+    } else {
+        render_local_words(localised_words, isHighFrequencyCall);
+    }
+}
+
+
+function render_local_words(localised_words, isHighFrequencyCall) {
     d3.selectAll(".local_word").remove();
     d3.select("#scatter")
         .selectAll("text")
@@ -84,12 +229,44 @@ function showLocalWords(visibles, disableForce) {
         .attr("y", function (d) {
             return d.y;
         })
-        .style("fill", "#001617")
+        .style("fill", function(d) {
+            if (d.fill) return d.fill;
+            return "#001617";
+        })
         .style("font-weight", "bold")
-        .style("stroke", "white")
-        .style("stroke-width", 0.4);
+        .style("stroke", function(d) {
+            if (d.stroke) return d.stroke;
+            return "white";
+        })
+        .style("stroke-width", 0.4)
+        .on("click", function(d) {
+            let occurrences;
+            let related_words = [];
+            if (d.occurrences[0].occurrences) {
+                occurrences = [];
+                d.occurrences.forEach(local_word => {
+                    occurrences = occurrences.concat(local_word.occurrences);
+                    local_word.fill = "dimgrey";
+                    local_word.stroke = "black";
+                    related_words.push(local_word);
+                });
+            } else {
+                occurrences = d.occurrences;
+            } 
 
-    if (disableForce != true) {
+            const idxs = occurrences.map(x => x.idx);
+            d3.selectAll(".datapoint").style("visibility", function (d) {
+                if (idxs.includes(d.idx)) {
+                    return "visible";
+                } else {
+                    return "hidden";
+                }
+            }).style("opacity", 1);
+
+            render_local_words(related_words.concat(d), false);
+        });
+
+    if (isHighFrequencyCall != true) {
         // Apply force to prevent collision between texts
         forceSimulation = d3
             .forceSimulation(localised_words)
@@ -109,23 +286,21 @@ function showLocalWords(visibles, disableForce) {
     }
 }
 
-
 function filterLocalWordsWithSquareLocality(
-    word_positions,
+    word_occurrences,
     freq_threshold_lower,
     freq_threshold_upper,
     locality_threshold,
     invert
 ) {
     const localised_words = [];
-    word_positions.forEach(function (entry) {
-        const [word, positions] = entry;
+    word_occurrences.forEach(function (entry) {
+        const [word, occurrences] = entry;
         const xs = [];
         const ys = [];
-        positions.forEach(function (pos) {
-            const [x, y] = pos;
-            xs.push(x);
-            ys.push(y);
+        occurrences.forEach(function (d) {
+            xs.push(d.x);
+            ys.push(d.y);
         });
 
         const [max_x, min_x] = [Math.max(...xs), Math.min(...xs)];
@@ -134,8 +309,9 @@ function filterLocalWordsWithSquareLocality(
         const x_range = max_x - min_x;
         const y_range = max_y - min_y;
 
-        const is_within_frequency_threshold = positions.length >= freq_threshold_lower &&
-                                            positions.length <= freq_threshold_upper;
+        const count = occurrences.length;
+        const is_within_frequency_threshold = count >= freq_threshold_lower &&
+                                            count <= freq_threshold_upper;
         const is_within_locality_threshold = x_range < locality_threshold &&
                                             y_range < locality_threshold;
 
@@ -144,9 +320,11 @@ function filterLocalWordsWithSquareLocality(
         if ((invert) ? inverted_condition : condition) {
             localised_words.push({
                 word: word,
-                frequency: positions.length,
+                frequency: count,
+                weight: occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0),
                 x: min_x + x_range / 2,
                 y: min_y + y_range / 2,
+                occurrences: occurrences,
             });
         }
     });
@@ -155,7 +333,7 @@ function filterLocalWordsWithSquareLocality(
 
 
 function filterLocalWordsWithGaussianLocality(
-    word_positions,
+    word_occurrences,
     freq_threshold_lower,
     freq_threshold_upper,
     locality_threshold,
@@ -179,22 +357,22 @@ function filterLocalWordsWithGaussianLocality(
     };
 
     const localised_words = [];
-    word_positions.forEach(function (entry) {
-        const [word, positions] = entry;
-        if (positions.length < 1) return;
+    word_occurrences.forEach(function (entry) {
+        const [word, occurrences] = entry;
+        if (occurrences.length < 1) return;
         const xs = [];
         const ys = [];
-        positions.forEach(function (pos) {
-            const [x, y] = pos;
-            xs.push(x);
-            ys.push(y);
+        occurrences.forEach(function (d) {
+            xs.push(d.x);
+            ys.push(d.y);
         });
 
         const [mean_x, mean_y] = [get_mean(xs), get_mean(ys)];
         const [std_x, std_y] = [get_std(xs, mean_x), get_std(ys, mean_y)];
 
-        const is_within_frequency_threshold = positions.length >= freq_threshold_lower &&
-                                            positions.length <= freq_threshold_upper;
+        const count = occurrences.length; //occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0);
+        const is_within_frequency_threshold = count >= freq_threshold_lower &&
+                                            count <= freq_threshold_upper;
         const is_within_locality_threshold = 2 * std_x < locality_threshold &&
                                                 2 * std_y < locality_threshold
 
@@ -205,9 +383,11 @@ function filterLocalWordsWithGaussianLocality(
         if ((invert) ? inverted_condition: condition) {
             localised_words.push({
                 word: word,
-                frequency: positions.length,
+                frequency: count,
+                weight: occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0),
                 x: mean_x,
                 y: mean_y,
+                occurrences: occurrences,
             });
         }
     });
@@ -216,7 +396,11 @@ function filterLocalWordsWithGaussianLocality(
 
 
 function extractFeatures(d, feature, n_grams) {
-    if (["text", "ground_truth", "prediction"].includes(feature)) {
+    if (["concept"].includes(feature)) {
+        const keys = Object.keys(d).filter(k => k.includes(feature));
+        const concepts = keys.map(k => d[k]);
+        return concepts;
+    } else if (["text", "ground_truth", "prediction"].includes(feature)) {
         const txt = d[feature || "text"];
         const regex = `\\b(\\w+${"\\s\\w+[.!?\\-']?\\w*".repeat(
             (feature == "text") ? n_grams - 1 : 0
@@ -247,7 +431,8 @@ function bucketNumber(num) {
 
 
 function fontSize(d) {
-    return Math.min(15 + d.frequency * 0.2, 80);
+    const weight = (d.frequency != d.weight)? d.weight : d.frequency;
+    return Math.min(15 + weight * 0.2, 80);
 }
 
 function forceCollide() {
@@ -323,5 +508,9 @@ function forceCollide() {
     return force;
 }
 
+
+function convertCamelCaseToText(camelCaseString) {
+    return camelCaseString.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+}
 
 export { showLocalWords }

@@ -266,7 +266,7 @@ class MapView {
         this.updatePositions(newX, newY, this.#dim_reduction); 
         this.updateDragLines();
 
-        if (this.#updateCount % 2 == 0) this.#onUpdate();
+        if (this.#updateCount % 2 == 0) this.#onUpdate(true);
         this.#updateCount++;
     }
 
