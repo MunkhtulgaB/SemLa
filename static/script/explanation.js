@@ -27,8 +27,7 @@ class ExplanationSet {
                     resolve();
                 }.bind(this))
                 .fail(function () {
-                    alert("error");
-                    reject();
+                    console.log("Failed to load cached explanations.");
                 });
         });
     }
@@ -43,8 +42,7 @@ class ExplanationSet {
                     resolve();
                 }.bind(this))
                 .fail(function () {
-                    alert("error");
-                    reject();
+                    console.log("Failed to load cached explanations.");
                 });
         });
     }
@@ -59,8 +57,7 @@ class ExplanationSet {
                     resolve();
                 }.bind(this))
                 .fail(function () {
-                    alert("error");
-                    reject();
+                    console.log("Failed to load cached explanations.");
                 });
         });
     }

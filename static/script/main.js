@@ -103,6 +103,11 @@ let clip = svg_canvas.append("defs")
 
 let dim_reduction = "tsne";
         
+const MODEL_DATASET_AVAILABILITY = {
+    "gpt": ["banking", "go_emotions"],
+    "bert": ["banking", "hwu", "clinc"],
+    "roberta": ["go_emotions"]
+};
 const NUM_CLUSTERS = 12;
 const system_config = {
     dataset: "banking",
@@ -121,29 +126,22 @@ $(document)
     $("#model-select").change(function() {
         const model = $(this).val();
         system_config.model = model;
-        system_config.dataset = "banking";
+        system_config.dataset = MODEL_DATASET_AVAILABILITY[model][0];
 
-        if (model == "GPT") {
-            // disable unavailable dataset options
-            $("#dataset-select option:contains('HWU')")
-                .attr("disabled", "disabled");
-            $("#dataset-select option:contains('CLINC')")
-                .attr("disabled", "disabled");
+        // disable all options first
+        $("#dataset-select option")
+        .attr("disabled", "disabled");
 
-            // select an available option
-            $("#dataset-select").val("banking").change();
-            
-
-        } else {
-            // enable all dataset options
-            $("#dataset-select option:contains('HWU')")
+        // enable available options
+        MODEL_DATASET_AVAILABILITY[model].forEach(dataset => {
+            $(`#dataset-select option[value=${dataset}]`)
                 .attr("disabled", false);
-            $("#dataset-select option:contains('CLINC')")
-                .attr("disabled", false);
-            clearSystem();
-            initializeSystem(system_config.dataset, 
-                            system_config.model);
-        }
+        })
+
+
+        // select an available option
+        $("#dataset-select").val(system_config.dataset).change();
+        alertCount = 0;
     });
 
     $("#dataset-select").change(function() {
@@ -204,6 +202,7 @@ function clearSystem() {
 function initializeSystem(dataset_name, model) {
     // Load data
     $("#dataset_name").html(`<b>${dataset_name.toUpperCase()}</b>`);
+    $("#model-select").val(model);
     $("#dataset-select").val(dataset_name)
     d3.json(
         `static/data/${dataset_name.toLowerCase()}-viz_data-${NUM_CLUSTERS}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent-with-${model.toLowerCase()}.json`,
@@ -242,7 +241,7 @@ function initializeSystem(dataset_name, model) {
                                     dataset.intentToCluster,
                                     dim_reduction,
                                     updateLocalWords,
-                                    (model == "GPT")? onClickSummaryOnly : onClick,
+                                    (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
             populateIntentTable(dataset.clusterToIntent, 

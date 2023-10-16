@@ -110,11 +110,15 @@ function showProgress(progress, total, msg) {
 }
 
 function updateProgress(progress, total) {
-    $("#progress-current").html(`
-        Loading concepts:
-        ${(100 * progress/total).toFixed(0)}%
-        (${progress} out of ${total}).
-    `);
+    if ($("#progress-cover").length == 0) {
+        showProgress(progress, total)
+    } else {
+        $("#progress-current").html(`
+            Loading concepts:
+            ${(100 * progress/total).toFixed(0)}%
+            (${progress} out of ${total}).
+        `);
+    }
 }
 
 function updateProgressMessage(msg) {

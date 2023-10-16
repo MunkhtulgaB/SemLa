@@ -46,13 +46,18 @@ function initializeHulls(data, cluster_to_color,
 }
 
 
-function drawHulls(intents2points, cluster_to_color, 
-                    intent_to_cluster, X, Y) {
+function drawHulls(labels2points, cluster_to_color, 
+                    label_to_cluster, X, Y) {
     const polyHullsData = {};
-    for (const intent in intents2points) {
-        const pts = intents2points[intent];
+    for (const label in labels2points) {
+        const pts = labels2points[label];
+        if (pts.length < 3) {
+            for (let i = 0; i < 3 - pts.length; i++) {
+                pts.push(pts[0]);
+            }
+        }
         const hull = d3.polygonHull(pts);
-        polyHullsData[intent] = hull;
+        polyHullsData[label] = hull;
     }
 
     d3.select("#scatter").selectAll("path.intentHull").remove();
@@ -71,8 +76,8 @@ function drawHulls(intents2points, cluster_to_color,
         .style("stroke", "lightblue")
         .style("fill-opacity", "0.3")
         .style("fill", function (d) {
-            const [intent, pts] = d;
-            return cluster_to_color[intent_to_cluster[intent]];
+            const [label, pts] = d;
+            return cluster_to_color[label_to_cluster[label]];
         })
         .attr("visibility", "hidden")
         .style("pointer-events", "none");
