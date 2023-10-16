@@ -96,6 +96,10 @@ function loadConceptCache() {
 
 
 function showProgress(progress, total, msg) {
+    if (total == 0) {
+        hideProgress();
+        return;
+    }
     $("#progress-cover").remove();
     $("#container").append(`
         <div id="progress-cover">
@@ -110,6 +114,10 @@ function showProgress(progress, total, msg) {
 }
 
 function updateProgress(progress, total) {
+    if (total == 0) {
+        hideProgress();
+        return;
+    }
     if ($("#progress-cover").length == 0) {
         showProgress(progress, total)
     } else {
