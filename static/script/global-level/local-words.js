@@ -24,26 +24,10 @@ function showLocalConcepts(local_words) {
             //     const related_concept = related["@id"].replace("/c/en/", "");
             //     word_data["concepts-"+i] = related_concept;
             // })
-
-            let edges = concepts.edges
-                .filter((edge) => 
-                    edge.start.language == "en" &&
-                    edge.end.language == "en")
-                .map((edge, i) => (edge.start.label + "+" +
-                                    edge.rel.label + "+" +
-                                    edge.end.label));
-
-            edges = Array.from(new Set(edges));
-            edges.forEach((edge, i) => {
-                let [start, rel, end] = edge.split("+");
-
+            concepts.forEach((edge, i) => {
                 // rel = convertCamelCaseToText(rel);
-                if (start == word_data.word) {
-                    word_data["concepts-"+i] = rel + " " + end;
-                } else if (end == word_data.word) {
-                    word_data["concepts-"+i] = start + " " + rel;
-                }
-                word_data["rel-"+i] = rel;
+                word_data["concepts-"+i] = `${edge[0]} ${edge[1]} ${edge[2]}`.trim();
+                word_data["rel-"+i] = edge.rel;
             })
 
             // check all words are processed
@@ -145,9 +129,21 @@ function getConcepts(word) {
 
             // $.get("https://api.conceptnet.io/related/c/en/"+word.replace(" ", "_")+`?filter=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {   
             $.get("https://api.conceptnet.io/query?node=/c/en/"+word.replace(" ", "_")+`&other=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {
-                console.log(status)
-                conceptCache[word] = data;
-                resolve(data);
+                let edges = data.edges
+                .filter((edge) => 
+                    edge.start.language == "en" &&
+                    edge.end.language == "en")
+                .map((edge) => {
+                    return [
+                        (word == edge.start.label) ? "" : edge.start.label, 
+                        edge.rel.label, 
+                        (word == edge.end.label) ? "" : edge.end.label
+                    ];
+                });
+
+                edges = Array.from(new Set(edges));                           
+                conceptCache[word] = edges;
+                resolve(conceptCache[word]);
             }).fail(function(e) {
                 if ([0, 429].includes(e.status)) {
                     updateProgressMessage("<b>Too many requests at once, please try again in about a minute.</b>");
