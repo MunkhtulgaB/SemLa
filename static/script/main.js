@@ -106,11 +106,11 @@ let dim_reduction = "tsne";
 const MODEL_DATASET_AVAILABILITY = {
     "gpt": ["banking", "go_emotions"],
     "bert": ["banking", "hwu", "clinc"],
-    "roberta": ["go_emotions"]
+    "roberta": ["go_emotions", "sst5"]
 };
 const NUM_CLUSTERS = 12;
 const system_config = {
-    dataset: "banking",
+    dataset: "clinc",
     model: "bert"
 }
 

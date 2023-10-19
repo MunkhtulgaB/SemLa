@@ -127,7 +127,8 @@ class MapView {
             .attr("d", d3.symbol().type(d3.symbolCircle).size(150))
             .attr("stroke", "#9299a1")
             .attr("fill", function (d) {
-                let label = parseInt(d["intent_cluster"]);
+                const label_cluster = (d.label_cluster != undefined)? d.label_cluster : d.intent_cluster;
+                let label = parseInt(label_cluster);
                 return cluster_to_color[label];
             })
             .attr("transform", function (d) {

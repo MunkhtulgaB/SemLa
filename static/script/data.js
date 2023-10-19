@@ -52,14 +52,19 @@ class Dataset {
         const intent_to_cluster = {};
 
         data.forEach(function (d) {
-            if (!cluster_to_intent[d.intent_cluster]) {
-                cluster_to_intent[d.intent_cluster] = new Set([d.ground_truth]);
+            const label_cluster = (d.label_cluster != undefined)? d.label_cluster : d.intent_cluster;
+            if (label_cluster == undefined) {
+                console.log(label_cluster, d)
+            }
+
+            if (!cluster_to_intent[label_cluster]) {
+                cluster_to_intent[label_cluster] = new Set([d.ground_truth]);
             } else {
-                cluster_to_intent[d.intent_cluster].add(d.ground_truth);
+                cluster_to_intent[label_cluster].add(d.ground_truth);
             }
 
             if (!intent_to_cluster[d.prediction]) {
-                intent_to_cluster[d.prediction] = d.intent_cluster;
+                intent_to_cluster[d.prediction] = label_cluster;
             }
         });
 
