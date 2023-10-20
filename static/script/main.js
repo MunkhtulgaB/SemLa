@@ -104,14 +104,14 @@ let clip = svg_canvas.append("defs")
 let dim_reduction = "tsne";
         
 const MODEL_DATASET_AVAILABILITY = {
-    "gpt": ["banking", "go_emotions"],
+    "gpt": ["banking", "go_emotions", "medical-bios"],
     "bert": ["banking", "hwu", "clinc"],
     "roberta": ["go_emotions", "sst5"]
 };
 const NUM_CLUSTERS = 12;
 const system_config = {
-    dataset: "clinc",
-    model: "bert"
+    dataset: "medical-bios",
+    model: "gpt"
 }
 
 
