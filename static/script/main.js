@@ -110,8 +110,8 @@ const MODEL_DATASET_AVAILABILITY = {
 };
 const NUM_CLUSTERS = 12;
 const system_config = {
-    dataset: "medical-bios",
-    model: "gpt"
+    dataset: "clinc",
+    model: "bert"
 }
 
 
@@ -121,8 +121,6 @@ $(document)
     initializeTooltip("super-tooltip", "super-container",
                         "black", "white", 0.95);
     initializeDragLines();
-    initializeSystem(system_config.dataset, system_config.model);
-
     $("#model-select").change(function() {
         const model = $(this).val();
         system_config.model = model;
@@ -152,6 +150,18 @@ $(document)
                         system_config.model);
 
     });
+
+    // disable all options first
+    $("#dataset-select option")
+    .attr("disabled", "disabled");
+
+    // enable available options
+    MODEL_DATASET_AVAILABILITY[system_config.model].forEach(dataset => {
+        $(`#dataset-select option[value=${dataset}]`)
+            .attr("disabled", false);
+    })
+    
+    initializeSystem(system_config.dataset, system_config.model);
 });
 
 
