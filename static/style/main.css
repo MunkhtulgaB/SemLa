@@ -14,10 +14,24 @@ width: 360px;
 }
 
 .small_td {
-width: 300px;
+width: 288px;
 overflow-wrap: break-word;
 border-top: 1px solid lightgrey;
 padding-right: 10px;
+}
+
+.sortable-column-header {
+    cursor: pointer;
+}
+
+.sort-arrow {
+    font-size: 1.5em;
+}
+
+.selected-header {
+    background-color: lightgrey;
+    border: 1px solid dimgrey !important;
+    z-index: 1000;
 }
 
 .xs_td {

@@ -143,6 +143,7 @@
                   <option value="clinc">CLINC</option>
                   <option value="go_emotions" disabled>go_emotions</option>
                   <option value="sst5" disabled>SST-5</option>
+                  <option value="medical-bios" disabled>medical-bios</option>
                 </select>
               </div>
               <div>
@@ -182,9 +183,9 @@
             <div class="widget_content" style="overflow-y: scroll; overflow-x: hidden; margin: 10px;">
               <table id="confusion-table">
                 <tr>
-                  <th column_type="gt" class="small_td">Ground truth</th>
-                  <th column_type="pred" class="small_td">Prediction</th>
-                  <th column_type="num_confusions" class="xs_td"># confusions</th>
+                  <th column_type="gt" sort_dir="desc" class="sortable-column-header small_td">Ground truth <span class="sort-arrow">&darr;</span></th>
+                  <th column_type="pred" sort_dir="desc"  class="sortable-column-header small_td">Prediction <span class="sort-arrow">&darr;</span></th>
+                  <th column_type="num_confusions" sort_dir="desc" class="sortable-column-header xs_td"># confusions <span class="sort-arrow">&darr;</span></th>
                 </tr>
               </table>
             </div>

@@ -95,13 +95,13 @@ class Dataset {
                 if (dp.ground_truth in gt_counts) {
                     gt_counts[dp.ground_truth] += 1;
                 } else {
-                    gt_counts[dp.ground_truth] = 0;
+                    gt_counts[dp.ground_truth] = 1;
                 }
 
                 if (dp.prediction in pred_counts) {
                     pred_counts[dp.prediction] += 1;
                 } else {
-                    pred_counts[dp.prediction] = 0;
+                    pred_counts[dp.prediction] = 1;
                 }
             } else if (dp["ground_truth_label_idx"] == dp["prediction_label_idx"]) {
                 corrects.push(dp);
