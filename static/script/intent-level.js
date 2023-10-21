@@ -53,7 +53,6 @@ function populateConfusionTable(confusions,
             populate_html_confusion_table(confusion_table_gt_sorted,
                                             onClick);
         } else if (col_type == "num_confusions") {
-            console.log("sorting by num confusions", sort_dir_num_confusions)
             const confusion_table_num_confusions_sorted = [...confusion_table];
             confusion_table_num_confusions_sorted.sort(function (row1, row2) {
                 return (sort_dir_num_confusions * (row1[2] - row2[2]))
