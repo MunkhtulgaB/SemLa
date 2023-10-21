@@ -1,43 +1,36 @@
 import { getStopwords } from "./stopwords.js";
 
 
-const LIMIT_CONCEPTS = 5;
+const LIMIT_CONCEPTS = 10;
 
 const STOP_WORDS = getStopwords();
 let forceSimulation;
 
 
 function showLocalConcepts(local_words) {
-    console.log("showLocalConcepts");
     // characterize each word with various features
-    const local_concepts = {};
+    const local_concepts = [];
 
     showProgress(0, local_words.length);
     local_words.forEach((word_data) => {   
         loadConceptCache()
         .then(() => getConcepts(word_data.word))
-        .then((concepts) => {
-            local_concepts[word_data.word] = concepts;
-
-            // // console.log(concepts.related)
-            // concepts.related.forEach((related, i) => {
-            //     const related_concept = related["@id"].replace("/c/en/", "");
-            //     word_data["concepts-"+i] = related_concept;
-            // })
-            concepts.forEach((edge, i) => {
-                // rel = convertCamelCaseToText(rel);
-                word_data["concepts-"+i] = `${edge[0]} ${edge[1]} ${edge[2]}`.trim();
-                word_data["rel-"+i] = edge.rel;
-            })
+        .then((edges) => {
+            local_concepts.push(word_data.word);
+            const [concepts, rels] = edges;           
+            word_data["concepts"] = concepts;
+            word_data["rels"] = rels;
 
             // check all words are processed
             let progress = 0;
             const isComplete = local_words.every((word_data, i) => {
                 progress++;
-                return word_data.word in local_concepts;
+                return local_concepts.includes(word_data.word);
             });
 
-            updateProgress(progress, local_words.length);
+            if (progress % 10 == 0) {
+                updateProgress(progress, local_words.length);
+            }
 
             if (isComplete) {
                 hideProgress();
@@ -123,26 +116,42 @@ function hideProgress() {
 
 
 function getConcepts(word) {
+    word = word.toLowerCase();
+
     return new Promise((resolve, reject) => {
         if (!Object.hasOwn(conceptCache, word)) {
             console.log("getting concepts from ConceptNet");
 
             // $.get("https://api.conceptnet.io/related/c/en/"+word.replace(" ", "_")+`?filter=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {   
             $.get("https://api.conceptnet.io/query?node=/c/en/"+word.replace(" ", "_")+`&other=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {
+                const concepts = [];
+                const rels = [];
                 let edges = data.edges
                 .filter((edge) => 
                     edge.start.language == "en" &&
-                    edge.end.language == "en")
-                .map((edge) => {
-                    return [
-                        (word == edge.start.label) ? "" : edge.start.label, 
-                        edge.rel.label, 
-                        (word == edge.end.label) ? "" : edge.end.label
-                    ];
+                    edge.end.language == "en");
+
+                // store all unique concept-edge pairs
+                edges.forEach((edge) => {
+                    const start = edge.start.label.toLowerCase();
+                    const end = edge.end.label.toLowerCase();
+                    const rel = edge.rel.label;
+
+                    let concept;
+    
+                    if (start == word || start.split(" ").includes(word)) {
+                        concept = end;
+                    } else if (end == word || end.split(" ").includes(word)) {
+                        concept = start;
+                    }
+                    
+                    if (!concepts.includes(concept)) {
+                        concepts.push(concept);
+                        rels.push(rel);
+                    }
                 });
 
-                edges = Array.from(new Set(edges));                           
-                conceptCache[word] = edges;
+                conceptCache[word] = [concepts, rels];
                 resolve(conceptCache[word]);
             }).fail(function(e) {
                 if ([0, 429].includes(e.status)) {
@@ -163,10 +172,12 @@ function extractLocalFeatures(visible_dps, feature) {
     const n_grams = $("#how-many-grams").val();
     const locality_threshold = $("#localAreaThreshold").val();
     const freq_threshold_lower = parseInt(
-        $("input.freqThreshold[data-index=0]").val()
+        $((feature != "concept") ? "input.freqThreshold[data-index=0]"
+            : "input.freqThreshold-concept[data-index=0]").val()
     );
     const freq_threshold_upper = parseInt(
-        $("input.freqThreshold[data-index=1]").val()
+        $((feature != "concept") ? "input.freqThreshold[data-index=1]"
+        : "input.freqThreshold-concept[data-index=1]").val()
     );
 
     if (!is_to_show_local_words || !n_grams || n_grams < 1) {
@@ -176,13 +187,15 @@ function extractLocalFeatures(visible_dps, feature) {
 
     let word_occurrences = {};
     visible_dps.forEach(function (d, i) {
-        const words = extractFeatures(d, feature, n_grams);
+        let words = extractFeatures(d, feature, n_grams);
+        if (freq_threshold_lower == 1 && feature == "concept") {
+            words = words.slice(0, 1);
+        }
         if (words) {
             words.forEach(function (word) {
-                if (
-                    is_to_ignore_stopwords &&
-                    STOP_WORDS.includes(word.toLowerCase())
-                )
+                if (!word) return;
+                if (is_to_ignore_stopwords
+                   && STOP_WORDS.includes(word.toLowerCase()))
                     return;
 
                 if (word in word_occurrences) {
@@ -205,10 +218,10 @@ function extractLocalFeatures(visible_dps, feature) {
     // if a word is localised, then we display that word there
     const localised_words = locality_fn(
         Object.entries(word_occurrences),
-        (feature == "concept") ? 2 : freq_threshold_lower,
-        (feature == "concept") ? 1000 : freq_threshold_upper,
-        locality_threshold,
-        invert
+        freq_threshold_lower,
+        freq_threshold_upper,
+        (feature == "concept") ? locality_threshold / 2 : locality_threshold,
+        invert,
     );
     return localised_words;
 }
@@ -295,6 +308,8 @@ function render_local_words(localised_words, isHighFrequencyCall) {
                 }
             }).style("opacity", 1);
 
+            console.log("related_words", related_words)
+
             render_local_words(related_words.concat(d), false);
         });
 
@@ -341,7 +356,7 @@ function filterLocalWordsWithSquareLocality(
         const x_range = max_x - min_x;
         const y_range = max_y - min_y;
 
-        const count = occurrences.length;
+        const count = occurrences.length; // occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0);
         const is_within_frequency_threshold = count >= freq_threshold_lower &&
                                             count <= freq_threshold_upper;
         const is_within_locality_threshold = x_range < locality_threshold &&
@@ -428,17 +443,16 @@ function filterLocalWordsWithGaussianLocality(
 
 
 function extractFeatures(d, feature, n_grams) {
-    if (["concept"].includes(feature)) {
-        const keys = Object.keys(d).filter(k => k.includes(feature));
-        const concepts = keys.map(k => d[k]);
-        return concepts;
+    if (feature == "concept") {
+        const concepts = d.concepts;
+        return concepts || [];
     } else if (["text", "ground_truth", "prediction"].includes(feature)) {
         const txt = d[feature || "text"];
         const regex = `\\b(\\w+${"\\s\\w+[.!?\\-']?\\w*".repeat(
             (feature == "text") ? n_grams - 1 : 0
         )})\\b`;
         const words = txt.toLowerCase().match(new RegExp(regex, "g"));
-        return words;
+        return Array.from(new Set(words));
     } else if (feature == "word_len") {
         const word_len = d.text.split(" ").length;
         const bucket = bucketNumber(word_len);

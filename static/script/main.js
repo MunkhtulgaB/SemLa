@@ -286,6 +286,9 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
     const is_to_show_errors_only = $("#show-errors");
     const search_input = $("#filter");
     const clear_btn = $("#clear-filter");
+    const freq_threshold = $("input.freqThreshold");
+    const freq_threshold_concept = $("input.freqThreshold-concept");
+    const locality_shape = $('input[name="locality-shape"]');
 
     // First, remove all the currently registered event handlers
     [local_word_toggle, 
@@ -300,7 +303,10 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
         filterby_option,
         is_to_show_errors_only,
         search_input,
-        clear_btn
+        clear_btn,
+        freq_threshold,
+        freq_threshold_concept,
+        locality_shape
     ].forEach((elem) => {
         elem.unbind("change");
         elem.unbind("mouseup");
@@ -347,7 +353,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
                 <br>For example, choose feature type "Gold label" to see where certain labels are localized.`)
 
     // Locality shape
-    $('input[name="locality-shape"]').change(updateLocalWords);
+    locality_shape.change(updateLocalWords);
     addTooltip(
         "label[for=locality-shape]", 
         `The square locality shape requires all occurrences of the shown localized features to be strictly contained <br>
@@ -407,11 +413,14 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
     )
 
     // Frequency threshold
-    $("input.freqThreshold").change(updateLocalWords);
+    freq_threshold.change(updateLocalWords);
     addTooltip(
         "label[for=freqThreshold]",
         `The frequency of the shown localized features (across all currently visible nodes) is within this range.`
     );
+
+    freq_threshold_concept.change(updateLocalWords);
+
 
     // Dimension reduction method
     dim_reduction_option.change(function () {
