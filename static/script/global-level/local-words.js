@@ -207,7 +207,7 @@ function extractLocalFeatures(visible_dps, feature) {
         }
     });
 
-    const locality_shape = $('input[name="locality-shape"]:checked').val();
+    const locality_shape = $('#locality-shape').val();
     let locality_fn = null;
     if (locality_shape == "square") {
         locality_fn = filterLocalWordsWithSquareLocality;
@@ -307,9 +307,6 @@ function render_local_words(localised_words, isHighFrequencyCall) {
                     return "hidden";
                 }
             }).style("opacity", 1);
-
-            console.log("related_words", related_words)
-
             render_local_words(related_words.concat(d), false);
         });
 

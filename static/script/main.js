@@ -288,7 +288,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
     const clear_btn = $("#clear-filter");
     const freq_threshold = $("input.freqThreshold");
     const freq_threshold_concept = $("input.freqThreshold-concept");
-    const locality_shape = $('input[name="locality-shape"]');
+    const locality_shape = $('#locality-shape');
 
     // First, remove all the currently registered event handlers
     [local_word_toggle, 
@@ -341,10 +341,17 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
     // Local word (feature) type
     feature_type.change(function() {
         if (["text", "concept"].includes($(this).val())) {
-            d3.select("#word-only-options").style("visibility", "visible");
+            d3.selectAll(".word-only-option").style("visibility", "visible");
         } else {
-            d3.select("#word-only-options").style("visibility", "hidden");
+            d3.selectAll(".word-only-option").style("visibility", "hidden");
         }
+
+        if ($(this).val() == "concept") {
+            $("#concept-freqThreshold").removeClass("d-none").addClass("d-block");
+        } else {
+            $("#concept-freqThreshold").removeClass("d-block").addClass("d-none");
+        }
+
         updateLocalWords();
         hideProgress();
     })
@@ -363,9 +370,6 @@ function initializeControlWidgets(dataset, map, cluster_to_color) {
 
     // Local area size threshold
     area_threshold.on("mousedown", function () {
-            const locality_shape = $(
-                'input[name="locality-shape"]:checked'
-            ).val();
             d3.select("#scatter")
                 .append("rect")
                 .attr("id", "localitySizer")
