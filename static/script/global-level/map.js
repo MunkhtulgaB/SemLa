@@ -242,14 +242,14 @@ class MapView {
             .call(zoom);    
     }
 
-    update(newData, msg) {
+    update(newData, msg, doNotUpdateLocalWords) {
         this.filterNodes(newData.map(d => d.idx));
         this.updateSymbols();
         if (msg == "clear") {
             this.clearSelectedNode();
             this.hideHulls();
         }
-        this.#onUpdate();
+        if (!doNotUpdateLocalWords) this.#onUpdate();
     }
 
     // A function that updates the chart when a user zooms

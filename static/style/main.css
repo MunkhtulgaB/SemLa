@@ -124,9 +124,20 @@ top: 20px;
 bottom: 20px;
 left: 20px;
 background-color: white;
-width: 1220px;
+width: 1130px;
 flex-direction: column;
 overflow: initial;
+}
+
+#current-view {
+position: absolute;
+display: flex;
+flex-direction: column;
+padding: 20px;
+height: auto;
+left: 1160px;
+top: 20px;
+width: 330px;
 }
 
 #filter-options {
@@ -153,7 +164,7 @@ height: 100%;
 #intent-level {
 position: absolute;
 bottom: 20px;
-left: 1260px;
+left: 1500px;
 width: 1280px;
 height: 380px;
 display: flex;
@@ -177,7 +188,7 @@ height: 350px;
 position: absolute;
 overflow: hidden;
 top: 20px;
-left: 1260px;
+left: 1500px;
 height: 1000px; 
 width: 1280px; 
 opacity: 1; 

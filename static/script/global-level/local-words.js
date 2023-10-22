@@ -1,4 +1,6 @@
 import { getStopwords } from "./stopwords.js";
+import { getVisibleDatapoints } from "./filters.js"
+import { Filter } from "../data.js"
 
 
 const LIMIT_CONCEPTS = 10;
@@ -7,7 +9,33 @@ const STOP_WORDS = getStopwords();
 let forceSimulation;
 
 
-function showLocalConcepts(local_words) {
+class LocalWordsView {
+
+    #width;
+    #height;
+    #dataset;
+
+    constructor(width, height, dataset) {
+        this.#width = width;
+        this.#height = height;
+        this.#dataset = dataset;
+    }
+
+    update(isHighFrequencyCall) {
+        let onLocalWordClick = function(filter_name, idxs) {
+            const filter = new Filter(filter_name, "", idxs);
+            this.#dataset.addFilter(filter, true);
+        };
+        let [visibles, __, ___] = getVisibleDatapoints(this.#width, this.#height);
+        showLocalWords(visibles, 
+            isHighFrequencyCall, 
+            onLocalWordClick.bind(this));
+    }
+
+}
+
+
+function showLocalConcepts(local_words, onClick) {
     // characterize each word with various features
     const local_concepts = [];
 
@@ -36,7 +64,7 @@ function showLocalConcepts(local_words) {
                 hideProgress();
                 // then apply the localization algorithm on those features
                 const localConcepts = extractLocalFeatures(local_words, "concept");
-                render_local_words(localConcepts);
+                render_local_words(localConcepts, false, onClick);
             }
         });
     });
@@ -166,7 +194,6 @@ function getConcepts(word) {
 
 
 function extractLocalFeatures(visible_dps, feature) {
-    const is_to_show_local_words = $("#show-local-words").is(":checked");
     const is_to_ignore_stopwords = $("#ignore-stopwords").is(":checked");
     const invert = $("#invert").is(":checked");
     const n_grams = $("#how-many-grams").val();
@@ -179,11 +206,6 @@ function extractLocalFeatures(visible_dps, feature) {
         $((feature != "concept") ? "input.freqThreshold[data-index=1]"
         : "input.freqThreshold-concept[data-index=1]").val()
     );
-
-    if (!is_to_show_local_words || !n_grams || n_grams < 1) {
-        d3.selectAll(".local_word").remove();
-        return;
-    }
 
     let word_occurrences = {};
     visible_dps.forEach(function (d, i) {
@@ -229,13 +251,18 @@ function extractLocalFeatures(visible_dps, feature) {
 
 
 // A function that counts word frequency in all visible dps
-function showLocalWords(visibles, isHighFrequencyCall) {
+function showLocalWords(visibles, isHighFrequencyCall, onClick) {
     if (forceSimulation) {
         forceSimulation.stop();
     }
-    
+    const is_to_show_local_words = $("#show-local-words").is(":checked");
     const feature_type = $("#local-feature-type-select").val();
+    const n_grams = $("#how-many-grams").val();
     
+    if (!is_to_show_local_words || !n_grams || n_grams < 1) {
+        d3.selectAll(".local_word").remove();
+        return;
+    }
     if (isHighFrequencyCall == true && feature_type == "concept") {
         return;
     }
@@ -251,14 +278,14 @@ function showLocalWords(visibles, isHighFrequencyCall) {
     );
     
     if (feature_type == "concept") {
-        showLocalConcepts(localised_words);
+        showLocalConcepts(localised_words, onClick);
     } else {
-        render_local_words(localised_words, isHighFrequencyCall);
+        render_local_words(localised_words, isHighFrequencyCall, onClick);
     }
 }
 
 
-function render_local_words(localised_words, isHighFrequencyCall) {
+function render_local_words(localised_words, isHighFrequencyCall, onClick) {
     d3.selectAll(".local_word").remove();
     d3.select("#scatter")
         .selectAll("text")
@@ -287,6 +314,7 @@ function render_local_words(localised_words, isHighFrequencyCall) {
         .on("click", function(d) {
             let occurrences;
             let related_words = [];
+            let filter_name;
             if (d.occurrences[0].occurrences) {
                 occurrences = [];
                 d.occurrences.forEach(local_word => {
@@ -295,19 +323,15 @@ function render_local_words(localised_words, isHighFrequencyCall) {
                     local_word.stroke = "black";
                     related_words.push(local_word);
                 });
+                filter_name = "Local concept";
             } else {
                 occurrences = d.occurrences;
+                filter_name = "Local word";
             } 
 
             const idxs = occurrences.map(x => x.idx);
-            d3.selectAll(".datapoint").style("visibility", function (d) {
-                if (idxs.includes(d.idx)) {
-                    return "visible";
-                } else {
-                    return "hidden";
-                }
-            }).style("opacity", 1);
-            render_local_words(related_words.concat(d), false);
+            onClick(filter_name, idxs);
+            render_local_words(related_words.concat(d), false, onClick);
         });
 
     if (isHighFrequencyCall != true) {
@@ -556,4 +580,4 @@ function convertCamelCaseToText(camelCaseString) {
     return camelCaseString.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
 }
 
-export { showLocalWords, hideProgress }
+export { showLocalWords, hideProgress, LocalWordsView }

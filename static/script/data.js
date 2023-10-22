@@ -116,7 +116,7 @@ class Dataset {
         this.#pred_counts = pred_counts;
     }
 
-    addFilter(newFilter) {
+    addFilter(newFilter, doNotUpdateLocalWords) {
         if (!this.#filters[newFilter.type]) {
             this.#filters[newFilter.type] = newFilter;
             this.#filteredData = this.#filteredData.filter((d) => {
@@ -126,7 +126,7 @@ class Dataset {
             this.#filters[newFilter.type] = newFilter;
             this.#filteredData = this.refilterData();
         }
-        this.notifyObservers(this.#filters);
+        this.notifyObservers(this.#filters, doNotUpdateLocalWords);
     }
 
     removeFilter(filterType) {
@@ -156,9 +156,11 @@ class Dataset {
         this.notifyObservers("clear");
     }
 
-    notifyObservers(msg) {
+    notifyObservers(msg, doNotUpdateLocalWords) {
         this.#observers.forEach((observer) => 
-                            observer.update(this.filteredData, msg));
+            observer.update(this.filteredData, 
+                            msg,
+                            doNotUpdateLocalWords));
     }
 
     addObserver(observer) {
