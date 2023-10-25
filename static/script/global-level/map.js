@@ -235,7 +235,7 @@ class MapView {
             this.updateSymbols();
         }.bind(this))
         .on("start", function () {
-            d3.select(".scatter").selectAll(".local_word").remove();
+            d3.selectAll(".scatter").selectAll(".local_word").remove();
         })
         .on("end", this.#onUpdate);
 

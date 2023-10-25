@@ -213,7 +213,6 @@ class LocalWordsView {
     render_local_words(localised_words, 
                         isHighFrequencyCall, 
                         onLocalWordClick) {
-        console.log(`#${this.#mapViewId} .scatter`);
         d3.selectAll(`#${this.#mapViewId} .local_word`).remove();
         d3.select(`#${this.#mapViewId} .scatter`)
             .selectAll("text")

@@ -136,7 +136,7 @@ const MODEL_DATASET_AVAILABILITY = {
 };
 const NUM_CLUSTERS = 12;
 const system_config = {
-    dataset: "clinc",
+    dataset: "hwu",
     model: "bert"
 }
 
@@ -297,6 +297,11 @@ function initializeSystem(dataset_name, model) {
             const filter_view = new FilterView(dataset);
             const list_view = new ListView(dataset);
 
+            let updateBothLocalWordViews = function() {
+                local_words_view.update();
+                local_words_view1.update();
+            }
+
             const map = new MapView(svg_canvas, 
                                     margin,
                                     width, 
@@ -306,7 +311,7 @@ function initializeSystem(dataset_name, model) {
                                     cluster_to_color, 
                                     dataset.intentToCluster,
                                     dim_reduction,
-                                    local_words_view.update.bind(local_words_view),
+                                    updateBothLocalWordViews,
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
@@ -319,7 +324,7 @@ function initializeSystem(dataset_name, model) {
                                     cluster_to_color, 
                                     dataset.intentToCluster,
                                     dim_reduction,
-                                    local_words_view1.update.bind(local_words_view1),
+                                    updateBothLocalWordViews,
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
@@ -385,9 +390,9 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
     });
     $(document).unbind("keyup");
 
-    let updateBothLocalWordViews = function() {
-        local_words_view.update();
-        local_words_view1.update();
+    let updateBothLocalWordViews = function(isHighFrequencyCall) {
+        local_words_view.update(isHighFrequencyCall);
+        local_words_view1.update(isHighFrequencyCall);
     }
 
     // Toggle local words
@@ -438,9 +443,10 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
 
     // Local area size threshold
     area_threshold.on("mousedown", function () {
-            d3.select(".scatter")
+            console.log(d3.selectAll(".scatter"))
+            d3.selectAll(".scatter")
                 .append("rect")
-                .attr("id", "localitySizer")
+                .attr("class", "localitySizer")
                 .attr("visibility", "hidden")
                 .attr("stroke", "red")
                 .attr("stroke-width", 1)
@@ -449,19 +455,19 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
                 .attr("y", height / 2);
         })
         .on("mouseup", function () {
-            d3.select("#localitySizer").remove();
+            d3.selectAll(".localitySizer").remove();
         })
         .on("change", updateBothLocalWordViews)
         .on("input", function () {
             const localitySize = $(this).val();
-            d3.select("#localitySizer")
+            d3.selectAll(".localitySizer")
                 .attr("visibility", "visible")
                 .attr("width", localitySize)
                 .attr("height", localitySize)
                 .attr("r", localitySize)
                 .attr("x", width / 2 - localitySize / 2)
                 .attr("y", height / 2 - localitySize / 2);
-            local_words_view.update(true);
+            updateBothLocalWordViews(true)
         });
     addTooltip(
         "label[for=localAreaThreshold]",
@@ -513,9 +519,11 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
 
     // Filter-by (filter-by) option
     filterby_option.change(function () {
-        const d = d3.select(".scatter").select(".selected-dp").data();
-        const filter = filterByDatapointAndUpdate(d[0], data);
-        dataset.addFilter(filter);
+        const d = d3.selectAll(".scatter").select(".selected-dp").data();
+        if (d.length > 0) {
+            const filter = filterByDatapointAndUpdate(d[0], dataset.data);
+            dataset.addFilter(filter);
+        }
     });
 
     // Show errors only?
@@ -545,7 +553,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
             // switch back to normal coloring
             d3.selectAll("path.datapoint")
                 .attr("fill", function (d) {
-                    let label = parseInt(d["intent_cluster"]);
+                    let label = parseInt(d["label_cluster"]);
                     return cluster_to_color[label];
                 })
                 .attr("fill-opacity", 1)
