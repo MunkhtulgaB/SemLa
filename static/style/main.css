@@ -124,7 +124,7 @@ top: 20px;
 bottom: 20px;
 left: 20px;
 background-color: white;
-width: 1130px;
+width: 1460px;
 flex-direction: column;
 overflow: initial;
 }
@@ -161,7 +161,7 @@ height: 100%;
 #intent-level {
 position: absolute;
 bottom: 20px;
-left: 1170px;
+left: 1500px;
 width: 1280px;
 height: 380px;
 display: flex;
@@ -193,7 +193,7 @@ height: 350px;
 position: absolute;
 overflow: hidden;
 top: 20px;
-left: 1170px;
+left: 1500px;
 height: 1000px; 
 width: 1280px; 
 opacity: 1; 

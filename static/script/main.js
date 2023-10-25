@@ -87,7 +87,7 @@ $(".widget_title").click(function () {
 
 // set the dimensions and margins of the graph
 let margin = { top: 10, right: 30, bottom: 30, left: 60 },
-    width = 1100 - margin.left - margin.right,
+    width = 720 - margin.left - margin.right,
     height = 1090 - margin.top - margin.bottom,
     bbox = {"width": width, "height": height};
 
@@ -203,6 +203,17 @@ function clearSystem() {
     .attr("x", 0)
     .attr("y", 0);
 
+    svg_canvas1.html(null);
+    svg_canvas1.append("defs")
+    .append("SVG:clipPath")
+    .attr("id", "clip")
+    .append("SVG:rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("x", 0)
+    .attr("y", 0);
+
+
     $("#label_filter").html(`<option value=""></option>`);
     $("#confusion-table").html(`
         <tr>
@@ -259,6 +270,7 @@ function initializeSystem(dataset_name, model) {
                 const filter = filterByIntentsAndUpdate(data, intents, hullClasses);
                 dataset.addFilter(filter)
                 map.filterHulls(intents, hullClasses);
+                map1.filterHulls(intents, hullClasses);
             }
 
             let filterBySelectedConfusion = function() {
@@ -274,6 +286,11 @@ function initializeSystem(dataset_name, model) {
 
             const local_words_view = new LocalWordsView(
                                     "semantic_landscape", 
+                                    width, 
+                                    height, 
+                                    dataset);
+            const local_words_view1 = new LocalWordsView(
+                                    "semantic_landscape-mirror", 
                                     width, 
                                     height, 
                                     dataset);
@@ -293,6 +310,19 @@ function initializeSystem(dataset_name, model) {
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
+            const map1 = new MapView(svg_canvas1, 
+                                    margin,
+                                    width, 
+                                    height, 
+                                    dataset,
+                                    explanations,
+                                    cluster_to_color, 
+                                    dataset.intentToCluster,
+                                    dim_reduction,
+                                    local_words_view1.update.bind(local_words_view1),
+                                    (model != "bert")? onClickSummaryOnly : onClick,
+                                    updateRelationChart,
+                                    dataset_name);
                 
             populateIntentTable(dataset.clusterToIntent, 
                                 cluster_to_color, 
@@ -305,12 +335,12 @@ function initializeSystem(dataset_name, model) {
             const accuracy = 100 - (dataset.errors.length / data.length) * 100;
             $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
 
-            initializeControlWidgets(dataset, map, cluster_to_color, local_words_view);
+            initializeControlWidgets(dataset, map, cluster_to_color, local_words_view, local_words_view1);
     });
 }
 
 
-function initializeControlWidgets(dataset, map, cluster_to_color, local_words_view) {
+function initializeControlWidgets(dataset, map, cluster_to_color, local_words_view, local_words_view1) {
     // Initialize the input widgets
     const local_word_toggle = $("#show-local-words");
     const how_many_grams = $("#how-many-grams");
@@ -355,21 +385,26 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
     });
     $(document).unbind("keyup");
 
+    let updateBothLocalWordViews = function() {
+        local_words_view.update();
+        local_words_view1.update();
+    }
+
     // Toggle local words
     local_word_toggle.change(function() {
         const is_to_show_local_words = $("#show-local-words").is(":checked");
         if (!is_to_show_local_words) {
             d3.selectAll(".local_word").remove();
         } else {
-            local_words_view.update();
+            updateBothLocalWordViews();
         }
     });
-    how_many_grams.change(local_words_view.update.bind(local_words_view));
-    ignore_stop_words.change(local_words_view.update.bind(local_words_view));
+    how_many_grams.change(updateBothLocalWordViews);
+    ignore_stop_words.change(updateBothLocalWordViews);
     addTooltip("label[for=show-local-words]", "Show localized features");
     addTooltip("label[for=how-many-grams]", "Show localized n-grams instead of unigrams");
     addTooltip("label[for=ignore-stopwords]", "Do not show stop words");
-    
+
 
     // Local word (feature) type
     feature_type.change(function() {
@@ -385,7 +420,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
             $("#concept-freqThreshold").removeClass("d-block").addClass("d-none");
         }
 
-        local_words_view.update();
+        updateBothLocalWordViews();
         hideProgress();
     })
     addTooltip("label[for=local-feature-type-select]", 
@@ -393,7 +428,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
                 <br>For example, choose feature type "Gold label" to see where certain labels are localized.`)
 
     // Locality shape
-    locality_shape.change(local_words_view.update.bind(local_words_view));
+    locality_shape.change(updateBothLocalWordViews);
     addTooltip(
         "label[for=locality-shape]", 
         `The square locality shape requires all occurrences of the shown localized features to be strictly contained <br>
@@ -416,7 +451,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
         .on("mouseup", function () {
             d3.select("#localitySizer").remove();
         })
-        .on("change", local_words_view.update.bind(local_words_view))
+        .on("change", updateBothLocalWordViews)
         .on("input", function () {
             const localitySize = $(this).val();
             d3.select("#localitySizer")
@@ -436,7 +471,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
         The shown features are localized within the same size box as this.
         `
     )
-    $("#invert").change(local_words_view.update.bind(local_words_view));
+    $("#invert").change(updateBothLocalWordViews);
     addTooltip(
         "label[for=invert]",
         `<p>Checking "Invert" will show features that are opposite of localized, 
@@ -448,13 +483,13 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
     )
 
     // Frequency threshold
-    freq_threshold.change(local_words_view.update.bind(local_words_view));
+    freq_threshold.change(updateBothLocalWordViews);
     addTooltip(
         "label[for=freqThreshold]",
         `The frequency of the shown localized features (across all currently visible nodes) is within this range.`
     );
 
-    freq_threshold_concept.change(local_words_view.update.bind(local_words_view));
+    freq_threshold_concept.change(updateBothLocalWordViews);
 
 
     // Dimension reduction method
@@ -464,7 +499,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
         ).val(); // TO REFACTOR: use const and let instead of let or vice versa consistently
         dim_reduction = dim_reduction_attr;
         map.switchDimReduction(dim_reduction);
-        local_words_view.update.bind(local_words_view());
+        updateBothLocalWordViews();
     });
 
     // Group-by (colour-by) option
@@ -537,7 +572,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
     });
 
     // Show local words?
-    is_to_show_errors_only.change(local_words_view.update.bind(local_words_view));
+    is_to_show_errors_only.change(updateBothLocalWordViews);
 
     // Filter input
     search_input.on("input", function (e) {
