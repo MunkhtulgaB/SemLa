@@ -104,7 +104,7 @@ function formatImportanceData(res) {
             {
                 label: "Attention",
                 data: res.attn_importance.map(
-                    (x) => x / Math.max(...res.attn_importance)
+                    (x) => Math.abs(x) / res.attn_importance.reduce((a,b) => a + Math.abs(b), 0)
                 ),
                 borderColor: "white",
                 borderWidth: 2,
@@ -112,21 +112,27 @@ function formatImportanceData(res) {
             },
             {
                 label: "Integrated Gradient",
-                data: integrad_abs.map((x) => x / Math.max(...integrad_abs)),
+                data: integrad_abs.map(
+                    (x) => x / integrad_abs.reduce((a,b) => a + b, 0)
+                ),
                 borderColor: "white",
                 borderWidth: 2,
                 backgroundColor: "#e69f00",
             },
             {
                 label: "Gradient",
-                data: grad_abs.map((x) => x / Math.max(...grad_abs)),
+                data: grad_abs.map(
+                    (x) => x / grad_abs.reduce((a,b) => a + b, 0)
+                ),
                 borderColor: "white",
                 borderWidth: 2,
                 backgroundColor: "#009E73",
             },
             {
                 label: "LIME",
-                data: lime_abs.map((x) => x / Math.max(...lime_abs)),
+                data: lime_abs.map(
+                    (x) => x / lime_abs.reduce((a,b) => a + b, 0)
+                ),
                 borderColor: "white",
                 borderWidth: 2,
                 backgroundColor: "#56B4E9",
