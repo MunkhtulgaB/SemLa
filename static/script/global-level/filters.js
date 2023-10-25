@@ -37,9 +37,11 @@ function filterBySubstring(data, search_phrases) {
 }
 
 
-function filterByIntents(data, intents, bbox) {
+function filterByIntents(data, intents, byGoldLabel) {
     const dp_idxs = data
-        .filter((d) => intents.includes(d.ground_truth))
+        .filter((d) => intents.includes((byGoldLabel) ?
+                                            d.ground_truth
+                                            : d.prediction))
         .map((d) => d.idx);
     return dp_idxs;
 }

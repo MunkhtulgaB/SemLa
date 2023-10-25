@@ -104,17 +104,25 @@ class MapView {
 
         // Create the scatter plot
         let scatter = svg_canvas.append("g")
-        .attr("id", "scatter")
+        .attr("class", "scatter")
         .attr("clip-path", "url(#clip)");
 
         // Initialize dragging behaviour and intent hulls
         const [intents_to_points_tsne, 
                 intents_to_points_umap] = initializeHulls(data, 
-                                                    cluster_to_color, 
-                                                    intent_to_cluster, 
-                                                    dim_reduction, 
-                                                    x, 
-                                                    y);
+                        cluster_to_color, 
+                        intent_to_cluster, 
+                        dim_reduction, 
+                        x, 
+                        y,
+                        false); // hulls for predicted groups
+        initializeHulls(data, 
+                        cluster_to_color, 
+                        intent_to_cluster, 
+                        dim_reduction, 
+                        x, 
+                        y,
+                        true); // hulls for ground-truth groups
 
         // Draw the points
         const self = this;
@@ -128,8 +136,7 @@ class MapView {
             .attr("stroke", "#9299a1")
             .attr("fill", function (d) {
                 const label_cluster = (d.label_cluster != undefined)? d.label_cluster : d.intent_cluster;
-                let label = parseInt(label_cluster);
-                return cluster_to_color[label];
+                return cluster_to_color[parseInt(label_cluster)];
             })
             .attr("transform", function (d) {
                 const x_pos = d[`${dim_reduction}-dim0`];
@@ -228,7 +235,7 @@ class MapView {
             this.updateSymbols();
         }.bind(this))
         .on("start", function () {
-            d3.select("#scatter").selectAll(".local_word").remove();
+            d3.select(".scatter").selectAll(".local_word").remove();
         })
         .on("end", this.#onUpdate);
 
@@ -307,7 +314,7 @@ class MapView {
             return translation;
         });
         // update hulls
-        d3.selectAll("path.intentHull").attr("d", function (d) {
+        d3.selectAll(".labelHull").attr("d", function (d) {
             const [intent, pts] = d;
             const scaled_hull = pts.map((pt) => [xScale(pt[0]), yScale(pt[1])]);
             return `M${scaled_hull.join("L")}Z`;
@@ -425,14 +432,19 @@ class MapView {
         d3.selectAll(".drag_line").style("visibility", "hidden");
     }
 
-    filterHulls(intents) {
-        d3.selectAll("path.intentHull").attr("visibility", function (d) {
-            let [intent, _] = d;
-            if (intents.includes(intent)) {
-                return "visible";
-            } else {
-                return "hidden";
-            }
+    filterHulls(intents, hullClasses) {
+        d3.selectAll("path.labelHull").attr("visibility", "hidden");
+        
+        hullClasses = hullClasses || ["predictedLabelHull"];
+        hullClasses.forEach(c => {
+            d3.selectAll("path." + c).attr("visibility", function (d) {
+                let [intent, _] = d;
+                if (intents.includes(intent)) {
+                    return "visible";
+                } else {
+                    return "hidden";
+                }
+            });
         });
     }
 
