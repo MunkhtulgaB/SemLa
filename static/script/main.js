@@ -32,8 +32,22 @@ let filterBySearch = function(data, search_phrases) {
     return filter;
 }
 
-let filterByIntentsAndUpdate = function(data, intents, bbox) {
-    const filter_idxs = filterByIntents(data, intents, bbox);
+let filterByIntentsAndUpdate = function(data, intents, hullClasses) {
+    let filter_idxs = [];
+    
+    if (hullClasses) {
+        hullClasses.forEach(c => {
+            const byGoldLabel = (c == "goldLabelHull") ? true : false;
+            filter_idxs = filter_idxs.concat(
+                            filterByIntents(data, intents, byGoldLabel)
+                        );
+        })
+    } else {
+        filter_idxs = filter_idxs.concat(
+            filterByIntents(data, intents, false)
+        );
+    }
+
     const filter = new Filter("Intent", "", filter_idxs);
     return filter;
 }
@@ -95,6 +109,23 @@ let clip = svg_canvas.append("defs")
     .attr("x", 0)
     .attr("y", 0);
 
+
+let svg_canvas1 = d3
+    .select("svg#semantic_landscape-mirror")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .select("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+let clip1 = svg_canvas1.append("defs")
+    .append("SVG:clipPath")
+    .attr("id", "clip")
+    .append("SVG:rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("x", 0)
+    .attr("y", 0);
+    
 
 let dim_reduction = "tsne";
         
@@ -172,7 +203,7 @@ function clearSystem() {
     .attr("x", 0)
     .attr("y", 0);
 
-    $("#intent_filter").html(`<option value=""></option>`);
+    $("#label_filter").html(`<option value=""></option>`);
     $("#confusion-table").html(`
         <tr>
             <th column_type="gt" class="small_td">Ground truth</th>
@@ -217,17 +248,23 @@ function initializeSystem(dataset_name, model) {
             const explanations = new ExplanationSet(dataset_name);
 
             // Initialize the global and intent level visualizations
-            let filterBySelectedIntents = function() {
-                const intents = $(this).val();
-                const filter = filterByIntentsAndUpdate(data, intents, bbox);
+            let filterBySelectedIntents = function(elem) {
+                // Control in label & cluster widget
+                const hullClasses = [];
+                $(".show-label-group:checked").each(function(e) {
+                    hullClasses.push($(this).val());
+                });
+                    
+                const intents = $(elem).val();
+                const filter = filterByIntentsAndUpdate(data, intents, hullClasses);
                 dataset.addFilter(filter)
-                map.filterHulls(intents)
+                map.filterHulls(intents, hullClasses);
             }
 
             let filterBySelectedConfusion = function() {
                 const gt = d3.select(this).attr("gt");
                 const pred = d3.select(this).attr("pred");
-                const filter = filterByIntentsAndUpdate(data, [gt, pred], bbox);
+                const filter = filterByIntentsAndUpdate(data, [gt, pred]);
                 dataset.addFilter(filter);
                 map.filterHulls([gt, pred])
                 
@@ -235,7 +272,11 @@ function initializeSystem(dataset_name, model) {
                 $(this).addClass("selected-tr");
             }
 
-            const local_words_view = new LocalWordsView(width, height, dataset);
+            const local_words_view = new LocalWordsView(
+                                    "semantic_landscape", 
+                                    width, 
+                                    height, 
+                                    dataset);
             const filter_view = new FilterView(dataset);
             const list_view = new ListView(dataset);
 
@@ -252,6 +293,7 @@ function initializeSystem(dataset_name, model) {
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
+                
             populateIntentTable(dataset.clusterToIntent, 
                                 cluster_to_color, 
                                 filterBySelectedIntents);
@@ -287,7 +329,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
     const freq_threshold = $("input.freqThreshold");
     const freq_threshold_concept = $("input.freqThreshold-concept");
     const locality_shape = $('#locality-shape');
-
+    const label_filter_controls = $(".show-label-group");
     // First, remove all the currently registered event handlers
     [local_word_toggle, 
         how_many_grams,
@@ -314,9 +356,14 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
     $(document).unbind("keyup");
 
     // Toggle local words
-    local_word_toggle.change(
-        local_words_view.update.bind(local_words_view)
-    );
+    local_word_toggle.change(function() {
+        const is_to_show_local_words = $("#show-local-words").is(":checked");
+        if (!is_to_show_local_words) {
+            d3.selectAll(".local_word").remove();
+        } else {
+            local_words_view.update();
+        }
+    });
     how_many_grams.change(local_words_view.update.bind(local_words_view));
     ignore_stop_words.change(local_words_view.update.bind(local_words_view));
     addTooltip("label[for=show-local-words]", "Show localized features");
@@ -338,7 +385,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
             $("#concept-freqThreshold").removeClass("d-block").addClass("d-none");
         }
 
-        local_words_view.update.bind(local_words_view)();
+        local_words_view.update();
         hideProgress();
     })
     addTooltip("label[for=local-feature-type-select]", 
@@ -356,7 +403,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
 
     // Local area size threshold
     area_threshold.on("mousedown", function () {
-            d3.select("#scatter")
+            d3.select(".scatter")
                 .append("rect")
                 .attr("id", "localitySizer")
                 .attr("visibility", "hidden")
@@ -369,9 +416,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
         .on("mouseup", function () {
             d3.select("#localitySizer").remove();
         })
-        .on("change", function() {
-            local_words_view.update.bind(local_words_view)()
-        })
+        .on("change", local_words_view.update.bind(local_words_view))
         .on("input", function () {
             const localitySize = $(this).val();
             d3.select("#localitySizer")
@@ -381,7 +426,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
                 .attr("r", localitySize)
                 .attr("x", width / 2 - localitySize / 2)
                 .attr("y", height / 2 - localitySize / 2);
-            local_words_view.update.bind(local_words_view)(true);
+            local_words_view.update(true);
         });
     addTooltip(
         "label[for=localAreaThreshold]",
@@ -419,7 +464,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
         ).val(); // TO REFACTOR: use const and let instead of let or vice versa consistently
         dim_reduction = dim_reduction_attr;
         map.switchDimReduction(dim_reduction);
-        local_words_view.update.bind(local_words_view)();
+        local_words_view.update.bind(local_words_view());
     });
 
     // Group-by (colour-by) option
@@ -433,7 +478,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
 
     // Filter-by (filter-by) option
     filterby_option.change(function () {
-        const d = d3.select("#scatter").select(".selected-dp").data();
+        const d = d3.select(".scatter").select(".selected-dp").data();
         const filter = filterByDatapointAndUpdate(d[0], data);
         dataset.addFilter(filter);
     });
@@ -512,6 +557,26 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
         dataset.clearFilters();
     });
 
+    // Controls on label & cluster widget
+    label_filter_controls.each(function(e) {
+        $(this).unbind("change");
+        $("#label_filter option").unbind("click");
+
+        let filterGroup = function() {
+            const hullClasses = [];
+            $(".show-label-group:checked").each(function(e) {
+                hullClasses.push($(this).val());
+            });
+                
+            const intents = $("#label_filter").val();
+            const filter = filterByIntentsAndUpdate(dataset.data, intents, hullClasses);
+            dataset.addFilter(filter)
+            map.filterHulls(intents, hullClasses);
+        };
+        $(this).change(filterGroup);
+        $("#label_filter option").click(filterGroup);
+    });
+
     $(document).bind("keyup", function(e) {
         if (e.key == "Escape") {
             resetFilterControls();
@@ -541,7 +606,7 @@ function onClick(d, dataset, explanation_set) {
     );
     const support_dps = d.support_set.map((idx) => data[idx]);
     const closest_dp = support_dps[similarities_sorted[0][0]]; // closest dp
-
+    
     if (closest_dp.ground_truth_label_idx != d.prediction_label_idx) {
         throw new Error();
     }

@@ -101,8 +101,9 @@ function toggleSortDirection(headerElem) {
 
 function populateIntentTable(cluster_to_intent, 
                             cluster_to_color,
-                            onChange) {
-    const intent_filter = $("#intent_filter");
+                            onChange) {                         
+    const label_filter = $("#label_filter");
+    label_filter.empty();
 
     Object.entries(cluster_to_intent).forEach(function (entry) {
         const [cluster, labels] = entry;
@@ -115,13 +116,15 @@ function populateIntentTable(cluster_to_intent,
             (intent) =>
                 (optgroup_content += `<option value="${intent}" style="background-color: ${color}">${intent}</option>`)
         );
-        intent_filter.append(
+        label_filter.append(
             `<optgroup label="Cluster #${cluster}">${optgroup_content}</optgroup>`
         );
     });
 
-    intent_filter
-        .change(onChange);
+    label_filter
+        .change(function() {
+            onChange(this);
+        });
 }
 
 export { populateConfusionTable, populateIntentTable }

@@ -40,6 +40,9 @@ class Dataset {
     #observers = [];
     #filters = {};
 
+    #local_words = [];
+    #local_concepts = [];
+
     constructor(data) {
         this.#data = data;
         this.#filteredData = data;
@@ -53,14 +56,11 @@ class Dataset {
 
         data.forEach(function (d) {
             const label_cluster = (d.label_cluster != undefined)? d.label_cluster : d.intent_cluster;
-            if (label_cluster == undefined) {
-                console.log(label_cluster, d)
-            }
-
+        
             if (!cluster_to_intent[label_cluster]) {
-                cluster_to_intent[label_cluster] = new Set([d.ground_truth]);
+                cluster_to_intent[label_cluster] = new Set([d.prediction]);
             } else {
-                cluster_to_intent[label_cluster].add(d.ground_truth);
+                cluster_to_intent[label_cluster].add(d.prediction);
             }
 
             if (!intent_to_cluster[d.prediction]) {
@@ -166,6 +166,24 @@ class Dataset {
     addObserver(observer) {
         this.#observers.push(observer);
     } 
+
+    setLocalWords(local_words) {
+        this.#local_words = local_words;
+        this.notifyObservers(this.#filters, true);
+    }
+
+    setLocalConcepts(local_concepts) {
+        this.#local_concepts = local_concepts;
+        this.notifyObservers(this.#filters, true);
+    }
+
+    get local_words() {
+        return this.#local_words;
+    }
+
+    get local_concepts() {
+        return this.#local_concepts;
+    }
 
     get filteredData() {
         return this.#filteredData;

@@ -157,14 +157,11 @@ height: 100%;
 
 
 /* INTENT LEVEL */
-#intent-cluster-table-content {
-    height: 300px;
-}
 
 #intent-level {
 position: absolute;
 bottom: 20px;
-left: 1500px;
+left: 1170px;
 width: 1280px;
 height: 380px;
 display: flex;
@@ -173,9 +170,17 @@ justify-content: space-evenly;
 align-items: center;
 }
 
-#intent-clusters {
+#label-filter-control {
+    margin-left: 10px;
+}
+
+#label-clusters {
 width: 430px;
 height: 350px;
+}
+
+#label-cluster-table-content {
+    height: 245px;
 }
 
 #confusions {
@@ -188,7 +193,7 @@ height: 350px;
 position: absolute;
 overflow: hidden;
 top: 20px;
-left: 1500px;
+left: 1170px;
 height: 1000px; 
 width: 1280px; 
 opacity: 1; 

@@ -4,101 +4,298 @@ import { Filter } from "../data.js"
 
 
 const LIMIT_CONCEPTS = 10;
-
 const STOP_WORDS = getStopwords();
-let forceSimulation;
 
 
 class LocalWordsView {
 
+    #mapViewId;
     #width;
     #height;
     #dataset;
+    #conceptCache;
+    #isAlreadyLoading;
+    #forceSimulation;
 
-    constructor(width, height, dataset) {
+    constructor(mapViewId, width, height, dataset) {
+        this.#mapViewId = mapViewId;
         this.#width = width;
         this.#height = height;
         this.#dataset = dataset;
+
+        this.#conceptCache = {};
+        this.isAlreadyLoading = false;
     }
 
     update(isHighFrequencyCall) {
-        let onLocalWordClick = function(filter_name, idxs) {
+        const feature_type = $("#local-feature-type-select").val();
+        if (isHighFrequencyCall == true && feature_type == "concept") {
+            return;
+        }
+
+        let onLocalWordClick = function(filter_name, idxs, words, concepts) {
             const filter = new Filter(filter_name, "", idxs);
             this.#dataset.addFilter(filter, true);
+            this.#dataset.setLocalWords(words);
+            this.#dataset.setLocalConcepts(concepts);
         };
         let [visibles, __, ___] = getVisibleDatapoints(this.#width, this.#height);
-        showLocalWords(visibles, 
-            isHighFrequencyCall, 
-            onLocalWordClick.bind(this));
+        this.showLocalWords(visibles, 
+                isHighFrequencyCall, 
+                onLocalWordClick.bind(this)
+            )
+            .then((local_words) => {
+                const feature_type = $("#local-feature-type-select").val();
+                if (feature_type == "concept") {
+                    this.#dataset.setLocalConcepts(local_words);
+                    this.#dataset.setLocalWords([]);
+                } else if (feature_type == "text") {
+                    this.#dataset.setLocalConcepts([]);
+                    this.#dataset.setLocalWords(local_words);
+                }
+            })
+            .catch((e) => {
+                console.log(e)
+            });
+    }
+
+    // A function that counts word frequency in all visible dps
+    showLocalWords(visibles, isHighFrequencyCall, onClick) {
+        return new Promise((resolve, reject) => {
+            if (this.#forceSimulation) {
+                this.#forceSimulation.stop();
+            }
+            const is_to_show_local_words = $("#show-local-words").is(":checked");
+            const feature_type = $("#local-feature-type-select").val();
+            const n_grams = $("#how-many-grams").val();
+            
+            if (!is_to_show_local_words || !n_grams || n_grams < 1) {
+                d3.selectAll(`#${this.#mapViewId}  .local_word`).remove();
+                resolve([]);
+            }
+    
+            visibles.each(function (d) {
+                d.x = this.transform.baseVal[0].matrix.e;
+                d.y = this.transform.baseVal[0].matrix.f;
+            });
+    
+            let localised_words = extractLocalFeatures(
+                visibles.data(),
+                (feature_type == "concept")? "text":feature_type
+            );
+            
+            if (feature_type == "concept") {
+                this.showLocalConcepts(localised_words, onClick)
+                    .then((local_concepts) => resolve(local_concepts));
+            } else {
+                this.render_local_words(localised_words, isHighFrequencyCall, onClick);
+                resolve(localised_words);
+            }
+        });
+    }
+
+
+    showLocalConcepts(local_words, onClick) {
+        return new Promise((resolve, reject) => {
+            // characterize each word with various features
+            const local_concepts = [];
+
+            showProgress(0, local_words.length);
+            local_words.forEach((word_data) => {   
+                this.loadConceptCache()
+                .then(() => this.getConcepts(word_data.word))
+                .then((edges) => {
+                    local_concepts.push(word_data.word);
+                    const [concepts, rels] = edges;           
+                    word_data["concepts"] = concepts;
+                    word_data["rels"] = rels;
+
+                    // check all words are processed
+                    let progress = 0;
+                    const isComplete = local_words.every((word_data, i) => {
+                        progress++;
+                        return local_concepts.includes(word_data.word);
+                    });
+
+                    const magnitudeOrder = orderOfMagnitude(local_words.length);
+                    
+                    if (progress % Math.pow(10, magnitudeOrder - 1) == 0) {
+                        updateProgress(progress, local_words.length);
+                    }
+
+                    if (isComplete) {
+                        hideProgress();
+                        // then apply the localization algorithm on those features
+                        const localConcepts = extractLocalFeatures(local_words, "concept");
+                        this.render_local_words(localConcepts, false, onClick);
+                        resolve(localConcepts);
+                    }
+                });
+            });
+        })
+    }
+
+    getConcepts(word) {
+        word = word.toLowerCase();
+    
+        return new Promise((resolve, reject) => {
+            if (!Object.hasOwn(this.#conceptCache, word)) {
+                console.log("getting concepts from ConceptNet");
+    
+                // $.get("https://api.conceptnet.io/related/c/en/"+word.replace(" ", "_")+`?filter=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {   
+                $.get("https://api.conceptnet.io/query?node=/c/en/"+word.replace(" ", "_")+`&other=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {
+                    const concepts = [];
+                    const rels = [];
+                    let edges = data.edges
+                    .filter((edge) => 
+                        edge.start.language == "en" &&
+                        edge.end.language == "en");
+    
+                    // store all unique concept-edge pairs
+                    edges.forEach((edge) => {
+                        const start = edge.start.label.toLowerCase();
+                        const end = edge.end.label.toLowerCase();
+                        const rel = edge.rel.label;
+    
+                        let concept;
+        
+                        if (start == word || start.split(" ").includes(word)) {
+                            concept = end;
+                        } else if (end == word || end.split(" ").includes(word)) {
+                            concept = start;
+                        }
+                        
+                        if (!concepts.includes(concept)) {
+                            concepts.push(concept);
+                            rels.push(rel);
+                        }
+                    });
+    
+                    this.#conceptCache[word] = [concepts, rels];
+                    resolve(this.#conceptCache[word]);
+                }.bind(this)).fail(function(e) {
+                    if ([0, 429].includes(e.status)) {
+                        updateProgressMessage("<b>Too many requests at once, please try again in about a minute.</b>");
+                    }
+                })
+            } else {
+                resolve(this.#conceptCache[word]);
+            }
+        })
+    }
+
+
+    loadConceptCache() {
+        return new Promise((resolve, reject) => {
+            if (this.#isAlreadyLoading) {
+                const checker = setInterval(() => {
+                    if (Object.keys(this.#conceptCache).length > 0) {
+                        resolve(this.#conceptCache);
+                        clearInterval(checker);
+                    }
+                }, 500);
+            } else if (Object.keys(this.#conceptCache).length == 0) {
+                this.#isAlreadyLoading = true;
+    
+                const startTime = new Date();
+                console.log("Populating concepts cache from local file...")
+                d3.json("static/data/concepts.json", function(conceptsFromFile) {
+                    Object.assign(this.#conceptCache, conceptsFromFile);
+                    console.log(`Populating concepts cache from local file... (complete in ${new Date() - startTime}ms)`)
+                    resolve(this.#conceptCache);
+                }.bind(this));
+            } else {
+                resolve(this.#conceptCache);
+            }
+        });
+    }
+
+    render_local_words(localised_words, 
+                        isHighFrequencyCall, 
+                        onLocalWordClick) {
+        console.log(`#${this.#mapViewId} .scatter`);
+        d3.selectAll(`#${this.#mapViewId} .local_word`).remove();
+        d3.select(`#${this.#mapViewId} .scatter`)
+            .selectAll("text")
+            .data(localised_words)
+            .enter()
+            .append("text")
+            .attr("class", "local_word")
+            .text((d) => d.word)
+            .style("font-size", (d) => fontSize(d) + "px")
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("y", function (d) {
+                return d.y;
+            })
+            .style("fill", function(d) {
+                if (d.fill) return d.fill;
+                return "#001617";
+            })
+            .style("font-weight", "bold")
+            .style("stroke", function(d) {
+                if (d.stroke) return d.stroke;
+                return "white";
+            })
+            .style("stroke-width", 0.4)
+            .on("click", function(d) {
+                let occurrences;
+                let related_words = [];
+                let filter_name;
+
+                const isConcept = d.occurrences[0].occurrences;
+                if (isConcept) {
+                    occurrences = [];
+                    d.occurrences.forEach(local_word => {
+                        occurrences = occurrences.concat(local_word.occurrences);
+                        local_word.fill = "dimgrey";
+                        local_word.stroke = "black";
+                        related_words.push(local_word);
+                    });
+                    filter_name = "Local concept";
+                } else {
+                    occurrences = d.occurrences;
+                    filter_name = "Local word";
+                } 
+
+                const idxs = occurrences.map(x => x.idx);
+                onLocalWordClick(
+                    filter_name, 
+                    idxs, 
+                    (isConcept) ? related_words : [d], 
+                    (isConcept) ? [d]: []
+                );
+                this.render_local_words(related_words.concat(d), false, onLocalWordClick);
+            }.bind(this));
+
+        if (isHighFrequencyCall != true) {
+            // Apply force to prevent collision between texts
+            this.#forceSimulation = d3
+                .forceSimulation(localised_words)
+                // .force("x", d3.forceX().x(d => d.x).strength(d => d.frequency/100))
+                // .force("y", d3.forceY().y(d => d.y).strength(d => d.frequency/100))
+                .force("collision", forceCollide())
+                .on("tick", function () {
+                    d3
+                        .selectAll(".local_word")
+                        .attr("x", function (d) {
+                            return d.x; //- this.getBBox().width/2;
+                        })
+                        .attr("y", function (d) {
+                            return d.y; // + this.getBBox().height/2;
+                        });
+                });
+        }
     }
 
 }
 
 
-function showLocalConcepts(local_words, onClick) {
-    // characterize each word with various features
-    const local_concepts = [];
-
-    showProgress(0, local_words.length);
-    local_words.forEach((word_data) => {   
-        loadConceptCache()
-        .then(() => getConcepts(word_data.word))
-        .then((edges) => {
-            local_concepts.push(word_data.word);
-            const [concepts, rels] = edges;           
-            word_data["concepts"] = concepts;
-            word_data["rels"] = rels;
-
-            // check all words are processed
-            let progress = 0;
-            const isComplete = local_words.every((word_data, i) => {
-                progress++;
-                return local_concepts.includes(word_data.word);
-            });
-
-            if (progress % 10 == 0) {
-                updateProgress(progress, local_words.length);
-            }
-
-            if (isComplete) {
-                hideProgress();
-                // then apply the localization algorithm on those features
-                const localConcepts = extractLocalFeatures(local_words, "concept");
-                render_local_words(localConcepts, false, onClick);
-            }
-        });
-    });
+function orderOfMagnitude(num) {
+    if (num == 0) return 0;
+    return Math.floor(Math.log10(Math.abs(num)))
 }
-
-const conceptCache = {}
-let isAlreadyLoading = false;
-
-
-function loadConceptCache() {
-    return new Promise((resolve, reject) => {
-        if (isAlreadyLoading) {
-            const checker = setInterval(() => {
-                if (Object.keys(conceptCache).length > 0) {
-                    resolve(conceptCache);
-                    clearInterval(checker);
-                }
-            }, 500);
-        } else if (Object.keys(conceptCache).length == 0) {
-            isAlreadyLoading = true;
-
-            const startTime = new Date();
-            console.log("Populating concepts cache from local file...")
-            d3.json("static/data/concepts.json", function(conceptsFromFile) {
-                Object.assign(conceptCache, conceptsFromFile);
-                console.log(`Populating concepts cache from local file... (complete in ${new Date() - startTime}ms)`)
-                resolve(conceptCache);
-            });
-        } else {
-            resolve(conceptCache);
-        }
-    });
-}
-
 
 function showProgress(progress, total, msg) {
     if (total == 0) {
@@ -140,56 +337,6 @@ function updateProgressMessage(msg) {
 
 function hideProgress() {
     $("#progress-cover").remove();
-}
-
-
-function getConcepts(word) {
-    word = word.toLowerCase();
-
-    return new Promise((resolve, reject) => {
-        if (!Object.hasOwn(conceptCache, word)) {
-            console.log("getting concepts from ConceptNet");
-
-            // $.get("https://api.conceptnet.io/related/c/en/"+word.replace(" ", "_")+`?filter=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {   
-            $.get("https://api.conceptnet.io/query?node=/c/en/"+word.replace(" ", "_")+`&other=/c/en&limit=${LIMIT_CONCEPTS}`, function(data, status) {
-                const concepts = [];
-                const rels = [];
-                let edges = data.edges
-                .filter((edge) => 
-                    edge.start.language == "en" &&
-                    edge.end.language == "en");
-
-                // store all unique concept-edge pairs
-                edges.forEach((edge) => {
-                    const start = edge.start.label.toLowerCase();
-                    const end = edge.end.label.toLowerCase();
-                    const rel = edge.rel.label;
-
-                    let concept;
-    
-                    if (start == word || start.split(" ").includes(word)) {
-                        concept = end;
-                    } else if (end == word || end.split(" ").includes(word)) {
-                        concept = start;
-                    }
-                    
-                    if (!concepts.includes(concept)) {
-                        concepts.push(concept);
-                        rels.push(rel);
-                    }
-                });
-
-                conceptCache[word] = [concepts, rels];
-                resolve(conceptCache[word]);
-            }).fail(function(e) {
-                if ([0, 429].includes(e.status)) {
-                    updateProgressMessage("<b>Too many requests at once, please try again in about a minute.</b>");
-                }
-            })
-        } else {
-            resolve(conceptCache[word]);
-        }
-    })
 }
 
 
@@ -248,111 +395,6 @@ function extractLocalFeatures(visible_dps, feature) {
     return localised_words;
 }
 
-
-
-// A function that counts word frequency in all visible dps
-function showLocalWords(visibles, isHighFrequencyCall, onClick) {
-    if (forceSimulation) {
-        forceSimulation.stop();
-    }
-    const is_to_show_local_words = $("#show-local-words").is(":checked");
-    const feature_type = $("#local-feature-type-select").val();
-    const n_grams = $("#how-many-grams").val();
-    
-    if (!is_to_show_local_words || !n_grams || n_grams < 1) {
-        d3.selectAll(".local_word").remove();
-        return;
-    }
-    if (isHighFrequencyCall == true && feature_type == "concept") {
-        return;
-    }
-
-    visibles.each(function (d) {
-        d.x = this.transform.baseVal[0].matrix.e;
-        d.y = this.transform.baseVal[0].matrix.f;
-    });
-
-    const localised_words = extractLocalFeatures(
-        visibles.data(),
-        (feature_type == "concept")? "text":feature_type
-    );
-    
-    if (feature_type == "concept") {
-        showLocalConcepts(localised_words, onClick);
-    } else {
-        render_local_words(localised_words, isHighFrequencyCall, onClick);
-    }
-}
-
-
-function render_local_words(localised_words, isHighFrequencyCall, onClick) {
-    d3.selectAll(".local_word").remove();
-    d3.select("#scatter")
-        .selectAll("text")
-        .data(localised_words)
-        .enter()
-        .append("text")
-        .attr("class", "local_word")
-        .text((d) => d.word)
-        .style("font-size", (d) => fontSize(d) + "px")
-        .attr("x", function (d) {
-            return d.x;
-        })
-        .attr("y", function (d) {
-            return d.y;
-        })
-        .style("fill", function(d) {
-            if (d.fill) return d.fill;
-            return "#001617";
-        })
-        .style("font-weight", "bold")
-        .style("stroke", function(d) {
-            if (d.stroke) return d.stroke;
-            return "white";
-        })
-        .style("stroke-width", 0.4)
-        .on("click", function(d) {
-            let occurrences;
-            let related_words = [];
-            let filter_name;
-            if (d.occurrences[0].occurrences) {
-                occurrences = [];
-                d.occurrences.forEach(local_word => {
-                    occurrences = occurrences.concat(local_word.occurrences);
-                    local_word.fill = "dimgrey";
-                    local_word.stroke = "black";
-                    related_words.push(local_word);
-                });
-                filter_name = "Local concept";
-            } else {
-                occurrences = d.occurrences;
-                filter_name = "Local word";
-            } 
-
-            const idxs = occurrences.map(x => x.idx);
-            onClick(filter_name, idxs);
-            render_local_words(related_words.concat(d), false, onClick);
-        });
-
-    if (isHighFrequencyCall != true) {
-        // Apply force to prevent collision between texts
-        forceSimulation = d3
-            .forceSimulation(localised_words)
-            // .force("x", d3.forceX().x(d => d.x).strength(d => d.frequency/100))
-            // .force("y", d3.forceY().y(d => d.y).strength(d => d.frequency/100))
-            .force("collision", forceCollide())
-            .on("tick", function () {
-                d3
-                    .selectAll(".local_word")
-                    .attr("x", function (d) {
-                        return d.x; //- this.getBBox().width/2;
-                    })
-                    .attr("y", function (d) {
-                        return d.y; // + this.getBBox().height/2;
-                    });
-            });
-    }
-}
 
 function filterLocalWordsWithSquareLocality(
     word_occurrences,
@@ -580,4 +622,4 @@ function convertCamelCaseToText(camelCaseString) {
     return camelCaseString.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
 }
 
-export { showLocalWords, hideProgress, LocalWordsView }
+export { hideProgress, LocalWordsView }

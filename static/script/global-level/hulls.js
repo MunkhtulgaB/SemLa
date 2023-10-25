@@ -64,8 +64,8 @@ function drawHulls(labels2points, cluster_to_color,
 
     const hullClass = (byGoldLabel) ? "goldLabelHull" : "predictedLabelHull";
 
-    d3.select("#scatter").selectAll("path." + hullClass).remove();
-    d3.select("#scatter").selectAll("path." + hullClass)
+    d3.select(".scatter").selectAll("path." + hullClass).remove();
+    d3.select(".scatter").selectAll("path." + hullClass)
         .data(Object.entries(polyHullsData))
         .enter()
         .append("path")
