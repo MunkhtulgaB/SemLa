@@ -26,18 +26,61 @@
         </div>
 
         <div id="container">
-          
-          <svg id="semantic_landscape">
-          <g>
-          </g>
-          </svg>
+          <div>
+            <div class="map-view-header">Group 1</div>
+            <svg id="semantic_landscape">
+            <g>
+            </g>
+            </svg>
+          </div>
 
-          <svg id="semantic_landscape-mirror">
-          <g>
-          </g>
-          </svg>
-          
+          <div>
+            <div class="map-view-header">Group 2</div>
+            <svg id="semantic_landscape-mirror">
+              <g>
+              </g>
+            </svg>             
+          </div>
         </div>
+
+        <div id="list-view-container">
+          <div class="map-list-view">
+            <div class="widget">
+              <p class="widget_title">Concepts</p>
+              <div id="concepts-list" class="widget_content">  
+                <select style="width: 100%; height: 100%" size="8" name="current-list-concept" id="current-list-concept" multiple>
+                  <option value=""></option>
+                </select>
+              </div>
+            </div>
+            <div class="widget">
+              <p class="widget_title">Words</p>
+              <div id="words-list" class="widget_content">  
+                <select style="width: 100%; height: 100%" size="8" name="current-list-word" id="current-list-word" multiple>
+                  <option value=""></option>
+                </select>
+              </div>
+            </div>
+            <div class="widget">
+              <p class="widget_title">Gold label</p>
+              <div id="gold-label-list" class="widget_content">  
+                <select style="width: 100%; height: 100%" size="8" name="current-list" id="current-list-gold-label" multiple>
+                  <option value=""></option>
+                </select>
+              </div>
+            </div>
+
+            <div class="widget">
+              <p class="widget_title">Predicted label</p>
+              <div id="predicted-label-list" class="widget_content">  
+                <select style="width: 100%; height: 100%" size="8" name="current-list" id="current-list-predicted-label" multiple>
+                  <option value=""></option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
 
         <div class="mx-5" id="filter-container">
           <!-- <p class="widget_title">Filters</p> -->
@@ -46,7 +89,7 @@
           <button id="clear-filter" class="badge text-bg-light">Clear</button>
         </div>
         
-        <div id="corpus-widget-container">
+        <div class="corpus-widget-container">
 
           <div class="widget" id="filter-options">
             <p class="widget_title">Filter options</p>
@@ -172,47 +215,6 @@
         </div>
 
       </div>
-
-<!-- 
-      <div id="current-view" class="widget super-widget">
-        <div class="widget">
-          <p class="widget_title">Concepts</p>
-          <div id="concepts-list" class="widget_content">  
-            <select style="width: 100%; height: 100%" size="8" name="current-list-concept" id="current-list-concept" multiple>
-              <option value=""></option>
-            </select>
-          </div>
-        </div>
-        <div class="widget">
-          <p class="widget_title">Words</p>
-          <div id="words-list" class="widget_content">  
-            <select style="width: 100%; height: 100%" size="8" name="current-list-word" id="current-list-word" multiple>
-              <option value=""></option>
-            </select>
-          </div>
-        </div>
-        <div class="widget">
-          <p class="widget_title">Gold label</p>
-          <div id="gold-label-list" class="widget_content">  
-            <select style="width: 100%; height: 100%" size="8" name="current-list" id="current-list" multiple>
-              <option value=""></option>
-            </select>
-          </div>
-        </div>
-
-        <div class="widget">
-          <p class="widget_title">Predicted label</p>
-          <div id="predicted-label-list" class="widget_content">  
-            <select style="width: 100%; height: 100%" size="8" name="current-list" id="current-list" multiple>
-              <option value=""></option>
-            </select>
-          </div>
-        </div>
-
-
-        
-      </div>
- -->
 
       <div id="intent-level" class="widget super-widget">
         <div id="label-clusters" class="widget intent-clusters">

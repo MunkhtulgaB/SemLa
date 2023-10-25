@@ -89,6 +89,8 @@ margin: 0;
 
 #container {
 position: relative;
+display: flex;
+flex-direction: row;
 }
 
 .super-widget {
@@ -99,7 +101,7 @@ border: 3px solid darkslategray;
 }
 
 /* CORPUS LEVEL */
-#corpus-widget-container {
+.corpus-widget-container {
 background-color: white;
 z-index: 100;
 display: flex;
@@ -108,6 +110,34 @@ width: 100%;
 padding: 10px;
 height: 220px;
 justify-content: space-evenly;
+}
+
+#list-view-container {
+display: flex;
+flex-direction: row;
+justify-content: space-evenly;
+}
+
+.map-list-view {
+background-color: white;
+z-index: 100;
+display: inline-flex;
+flex-direction: row;
+width: 100%;
+padding: 10px;
+height: 220px;
+justify-content: space-evenly;
+margin-bottom: 20px;
+}
+
+.map-list-view .widget_content {
+width: 300px;
+}
+
+.map-view-header {
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
 }
 
 #super-container {
@@ -129,15 +159,8 @@ flex-direction: column;
 overflow: initial;
 }
 
-#current-view {
-position: absolute;
-display: flex;
-flex-direction: column;
-padding: 20px;
-height: auto;
-left: 1160px;
-top: 20px;
-width: 330px;
+#list-view {
+    flex-direction: row;
 }
 
 #filter-options {

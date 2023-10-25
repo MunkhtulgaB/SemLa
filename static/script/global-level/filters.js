@@ -99,19 +99,19 @@ function softmax(values) {
 }
 
 
-function getVisibleDatapoints(width, height) {
+function getVisibleDatapoints(width, height, mapViewId) {
     let gold_intents = [];
     let predicted_intents = [];
 
-    const visibles = d3.selectAll(".datapoint").filter(function (d) {
+    const visibles = d3.selectAll(`#${mapViewId} .datapoint`).filter(function (d) {
         let x = this.transform.baseVal[0].matrix.e;
         let y = this.transform.baseVal[0].matrix.f;
 
         let is_visible = d3.select(this).style("visibility") == "visible";
         is_visible = is_visible && 0 < x && x < width && 0 < y && y < height;
         if (is_visible) {
-            gold_intents.push(d["ground_truth_label_idx"]);
-            predicted_intents.push(d["prediction_label_idx"]);
+            gold_intents.push(d["ground_truth"]);
+            predicted_intents.push(d["prediction"]);
         }
         return is_visible;
     });

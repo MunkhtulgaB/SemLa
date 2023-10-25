@@ -16,6 +16,9 @@ class LocalWordsView {
     #isAlreadyLoading;
     #forceSimulation;
 
+    #goldLabels;
+    #predictedLabels;
+
     #filteredData;
     #observers = [];
 
@@ -31,32 +34,42 @@ class LocalWordsView {
         this.isAlreadyLoading = false;
     }
 
+    setLocalGoldLabels(goldLabels) {
+        this.#goldLabels = goldLabels;
+    }
+
+    setLocalPredictedLabels(predictedLabels) {
+        this.#predictedLabels = predictedLabels;
+    }
+
     update(isHighFrequencyCall) {
         const feature_type = $("#local-feature-type-select").val();
         if (isHighFrequencyCall == true && feature_type == "concept") {
             return;
         }
 
-        let onLocalWordClick = function(filter_name, idxs, words, concepts) {
+        let onLocalWordClick = function(filter_name, idxs, words, concepts, goldLabels, predictedLabels) {
             const filter = new Filter(filter_name, "", idxs);
-            this.notifyObservers(filter.idxs, null, true);
+            this.setLocalGoldLabels(goldLabels);
+            this.setLocalPredictedLabels(predictedLabels);
             this.setLocalWords(words);
             this.setLocalConcepts(concepts);
+            this.notifyObservers(filter.idxs, null, true);
         };
-        let [visibles, __, ___] = getVisibleDatapoints(this.#width, this.#height);
+        let [visibles, gold_labels, predicted_labels] = getVisibleDatapoints(
+                                    this.#width, 
+                                    this.#height,
+                                    this.#mapViewId);
         this.showLocalWords(visibles, 
                 isHighFrequencyCall, 
                 onLocalWordClick.bind(this)
             )
-            .then((local_words) => {
-                const feature_type = $("#local-feature-type-select").val();
-                if (feature_type == "concept") {
-                    this.setLocalConcepts(local_words);
-                    this.setLocalWords([]);
-                } else if (feature_type == "text") {
-                    this.setLocalConcepts([]);
-                    this.setLocalWords(local_words);
-                }
+            .then(([local_words, local_concepts]) => {
+                this.setLocalGoldLabels(gold_labels);
+                this.setLocalPredictedLabels(predicted_labels);
+                this.setLocalConcepts(local_concepts);
+                this.setLocalWords(local_words);
+                this.notifyObservers(null, null, true);
             })
             .catch((e) => {
                 console.log(e)
@@ -90,10 +103,10 @@ class LocalWordsView {
             
             if (feature_type == "concept") {
                 this.showLocalConcepts(localised_words, onClick)
-                    .then((local_concepts) => resolve(local_concepts));
+                    .then((local_concepts) => resolve([localised_words, local_concepts]));
             } else {
                 this.render_local_words(localised_words, isHighFrequencyCall, onClick);
-                resolve(localised_words);
+                resolve([localised_words, []]);
             }
         });
     }
@@ -263,11 +276,16 @@ class LocalWordsView {
                 } 
 
                 const idxs = occurrences.map(x => x.idx);
+                const goldLabels = occurrences.map(x => x.ground_truth);
+                const predictedLabels = occurrences.map(x => x.prediction);
+
                 onLocalWordClick(
                     filter_name, 
                     idxs, 
                     (isConcept) ? related_words : [d], 
-                    (isConcept) ? [d]: []
+                    (isConcept) ? [d]: [],
+                    goldLabels,
+                    predictedLabels
                 );
                 this.render_local_words(related_words.concat(d), false, onLocalWordClick);
             }.bind(this));
@@ -322,6 +340,14 @@ class LocalWordsView {
     get filteredData() {
         return this.#filteredData;
     }  
+
+    get goldLabels() {
+        return this.#goldLabels;
+    }
+
+    get predictedLabels() {
+        return this.#predictedLabels;
+    }
 
 }
 

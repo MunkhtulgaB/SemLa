@@ -252,6 +252,7 @@ class MapView {
     }
 
     update(newDataIdxs, msg, doNotUpdateLocalWords) {
+        if (!newDataIdxs) return;
         this.filterNodes(newDataIdxs);
         this.updateSymbols();
         if (msg == "clear") {

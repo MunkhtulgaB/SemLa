@@ -22,6 +22,7 @@ import { initializeTooltip,
          showTooltip, 
          moveTooltipToCursor,
          hideTooltip } from "./global-level/tooltip.js";
+import { ListView } from "./global-level/list-view.js";
 
 
 // Wrappers around the filter functions
@@ -86,8 +87,8 @@ $(".widget_title").click(function () {
 
 // set the dimensions and margins of the graph
 let margin = { top: 10, right: 30, bottom: 30, left: 60 },
-    width = 720 - margin.left - margin.right,
-    height = 1090 - margin.top - margin.bottom,
+    width = 700 - margin.left - margin.right,
+    height = 790 - margin.top - margin.bottom,
     bbox = {"width": width, "height": height};
 
 // append the SVG object to the body of the page
@@ -292,6 +293,7 @@ function initializeSystem(dataset_name, model) {
                                     width, 
                                     height);
             const filter_view = new FilterView(dataset);
+            const list_view = new ListView(local_words_view);
 
             let updateBothLocalWordViews = function() {
                 local_words_view.update();
@@ -441,7 +443,7 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
 
     // Local area size threshold
     area_threshold.on("mousedown", function () {
-            console.log(d3.selectAll(".scatter"))
+            d3.selectAll(".localitySizer").remove();
             d3.selectAll(".scatter")
                 .append("rect")
                 .attr("class", "localitySizer")
