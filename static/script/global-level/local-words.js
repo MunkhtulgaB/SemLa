@@ -12,16 +12,20 @@ class LocalWordsView {
     #mapViewId;
     #width;
     #height;
-    #dataset;
     #conceptCache;
     #isAlreadyLoading;
     #forceSimulation;
 
-    constructor(mapViewId, width, height, dataset) {
+    #filteredData;
+    #observers = [];
+
+    #local_words = [];
+    #local_concepts = [];
+
+    constructor(mapViewId, width, height) {
         this.#mapViewId = mapViewId;
         this.#width = width;
         this.#height = height;
-        this.#dataset = dataset;
 
         this.#conceptCache = {};
         this.isAlreadyLoading = false;
@@ -35,9 +39,9 @@ class LocalWordsView {
 
         let onLocalWordClick = function(filter_name, idxs, words, concepts) {
             const filter = new Filter(filter_name, "", idxs);
-            this.#dataset.addFilter(filter, true);
-            this.#dataset.setLocalWords(words);
-            this.#dataset.setLocalConcepts(concepts);
+            this.notifyObservers(filter.idxs, null, true);
+            this.setLocalWords(words);
+            this.setLocalConcepts(concepts);
         };
         let [visibles, __, ___] = getVisibleDatapoints(this.#width, this.#height);
         this.showLocalWords(visibles, 
@@ -47,11 +51,11 @@ class LocalWordsView {
             .then((local_words) => {
                 const feature_type = $("#local-feature-type-select").val();
                 if (feature_type == "concept") {
-                    this.#dataset.setLocalConcepts(local_words);
-                    this.#dataset.setLocalWords([]);
+                    this.setLocalConcepts(local_words);
+                    this.setLocalWords([]);
                 } else if (feature_type == "text") {
-                    this.#dataset.setLocalConcepts([]);
-                    this.#dataset.setLocalWords(local_words);
+                    this.setLocalConcepts([]);
+                    this.setLocalWords(local_words);
                 }
             })
             .catch((e) => {
@@ -287,6 +291,37 @@ class LocalWordsView {
                 });
         }
     }
+
+    notifyObservers(dataIdxs, msg, doNotUpdateLocalWords) {
+        this.#observers.forEach((observer) => 
+            observer.update(dataIdxs, 
+                            msg,
+                            doNotUpdateLocalWords));
+    }
+
+    addObserver(observer) {
+        this.#observers.push(observer);
+    } 
+
+    setLocalWords(local_words) {
+        this.#local_words = local_words;
+    }
+
+    setLocalConcepts(local_concepts) {
+        this.#local_concepts = local_concepts;
+    }
+
+    get local_words() {
+        return this.#local_words;
+    }
+
+    get local_concepts() {
+        return this.#local_concepts;
+    }
+
+    get filteredData() {
+        return this.#filteredData;
+    }  
 
 }
 

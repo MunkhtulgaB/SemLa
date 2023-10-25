@@ -14,7 +14,6 @@ import { filterByIntents,
          filterByDatapoint,
          calculateConfidence,
          FilterView } from "./global-level/filters.js";
-import { ListView } from "./global-level/list-view.js";
 import { hideProgress, LocalWordsView } from "./global-level/local-words.js";
 import { MapView } from "./global-level/map.js";
 import { ExplanationSet } from "./explanation.js";
@@ -287,15 +286,12 @@ function initializeSystem(dataset_name, model) {
             const local_words_view = new LocalWordsView(
                                     "semantic_landscape", 
                                     width, 
-                                    height, 
-                                    dataset);
+                                    height);
             const local_words_view1 = new LocalWordsView(
                                     "semantic_landscape-mirror", 
                                     width, 
-                                    height, 
-                                    dataset);
+                                    height);
             const filter_view = new FilterView(dataset);
-            const list_view = new ListView(dataset);
 
             let updateBothLocalWordViews = function() {
                 local_words_view.update();
@@ -328,6 +324,8 @@ function initializeSystem(dataset_name, model) {
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
+            local_words_view.addObserver(map);
+            local_words_view1.addObserver(map1);
                 
             populateIntentTable(dataset.clusterToIntent, 
                                 cluster_to_color, 
@@ -832,6 +830,21 @@ function initializeDragLines() {
         .attr("stroke", "lightblue")
         .attr("stroke-width", "3");
         svg_canvas.append("line")
+        .attr("clip-path", "url(#clip)")
+        .attr("id", "drag-line-1")
+        .attr("class", "drag_line")
+        .style("visibility", "hidden")
+        .attr("stroke", "lightblue")
+        .attr("stroke-width", "3");
+
+    svg_canvas1.append("line")
+        .attr("clip-path", "url(#clip)")
+        .attr("id", "drag-line-0")
+        .attr("class", "drag_line")
+        .style("visibility", "hidden")
+        .attr("stroke", "lightblue")
+        .attr("stroke-width", "3");
+    svg_canvas1.append("line")
         .attr("clip-path", "url(#clip)")
         .attr("id", "drag-line-1")
         .attr("class", "drag_line")

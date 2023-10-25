@@ -40,9 +40,6 @@ class Dataset {
     #observers = [];
     #filters = {};
 
-    #local_words = [];
-    #local_concepts = [];
-
     constructor(data) {
         this.#data = data;
         this.#filteredData = data;
@@ -158,7 +155,7 @@ class Dataset {
 
     notifyObservers(msg, doNotUpdateLocalWords) {
         this.#observers.forEach((observer) => 
-            observer.update(this.filteredData, 
+            observer.update(this.filteredData.map(d => d.idx), 
                             msg,
                             doNotUpdateLocalWords));
     }
@@ -166,24 +163,6 @@ class Dataset {
     addObserver(observer) {
         this.#observers.push(observer);
     } 
-
-    setLocalWords(local_words) {
-        this.#local_words = local_words;
-        this.notifyObservers(this.#filters, true);
-    }
-
-    setLocalConcepts(local_concepts) {
-        this.#local_concepts = local_concepts;
-        this.notifyObservers(this.#filters, true);
-    }
-
-    get local_words() {
-        return this.#local_words;
-    }
-
-    get local_concepts() {
-        return this.#local_concepts;
-    }
 
     get filteredData() {
         return this.#filteredData;

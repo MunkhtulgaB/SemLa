@@ -34,6 +34,7 @@ symbols.push(d3.symbol().type(customSymbolDownTriangle).size(100));
 
 
 class MapView {
+    #svg_canvas;
     #intents_to_points_tsne;
     #intents_to_points_umap;
     #data;
@@ -68,6 +69,7 @@ class MapView {
         const data = dataset.data;
         dataset.addObserver(this);
         
+        this.#svg_canvas = svg_canvas;
         this.#data = data;
         this.#width = width;
         this.#height = height;
@@ -80,8 +82,8 @@ class MapView {
         const [x, y] = this.getXYScales(dim_reduction, width, height);
         let xAxis = svg_canvas.append("g")
         .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x));
-        let yAxis = svg_canvas.append("g").call(d3.axisLeft(y));
+        .call(d3.axisBottom(x).tickValues([]));
+        let yAxis = svg_canvas.append("g").call(d3.axisLeft(y).tickValues([]));
 
         this.#xScale = x;
         this.#yScale = y;
@@ -249,8 +251,8 @@ class MapView {
             .call(zoom);    
     }
 
-    update(newData, msg, doNotUpdateLocalWords) {
-        this.filterNodes(newData.map(d => d.idx));
+    update(newDataIdxs, msg, doNotUpdateLocalWords) {
+        this.filterNodes(newDataIdxs);
         this.updateSymbols();
         if (msg == "clear") {
             this.clearSelectedNode();
@@ -268,8 +270,8 @@ class MapView {
         this.#newY = newY;
 
         // update axes with these new boundaries
-        this.#xAxis.call(d3.axisBottom(newX));
-        this.#yAxis.call(d3.axisLeft(newY));
+        this.#xAxis.call(d3.axisBottom(newX).tickValues([]));
+        this.#yAxis.call(d3.axisLeft(newY).tickValues([]));
 
         this.updatePositions(newX, newY, this.#dim_reduction); 
         this.updateDragLines();
@@ -421,7 +423,7 @@ class MapView {
     }
 
     filterNodes(idxs) {
-        d3.selectAll(".datapoint").style("visibility", function (d) {
+        this.#svg_canvas.selectAll(`.datapoint`).style("visibility", function (d) {
             if (idxs.includes(d.idx)) {
                 return "visible";
             } else {
