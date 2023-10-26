@@ -295,6 +295,9 @@ function initializeSystem(dataset_name, model) {
             const filter_view = new FilterView(dataset);
             const list_view = new ListView(local_words_view);
 
+            list_view.observe(local_words_view);
+            list_view.observe(local_words_view1);
+
             let updateBothLocalWordViews = function() {
                 local_words_view.update();
                 local_words_view1.update();

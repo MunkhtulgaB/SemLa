@@ -116,13 +116,10 @@ function getVisibleDatapoints(width, height, mapViewId) {
         return is_visible;
     });
 
-    let gold_intent_set = [...new Set(gold_intents)];
-    let predicted_intent_set = [...new Set(predicted_intents)];
-
     return [
         visibles,
-        Array.from(gold_intent_set),
-        Array.from(predicted_intent_set),
+        gold_intents,
+        predicted_intents,
     ];
 }
 

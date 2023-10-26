@@ -54,7 +54,7 @@ class LocalWordsView {
             this.setLocalPredictedLabels(predictedLabels);
             this.setLocalWords(words);
             this.setLocalConcepts(concepts);
-            this.notifyObservers(filter.idxs, null, true);
+            this.notifyObservers(filter.idxs, this.#mapViewId, true);
         };
         let [visibles, gold_labels, predicted_labels] = getVisibleDatapoints(
                                     this.#width, 
@@ -69,7 +69,7 @@ class LocalWordsView {
                 this.setLocalPredictedLabels(predicted_labels);
                 this.setLocalConcepts(local_concepts);
                 this.setLocalWords(local_words);
-                this.notifyObservers(null, null, true);
+                this.notifyObservers(null, this.#mapViewId, true);
             })
             .catch((e) => {
                 console.log(e)
@@ -102,7 +102,7 @@ class LocalWordsView {
             );
             
             if (feature_type == "concept") {
-                this.showLocalConcepts(localised_words, onClick)
+                this.showLocalConcepts(localised_words, onClick, visibles.data().length)
                     .then((local_concepts) => resolve([localised_words, local_concepts]));
             } else {
                 this.render_local_words(localised_words, isHighFrequencyCall, onClick);
@@ -112,7 +112,7 @@ class LocalWordsView {
     }
 
 
-    showLocalConcepts(local_words, onClick) {
+    showLocalConcepts(local_words, onClick, total_num_of_visible_dps) {
         return new Promise((resolve, reject) => {
             // characterize each word with various features
             const local_concepts = [];
@@ -143,7 +143,9 @@ class LocalWordsView {
                     if (isComplete) {
                         hideProgress();
                         // then apply the localization algorithm on those features
-                        const localConcepts = extractLocalFeatures(local_words, "concept");
+                        const localConcepts = extractLocalFeatures(local_words, 
+                                                        "concept", 
+                                                        total_num_of_visible_dps);
                         this.render_local_words(localConcepts, false, onClick);
                         resolve(localConcepts);
                     }
@@ -400,7 +402,7 @@ function hideProgress() {
 }
 
 
-function extractLocalFeatures(visible_dps, feature) {
+function extractLocalFeatures(visible_dps, feature, total_num_of_leaf_visible_dps) {
     const is_to_ignore_stopwords = $("#ignore-stopwords").is(":checked");
     const invert = $("#invert").is(":checked");
     const n_grams = $("#how-many-grams").val();
@@ -451,6 +453,7 @@ function extractLocalFeatures(visible_dps, feature) {
         freq_threshold_upper,
         (feature == "concept") ? locality_threshold / 2 : locality_threshold,
         invert,
+        (feature == "concept") ? total_num_of_leaf_visible_dps : visible_dps.length
     );
     return localised_words;
 }
@@ -461,7 +464,8 @@ function filterLocalWordsWithSquareLocality(
     freq_threshold_lower,
     freq_threshold_upper,
     locality_threshold,
-    invert
+    invert,
+    total_num_of_visible_dps
 ) {
     const localised_words = [];
     word_occurrences.forEach(function (entry) {
@@ -487,11 +491,13 @@ function filterLocalWordsWithSquareLocality(
 
         const condition = is_within_frequency_threshold && is_within_locality_threshold;
         const inverted_condition = is_within_frequency_threshold && !is_within_locality_threshold;
+        const weight = occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0);
         if ((invert) ? inverted_condition : condition) {
             localised_words.push({
                 word: word,
                 frequency: count,
-                weight: occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0),
+                weight: weight,
+                prob: weight / total_num_of_visible_dps,
                 x: min_x + x_range / 2,
                 y: min_y + y_range / 2,
                 occurrences: occurrences,
@@ -507,7 +513,8 @@ function filterLocalWordsWithGaussianLocality(
     freq_threshold_lower,
     freq_threshold_upper,
     locality_threshold,
-    invert
+    invert,
+    total_num_of_visible_dps
 ) {
     // Assume the positions are normally distributed
     let get_mean = function (samples) {
@@ -548,13 +555,15 @@ function filterLocalWordsWithGaussianLocality(
 
         const condition = is_within_frequency_threshold && is_within_locality_threshold;
         const inverted_condition = is_within_frequency_threshold && !is_within_locality_threshold;
+        const weight = occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0);
         // if the word is frequent enough and
         // if 2*std is in locality threshold
         if ((invert) ? inverted_condition: condition) {
             localised_words.push({
                 word: word,
                 frequency: count,
-                weight: occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0),
+                weight: weight,
+                prob: weight / total_num_of_visible_dps,
                 x: mean_x,
                 y: mean_y,
                 occurrences: occurrences,
