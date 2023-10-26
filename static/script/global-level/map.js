@@ -34,6 +34,7 @@ symbols.push(d3.symbol().type(customSymbolDownTriangle).size(100));
 
 
 class MapView {
+    #container_id;
     #svg_canvas;
     #intents_to_points_tsne;
     #intents_to_points_umap;
@@ -53,7 +54,8 @@ class MapView {
     #updateCount = 0;
     #previous_intent_symbol_map = {};
 
-    constructor(svg_canvas, 
+    constructor(container_id, 
+                svg_canvas, 
                 margin,
                 width, 
                 height, 
@@ -69,6 +71,7 @@ class MapView {
         const data = dataset.data;
         dataset.addObserver(this);
         
+        this.#container_id = container_id;
         this.#svg_canvas = svg_canvas;
         this.#data = data;
         this.#width = width;
@@ -436,11 +439,11 @@ class MapView {
     }
 
     filterHulls(intents, hullClasses) {
-        d3.selectAll("path.labelHull").attr("visibility", "hidden");
-        
+        this.#svg_canvas.selectAll("path.labelHull").attr("visibility", "hidden");
+        // make the intents specific?
         hullClasses = hullClasses || ["predictedLabelHull"];
         hullClasses.forEach(c => {
-            d3.selectAll("path." + c).attr("visibility", function (d) {
+            this.#svg_canvas.selectAll("path." + c).attr("visibility", function (d) {
                 let [intent, _] = d;
                 if (intents.includes(intent)) {
                     return "visible";
@@ -448,6 +451,20 @@ class MapView {
                     return "hidden";
                 }
             });
+        });
+        this.#svg_canvas.selectAll(".datapoint").style("visibility", function(d) {
+            let label;
+            if (hullClasses[0].includes("predicted")) {
+                label = d.prediction;
+            } else if (hullClasses[0].includes("gold")) {
+                label = d.ground_truth;
+            }
+
+            if (intents.includes(label)) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
         });
     }
 

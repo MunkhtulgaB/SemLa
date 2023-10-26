@@ -269,8 +269,8 @@ function initializeSystem(dataset_name, model) {
                 const intents = $(elem).val();
                 const filter = filterByIntentsAndUpdate(data, intents, hullClasses);
                 dataset.addFilter(filter)
-                map.filterHulls(intents, hullClasses);
-                map1.filterHulls(intents, hullClasses);
+                map.filterHulls(intents, ["predictedLabelHull"]);
+                map1.filterHulls(intents, ["goldLabelHull"]);
             }
 
             let filterBySelectedConfusion = function() {
@@ -303,7 +303,8 @@ function initializeSystem(dataset_name, model) {
                 local_words_view1.update();
             }
 
-            const map = new MapView(svg_canvas, 
+            const map = new MapView("semantic_landscape",
+                                    svg_canvas, 
                                     margin,
                                     width, 
                                     height, 
@@ -316,7 +317,8 @@ function initializeSystem(dataset_name, model) {
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
-            const map1 = new MapView(svg_canvas1, 
+            const map1 = new MapView("semantic_landscape-mirror",
+                                    svg_canvas1, 
                                     margin,
                                     width, 
                                     height, 
@@ -343,12 +345,12 @@ function initializeSystem(dataset_name, model) {
             const accuracy = 100 - (dataset.errors.length / data.length) * 100;
             $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
 
-            initializeControlWidgets(dataset, map, cluster_to_color, local_words_view, local_words_view1);
+            initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1);
     });
 }
 
 
-function initializeControlWidgets(dataset, map, cluster_to_color, local_words_view, local_words_view1) {
+function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1) {
     // Initialize the input widgets
     const local_word_toggle = $("#show-local-words");
     const how_many_grams = $("#how-many-grams");
@@ -617,7 +619,8 @@ function initializeControlWidgets(dataset, map, cluster_to_color, local_words_vi
             const intents = $("#label_filter").val();
             const filter = filterByIntentsAndUpdate(dataset.data, intents, hullClasses);
             dataset.addFilter(filter)
-            map.filterHulls(intents, hullClasses);
+            map.filterHulls(intents, ["predictedLabelHull"]);
+            map1.filterHulls(intents, ["goldLabelHull"])
         };
         $(this).change(filterGroup);
         $("#label_filter option").click(filterGroup);
