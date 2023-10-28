@@ -269,8 +269,8 @@ function initializeSystem(dataset_name, model) {
                 const intents = $(elem).val();
                 const filter = filterByIntentsAndUpdate(data, intents, hullClasses);
                 dataset.addFilter(filter)
-                map.filterHulls(intents, ["predictedLabelHull"]);
-                map1.filterHulls(intents, ["goldLabelHull"]);
+                map.filterHulls(intents, ["predictedLabelHull"], true);
+                map1.filterHulls(intents, ["goldLabelHull"], true);
             }
 
             let filterBySelectedConfusion = function() {
@@ -278,7 +278,8 @@ function initializeSystem(dataset_name, model) {
                 const pred = d3.select(this).attr("pred");
                 const filter = filterByIntentsAndUpdate(data, [gt, pred]);
                 dataset.addFilter(filter);
-                map.filterHulls([gt, pred])
+                map.filterHulls([gt, pred], ["predictedLabelHull"], false)
+                map1.filterHulls([gt, pred], ["predictedLabelHull"], false);
                 
                 $(".selected-tr").removeClass("selected-tr");
                 $(this).addClass("selected-tr");
@@ -619,8 +620,8 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
             const intents = $("#label_filter").val();
             const filter = filterByIntentsAndUpdate(dataset.data, intents, hullClasses);
             dataset.addFilter(filter)
-            map.filterHulls(intents, ["predictedLabelHull"]);
-            map1.filterHulls(intents, ["goldLabelHull"])
+            map.filterHulls(intents, ["predictedLabelHull"], true);
+            map1.filterHulls(intents, ["goldLabelHull"], true)
         };
         $(this).change(filterGroup);
         $("#label_filter option").click(filterGroup);
