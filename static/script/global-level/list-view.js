@@ -9,6 +9,39 @@ class ListView {
         this.updatePredictedLabelList();
     }
 
+    renderContrastiveBarChart(entries, container) {
+        const maxValue = 1; // Math.max(...local_words_set.map(x => Math.abs(x.groupProb)));
+        entries.forEach(element => {
+            const relative_prob = (maxValue == 0) ? 0 : Math.abs(element.groupProb) / Math.abs(maxValue);
+            let offset;
+            let width;
+            let color;
+            if (element.groupProb < 0) {
+                offset = 50 -  50 * relative_prob;
+                width = 50 * relative_prob;
+                color = "blue";
+            } else {
+                offset = 50;
+                width = 50 * relative_prob;
+                color = "red";
+            }
+            
+            container.append(
+                `<div value="${element.word}" 
+                        style="display: flex-column">                          
+                    <svg class="chart" width="100%" height="10px" style="border: 1px solid lightgrey;">
+                        <g class="contrastiveness-bar" 
+                            style="transform: translate(${offset.toFixed(0)}%, 0);">
+                            <rect width="${width}%" height="100%" fill="${color}"></rect>
+                        </g>
+                    </svg>
+                    <div style="text-align: center; font-weight: bold">
+                        ${element.word}
+                    </div>
+                </div>`);
+        });
+    }
+
     updateConceptsList() {
         const concepts = this.assignGroup(this.#observables[0].local_concepts, -1);
         const concepts1 = this.assignGroup(this.#observables[1].local_concepts, 1);
@@ -18,16 +51,12 @@ class ListView {
         const conceptsList = $("#current-list-concept");
 
         conceptsList.empty();
-        local_concepts_set
-            .sort((a,b) => a.groupProb - b.groupProb)
-            .forEach(element => {
-            conceptsList.append(
-                `<option value="${element.word}" 
-                        style="background-color: lightgrey">
-                        ${element.word}
-                        ${element.groupProb}
-                </option>`);
-        });
+
+        this.renderContrastiveBarChart(
+            local_concepts_set
+                .sort((a,b) => a.groupProb - b.groupProb),
+            conceptsList
+        )
     }
 
     updateWordsList() {
@@ -39,16 +68,11 @@ class ListView {
         const wordsList = $("#current-list-word");
         
         wordsList.empty();
-        local_words_set
-            .sort((a,b) => a.groupProb - b.groupProb)
-            .forEach(element => {
-                wordsList.append(
-                    `<option value="${element.word}" 
-                            style="background-color: lightgrey">
-                            ${element.word}
-                            ${element.groupProb}
-                    </option>`);
-            });
+        this.renderContrastiveBarChart(
+                local_words_set
+                    .sort((a,b) => a.groupProb - b.groupProb),
+                wordsList
+            );
     }
 
     updateGoldLabelList() {
@@ -69,16 +93,11 @@ class ListView {
                                             total_length1);
             const wordsList = $("#current-list-gold-label");
             wordsList.empty();
-            labelSet
-                .sort((a,b) => a[1] - b[1])
-                .forEach(([label, count]) => {
-                wordsList.append(
-                    `<option value="${label}" 
-                            style="background-color: lightgrey">
-                            ${label}
-                            ${count}
-                    </option>`);
-            })
+            this.renderContrastiveBarChart(
+                labelSet
+                    .sort((a,b) => a.groupProb - b.groupProb),
+                wordsList
+            )
         }
     }
 
@@ -101,19 +120,12 @@ class ListView {
                                                 total_length1);          
             const wordsList = $("#current-list-predicted-label");
             wordsList.empty();
-            labelSet
-                .sort((a,b) => a[1] - b[1])
-                .forEach(([label, count]) => {
-                wordsList.append(
-                    `<option value="${label}" 
-                            style="background-color: lightgrey">
-                            ${label}
-                            ${count}
-                    </option>`);
-            });
-        }
-
-        
+            this.renderContrastiveBarChart(
+                labelSet
+                .sort((a,b) => a.groupProb - b.groupProb),
+                wordsList
+            )
+        }        
     }
 
     getLabelSetSortedByCount(labelList) {
@@ -175,7 +187,10 @@ class ListView {
             }
         });
 
-        return Object.entries(labelSet);
+        return Object.entries(labelSet)
+            .map(([label, prob]) => 
+                ({word: label, groupProb: prob})
+            );
     }
 
     observe(observable) {

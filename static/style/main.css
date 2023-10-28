@@ -303,3 +303,13 @@ margin: 10px;
     vertical-align: bottom;
     pointer-events: none;
 }
+
+.contrastive-bar-chart {
+    overflow-y: scroll;
+    border: 1px solid grey;
+    max-height: 150px;
+    height: 150px;
+    margin-bottom: 10px;
+    padding: 5px;
+    background-color: whitesmoke;
+}
