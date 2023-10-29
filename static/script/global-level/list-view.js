@@ -23,7 +23,7 @@ class ListView {
             } else {
                 offset = 50;
                 width = 50 * relative_prob;
-                color = "red";
+                color = "orange";
             }
             
             container.append(
