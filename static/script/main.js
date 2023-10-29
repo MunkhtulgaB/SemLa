@@ -299,9 +299,9 @@ function initializeSystem(dataset_name, model) {
             list_view.observe(local_words_view);
             list_view.observe(local_words_view1);
 
-            let updateBothLocalWordViews = function() {
-                local_words_view.update();
-                local_words_view1.update();
+            let updateBothLocalWordViews = function(isHighFrequencyCall) {
+                local_words_view.update(isHighFrequencyCall);
+                local_words_view1.update(isHighFrequencyCall);
             }
 
             const map = new MapView("semantic_landscape",
