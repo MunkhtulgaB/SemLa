@@ -117,6 +117,22 @@ justify-content: space-evenly;
 display: flex;
 flex-direction: row;
 justify-content: space-evenly;
+height: 280px;
+}
+
+.list_view {
+width: 320px;
+height: 250px;
+}
+
+.contrastive-bar-chart {
+overflow-y: scroll;
+border: 1px solid grey;
+max-height: 195px;
+height: 195px;
+margin-bottom: 10px;
+padding: 5px;
+background-color: whitesmoke;
 }
 
 .map-list-view {
@@ -303,20 +319,6 @@ margin: 10px;
     text-align: center;
     vertical-align: bottom;
     pointer-events: none;
-}
-
-.contrastive-bar-chart {
-    overflow-y: scroll;
-    border: 1px solid grey;
-    max-height: 150px;
-    height: 150px;
-    margin-bottom: 10px;
-    padding: 5px;
-    background-color: whitesmoke;
-}
-
-.list_view {
-    width: 320px;
 }
 
 .list_view .widget_content {
