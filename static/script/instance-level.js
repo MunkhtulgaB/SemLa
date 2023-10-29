@@ -1151,12 +1151,17 @@ function renderSecondTokenChart(res) {
 
 function updateTextSummary(d, closest_dp, dp2) {
     const is_prediction_correct = d.prediction == d.ground_truth;
+    const color = (is_prediction_correct)? "green": "#FF2400";
+    const contrast_color =  (is_prediction_correct)? "#FF2400": "green";
+
     const html = `<div>
             <p><b>Text: </b> ${d.text}<p>
-            <p><b>Predicted</b> intent was <b>${d.prediction}</b> ${is_prediction_correct
-                ? `(<span style="color: green">correct</span>)`
-                : `(<span style="color: red">wrong</span>)`
-            }
+            <p><b>Predicted</b> intent was 
+                <b>
+                    <span style="color: ${color}">
+                    ${d.prediction}
+                    </span>
+                </b>
                 based on closest support example.
             </p>
             ${!is_prediction_correct
@@ -1169,7 +1174,9 @@ function updateTextSummary(d, closest_dp, dp2) {
             <div>
             <div><b>Closest support example: </b></div>
             ${closest_dp.text}
-            (${closest_dp.ground_truth})
+            <span style="color: ${color}">
+                (<b>${closest_dp.ground_truth}</b>)
+            </span>
             </div>
 
             <hr>
@@ -1179,12 +1186,19 @@ function updateTextSummary(d, closest_dp, dp2) {
                 : "Correct support example:"
             }</b></div>
             ${dp2.text}
-            (${dp2.ground_truth})
-            </div>
-            
-            `;
+            <span style="color: ${contrast_color}">
+                (<b>${dp2.ground_truth}</b>)
+            </span>
+            </div>`;
+    
 
-    d3.select("#summary").html(html);
+    d3.select("#summary")
+        .html(html)
+    
+    d3.selectAll(".contrast-label-instance")
+        .html(`<span style="color: ${contrast_color}">(${dp2.ground_truth})</span>`);
+    d3.selectAll(".predicted-label-instance")
+        .html(`<span style="color: ${color}">(${d.prediction})</span>`);
 }
 
 

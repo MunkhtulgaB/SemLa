@@ -24,16 +24,15 @@ function showMapTooltip(d) {
     // TO REFACTOR: use either camelCase or snake_case but not both
     moveTooltipToCursor();
     $(this).addClass("ismouseover");
+    
+    const color = (d.ground_truth == d.prediction) ? "#66FF00": "#FF2400";
+    const emoji = (d.ground_truth == d.prediction) ? "&#10004;&#65039;": "&#10060;";
+    const tooltip_html = `
+        <p><b>idx: </b>${d.idx}</p>
+        <p><b>text: </b>${d.text}</p>
+        <p><b>prediction: </b><span style="color: ${color};"><b>${d.prediction}</b> ${emoji}</span></p>
+        <p><b>ground_truth: </b>${d.ground_truth}</p>`;
 
-    const attrs_to_show = ["idx", "text", "ground_truth", "prediction"];
-    const tooltip_html = Object.entries(d).reduce(
-        (acc, current) =>
-            acc +
-            (attrs_to_show.includes(current[0])
-                ? `<p><b>${current[0]}</b>: ${current[1]}</p>`
-                : ""),
-        ""
-    );
     const tooltip = d3.select("#map-tooltip");
     tooltip.html(tooltip_html);
     return tooltip.style("visibility", "visible");

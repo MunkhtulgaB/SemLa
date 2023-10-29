@@ -3,7 +3,7 @@ height: 100vh;
 padding: 0;
 margin: 0;
 overflow: auto;
-background-color: lightgrey;
+background-color: whitesmoke;
 font-size: 15px;
 }
 
@@ -95,9 +95,10 @@ flex-direction: row;
 
 .super-widget {
 margin: 0px;
-background-color: whitesmoke;
+background-color: white;
 overflow: hidden;
-border: 3px solid darkslategray;
+/* box-shadow: 2px 1px 5px grey; */
+border: 1px solid grey;
 }
 
 /* CORPUS LEVEL */
@@ -230,7 +231,7 @@ z-index: 100;
 }
 
 #summary-container {
-border: 3px solid red;  
+border: 3px solid grey;  
 background-color: white;
 /* font-size: 18px; */
 }
@@ -246,7 +247,7 @@ padding: 5px;
 }
 
 .sample-lvl-content {
-height: 410px;
+height: 355px;
 max-height: 410px;
 width: 585px;
 overflow-y: auto;
@@ -320,4 +321,8 @@ margin: 10px;
 
 .list_view .widget_content {
     width: 316px;
+}
+
+.widget_content svg {
+    overflow: visible;
 }

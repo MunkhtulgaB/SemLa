@@ -269,8 +269,25 @@
           <p class="widget_title">
             Relation (token-to-similarity)
           </p>
+          <div style="border-bottom: 1px solid grey; font-weight: bold; color: grey; padding: 5px; justify-content: space-between; width: 100%; display: flex;">
+            <div>
+              Contrast sample
+              <br>
+              <span class="contrast-label-instance"></span>
+            </div>
+            <div>
+              Selected sample
+              <br>
+              <span class="predicted-label-instance"></span>
+            </div>
+            <div>
+              Closest sample
+              <br>
+              <span class="predicted-label-instance"></span>
+            </div>
+          </div>
           <div id="relchart-container" class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
-              <div id="rel_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
+            <div id="rel_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
                 <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
               </div>
               <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
@@ -292,6 +309,23 @@
           <p class="widget_title">
             Relation (token-to-token)
           </p>
+          <div style="border-bottom: 1px solid grey; font-weight: bold; color: grey; padding: 5px; justify-content: space-between; width: 100%; display: flex;">
+            <div>
+              Contrast sample
+              <br>
+              <span class="contrast-label-instance"></span>
+            </div>
+            <div>
+              Selected sample
+              <br>
+              <span class="predicted-label-instance"></span>
+            </div>
+            <div>
+              Closest sample
+              <br>
+              <span class="predicted-label-instance"></span>
+            </div>
+          </div>
           <div id="tokenchart-container" class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
               <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
                 <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
