@@ -49,12 +49,13 @@ class LocalWordsView {
         }
 
         let onLocalWordClick = function(filter_name, idxs, words, concepts, goldLabels, predictedLabels) {
+            console.log("onClick")
             const filter = new Filter(filter_name, "", idxs);
             this.setLocalGoldLabels(goldLabels);
             this.setLocalPredictedLabels(predictedLabels);
             this.setLocalWords(words);
             this.setLocalConcepts(concepts);
-            this.notifyObservers(filter.idxs, this.#mapViewId, true);
+            this.notifyObservers(idxs, this.#mapViewId, true);
         };
         let [visibles, gold_labels, predicted_labels] = getVisibleDatapoints(
                                     this.#width, 
@@ -281,6 +282,13 @@ class LocalWordsView {
                 const goldLabels = occurrences.map(x => x.ground_truth);
                 const predictedLabels = occurrences.map(x => x.prediction);
 
+                // update the probs
+                related_words.forEach(word => {
+                    word.prob = word.weight / idxs.length;
+                })
+                d.prob = d.weight / idxs.length;
+
+               
                 onLocalWordClick(
                     filter_name, 
                     idxs, 
