@@ -154,7 +154,7 @@ class MapView {
             .on("mouseout", () => hideTooltip("#map-tooltip"))
             .on("click", function(d) {
                 self.selectNode(this);
-                onClick(d, dataset, explanation_set);
+                onClick(d, dataset, explanation_set, self);
                 self.updateDragLines();
             });
 
@@ -526,6 +526,10 @@ class MapView {
 
     get intentsToPointsUMAP() {
         return this.#intents_to_points_umap;
+    }
+
+    get containerId() {
+        return this.#container_id;
     }
 }
 

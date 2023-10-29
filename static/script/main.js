@@ -644,7 +644,7 @@ function resetFilterControls() {
 }
 
 
-function onClick(d, dataset, explanation_set) {
+function onClick(d, dataset, explanation_set, map) {
     // Filter the related nodes and highlight the selected node
     const data = dataset.data;
     const newFilter = filterByDatapointAndUpdate(d, data);
@@ -705,8 +705,8 @@ function onClick(d, dataset, explanation_set) {
                 }
             })
             .style("visibility", "visible");
-
-        d3.select("#drag-line-0")
+            
+        d3.select(`#${map.containerId} .drag-line-0`)
             .attr("x1", (d[`${dim_reduction}-dim0`]))
             .attr("y1", (d[`${dim_reduction}-dim1`]))
             .attr("x2", (closest_dp[`${dim_reduction}-dim0`]))
@@ -720,8 +720,8 @@ function onClick(d, dataset, explanation_set) {
                 },
             ])
             .style("visibility", "visible");
-
-        d3.select("#drag-line-1")
+        
+        d3.select(`#${map.containerId} .drag-line-1`)
             .attr("x1", (d[`${dim_reduction}-dim0`]))
             .attr("y1", (d[`${dim_reduction}-dim1`]))
             .attr("x2", (dp2[`${dim_reduction}-dim0`]))
@@ -741,13 +741,12 @@ function onClick(d, dataset, explanation_set) {
 
 let alertCount = 0;
 
-function onClickSummaryOnly(d, dataset, explanation_set) {
+function onClickSummaryOnly(d, dataset, explanation_set, map) {
     // Filter the related nodes and highlight the selected node
     const data = dataset.data;
     const newFilter = filterByDatapointAndUpdate(d, data);
     dataset.addFilter(newFilter);
     
-    console.log(calculateConfidence(d));
     // Identify the closest datapoint
     const similarities_sorted = Array.from(d.distances[0].entries()).sort(
         (a, b) => b[1] - a[1]
@@ -792,7 +791,7 @@ function onClickSummaryOnly(d, dataset, explanation_set) {
             })
             .style("visibility", "visible");
 
-        d3.select("#drag-line-0")
+        d3.select(`#${map.containerId} .drag-line-0`)
             .attr("x1", (d[`${dim_reduction}-dim0`]))
             .attr("y1", (d[`${dim_reduction}-dim1`]))
             .attr("x2", (closest_dp[`${dim_reduction}-dim0`]))
@@ -807,7 +806,7 @@ function onClickSummaryOnly(d, dataset, explanation_set) {
             ])
             .style("visibility", "visible");
 
-        d3.select("#drag-line-1")
+        d3.select(`#${map.containerId} .drag-line-1`)
             .attr("x1", (d[`${dim_reduction}-dim0`]))
             .attr("y1", (d[`${dim_reduction}-dim1`]))
             .attr("x2", (dp2[`${dim_reduction}-dim0`]))
@@ -833,30 +832,26 @@ function onClickSummaryOnly(d, dataset, explanation_set) {
 function initializeDragLines() {
     svg_canvas.append("line")
         .attr("clip-path", "url(#clip)")
-        .attr("id", "drag-line-0")
-        .attr("class", "drag_line")
+        .attr("class", "drag_line drag-line-0")
         .style("visibility", "hidden")
         .attr("stroke", "lightblue")
         .attr("stroke-width", "3");
         svg_canvas.append("line")
         .attr("clip-path", "url(#clip)")
-        .attr("id", "drag-line-1")
-        .attr("class", "drag_line")
+        .attr("class", "drag_line drag-line-1")
         .style("visibility", "hidden")
         .attr("stroke", "lightblue")
         .attr("stroke-width", "3");
 
     svg_canvas1.append("line")
         .attr("clip-path", "url(#clip)")
-        .attr("id", "drag-line-0")
-        .attr("class", "drag_line")
+        .attr("class", "drag_line drag-line-0")
         .style("visibility", "hidden")
         .attr("stroke", "lightblue")
         .attr("stroke-width", "3");
     svg_canvas1.append("line")
         .attr("clip-path", "url(#clip)")
-        .attr("id", "drag-line-1")
-        .attr("class", "drag_line")
+        .attr("class", "drag_line drag-line-1")
         .style("visibility", "hidden")
         .attr("stroke", "lightblue")
         .attr("stroke-width", "3");
