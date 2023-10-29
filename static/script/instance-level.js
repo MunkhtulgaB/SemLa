@@ -305,7 +305,7 @@ function renderRelTexts(
     const chart_height = relchart.node().clientHeight;
     const chart_width = relchart.node().clientWidth;
     const spacing =
-        (chart_height - data.length * fontsize) / (data.length - 1);
+        (chart_height - data.length * fontsize) / ((data.length - 1) || 1);
 
     const text_anchor = is_left_col ? "start" : "end";
     const text_class = "text" + (is_left_col ? "_left" : "_right");
@@ -324,7 +324,9 @@ function renderRelTexts(
         .text((d) => d.token)
         .style("font-size", fontsize + "px")
         .attr("x", text_x + "px")
-        .attr("y", (d) => (d.pos + 1) * fontsize + d.pos * spacing);
+        .attr("y", (d) => {
+            return (d.pos + 1) * fontsize + d.pos * spacing;
+        });
     const bboxes = [];
     texts.each(function (d) {
         bboxes.push(this.getBBox());
@@ -378,10 +380,10 @@ function renderRelChart(res) {
     const chart_width = relchart.node().clientWidth;
     const spacing_left_col =
         (chart_height - res.tokens1.length * fontsize) /
-        (res.tokens1.length - 1);
+        ((res.tokens1.length - 1) || 1);
     const spacing_right_col =
         (chart_height - res.tokens2.length * fontsize) /
-        (res.tokens2.length - 1);
+        ((res.tokens2.length - 1) || 1);
     const all_importance = res.importance1
         .concat(res.importance2)
         .map((i) => Math.abs(i));
@@ -449,6 +451,8 @@ function renderRelChart(res) {
         .x((d) => d.x)
         .y((d) => d.y);
 
+    const leftcol_sorted = leftcol_data
+                .sort((a,b) => b.importance - a.importance);
     const left_lines = relchart
         .selectAll(".left_links")
         .data(
@@ -497,8 +501,20 @@ function renderRelChart(res) {
         .style(
             "stroke-opacity",
             (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
-        );
+        )
+        .style("visibility", function(d) {
+            let topk = 3;
+            topk = Math.min(topk, leftcol_sorted.length);
+            const topk_value = leftcol_sorted[topk - 1].importance;
+            if (d.importance >= topk_value) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
+        });
 
+    const rightcol_sorted = rightcol_data
+        .sort((a,b) => b.importance - a.importance);
     const right_lines = relchart
         .selectAll(".right_links")
         .data(
@@ -549,7 +565,17 @@ function renderRelChart(res) {
         .style(
             "stroke-opacity",
             (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
-        );
+        )
+        .style("visibility", function(d) {
+            let topk = 3;
+            topk = Math.min(topk, rightcol_sorted.length);
+            const topk_value = rightcol_sorted[topk - 1].importance;
+            if (d.importance >= topk_value) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
+        });;
 
     // Add 2 similarity blocks
     const block_width = 10;
@@ -642,10 +668,10 @@ function renderSecondRelChart(res) {
     const chart_height = relchart_left.node().clientHeight;
     const spacing_left_col =
         (chart_height - res.tokens2.length * fontsize) /
-        (res.tokens2.length - 1);
+        ((res.tokens2.length - 1) || 1);
     const spacing_right_col =
         (chart_height - res.tokens1.length * fontsize) /
-        (res.tokens1.length - 1);
+        ((res.tokens1.length - 1) || 1);
 
     const rightcol_data = res.tokens1.map((t, i) => ({
         token: t,
@@ -726,6 +752,9 @@ function renderSecondRelChart(res) {
         .y((d) => d.y);
 
     const chart_width = RELCHART_LEFT_WIDTH;
+
+    const leftcol_sorted = leftcol_data
+        .sort((a,b) => b.importance - a.importance);
     const left_lines = relchart_left
         .selectAll(".left_links_contrast")
         .data(
@@ -773,8 +802,20 @@ function renderSecondRelChart(res) {
         .style(
             "stroke-opacity",
             (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
-        );
+        )
+        .style("visibility", function(d) {
+            let topk = 3;
+            topk = Math.min(topk, leftcol_sorted.length);
+            const topk_value = leftcol_sorted[topk - 1].importance;
+            if (d.importance >= topk_value) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
+        });
 
+    const rightcol_sorted = rightcol_data
+        .sort((a,b) => b.importance - a.importance);
     const right_lines = relchart_left
         .selectAll(".right_links_contrast")
         .data(
@@ -822,7 +863,17 @@ function renderSecondRelChart(res) {
         .style(
             "stroke-opacity",
             (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
-        );
+        )
+        .style("visibility", function(d) {
+            let topk = 3;
+            topk = Math.min(topk, rightcol_sorted.length);
+            const topk_value = rightcol_sorted[topk - 1].importance;
+            if (d.importance >= topk_value) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
+        });
 
     // Add 2 similarity blocks
     const block_width = 10;
@@ -1013,10 +1064,10 @@ function renderTokenChart(res) {
     const chart_width = tokenchart.node().clientWidth;
     const spacing_left_col =
         (chart_height - res.tokens1.length * fontsize) /
-        (res.tokens1.length - 1);
+        ((res.tokens1.length - 1) || 1);
     const spacing_right_col =
         (chart_height - res.tokens2.length * fontsize) /
-        (res.tokens2.length - 1);
+        ((res.tokens2.length - 1) || 1);
 
     let onMouseOver = function (d) {
         if (d.is_left) {
@@ -1055,6 +1106,8 @@ function renderTokenChart(res) {
         .concat(old_links_data)
         .map((l) => l.strength);
 
+    const link_data_sorted = link_data
+                    .sort((a,b) => b.strength - a.strength);
     tokenchart
         .selectAll(".token_links")
         .data(link_data)
@@ -1076,7 +1129,18 @@ function renderTokenChart(res) {
         .style(
             "stroke-opacity",
             (d) => minmax(all_link_strengths, Math.abs(d.strength)) ** 3
-        );
+        )
+        .style("visibility", function(d) {
+            let topk = 3;
+            topk = Math.min(topk, link_data_sorted.length);
+            
+            const topk_value = link_data_sorted[topk - 1].strength;
+            if (d.strength >= topk_value) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
+        });
 }
 
 function renderSecondTokenChart(res) {
@@ -1086,10 +1150,10 @@ function renderSecondTokenChart(res) {
     const chart_height = tokenchart_left.node().clientHeight;
     const spacing_left_col =
         (chart_height - res.tokens2.length * fontsize) /
-        (res.tokens2.length - 1);
+        ((res.tokens2.length - 1) || 1);
     const spacing_right_col =
         (chart_height - res.tokens1.length * fontsize) /
-        (res.tokens1.length - 1);
+        ((res.tokens1.length - 1) || 1);
 
     const rightcol_data = res.tokens1.map((t, i) => ({ token: t, pos: i }));
     const leftcol_data = res.tokens2.map((t, i) => ({ token: t, pos: i }));
@@ -1115,6 +1179,8 @@ function renderSecondTokenChart(res) {
         .concat(old_links_data)
         .map((l) => l.strength);
 
+    const link_data_sorted = link_data
+                .sort((a,b) => b.strength - a.strength);
     tokenchart_left
         .selectAll(".token_links_contrast")
         .data(link_data)
@@ -1133,7 +1199,18 @@ function renderSecondTokenChart(res) {
         .style(
             "stroke-opacity",
             (d) => minmax(all_link_strengths, Math.abs(d.strength)) ** 3
-        );
+        )
+        .style("visibility", function(d) {
+            let topk = 3;
+            topk = Math.min(topk, link_data_sorted.length);
+            
+            const topk_value = link_data_sorted[topk - 1].strength;
+            if (d.strength >= topk_value) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
+        });
 
     d3.selectAll(".token_links, .token_links_contrast")
         .on("mouseover", function (d) {
