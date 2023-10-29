@@ -49,7 +49,6 @@ class LocalWordsView {
         }
 
         let onLocalWordClick = function(filter_name, idxs, words, concepts, goldLabels, predictedLabels) {
-            console.log("onClick")
             const filter = new Filter(filter_name, "", idxs);
             this.setLocalGoldLabels(goldLabels);
             this.setLocalPredictedLabels(predictedLabels);

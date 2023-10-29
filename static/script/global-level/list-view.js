@@ -28,8 +28,10 @@ class ListView {
             
             container.append(
                 `<div value="${element.word}" 
-                        style="display: flex-column">                          
-                    <svg class="chart" width="100%" height="10px" style="border: 1px solid lightgrey;">
+                        style="display: flex; flex-direction: column; align-items: center">                          
+                    <svg class="chart" width="70%" height="10px" style="overflow: visible; border: 1px solid lightgrey;">
+                        <text class="small" x="-40" y="10" fill="grey">${(element.prob * 100).toFixed(0)}%</text>
+                        <text class="small" x="103%" y="10" fill="grey">${(element.prob1 * 100).toFixed(0)}%</text>
                         <g class="contrastiveness-bar" 
                             style="transform: translate(${offset.toFixed(0)}%, 0);">
                             <rect width="${width}%" height="100%" fill="${color}"></rect>
@@ -43,11 +45,10 @@ class ListView {
     }
 
     updateConceptsList() {
-        const concepts = this.assignGroup(this.#observables[0].local_concepts, -1);
-        const concepts1 = this.assignGroup(this.#observables[1].local_concepts, 1);
-        const local_concepts = concepts.concat(concepts1);
-        
-        const local_concepts_set = this.getWordSetWithContrastiveProb(local_concepts);
+        const concepts = this.#observables[0].local_concepts;
+        const concepts1 = this.#observables[1].local_concepts;
+ 
+        const local_concepts_set = this.getWordSetWithContrastiveProb(concepts, concepts1);
         const conceptsList = $("#current-list-concept");
 
         conceptsList.empty();
@@ -60,11 +61,10 @@ class ListView {
     }
 
     updateWordsList() {
-        const words = this.assignGroup(this.#observables[0].local_words, -1);
-        const words1 = this.assignGroup(this.#observables[1].local_words, 1);
-        const local_words = words.concat(words1);
+        const words = this.#observables[0].local_words;
+        const words1 = this.#observables[1].local_words;
 
-        const local_words_set = this.getWordSetWithContrastiveProb(local_words);
+        const local_words_set = this.getWordSetWithContrastiveProb(words, words1);
         const wordsList = $("#current-list-word");
         
         wordsList.empty();
@@ -143,26 +143,37 @@ class ListView {
         return labels;
     }
 
-    assignGroup(words, groupId) {
-        return words.map(
-            word => {
-                return Object.assign(
-                    word, 
-                    {group: groupId,
-                    groupProb: groupId * word.prob});
-            }
-        )
-    }
-
-    getWordSetWithContrastiveProb(wordsList) {
+    getWordSetWithContrastiveProb(wordsList,
+                                  wordsList1) {
         const wordSet = {}
         wordsList.forEach(word => {
             if (!wordSet[word.word]) {
-                wordSet[word.word] = word;
+                wordSet[word.word] = {
+                    word: word.word,
+                    groupProb: -word.prob,
+                    prob: word.prob,
+                    prob1: 0
+                };
             } else {
-                wordSet[word.word].groupProb += word.groupProb;
+                wordSet[word.word].groupProb -= word.prob;
+                wordSet[word.word].prob = word.prob;
             }
         });
+
+        wordsList1.forEach(word => {
+            if (!wordSet[word.word]) {
+                wordSet[word.word] = {
+                    word: word.word,
+                    groupProb: word.prob,
+                    prob: 0,
+                    prob1: word.prob,
+                };
+            } else {
+                wordSet[word.word].groupProb += word.prob;
+                wordSet[word.word].prob1 = word.prob;
+            }
+        });
+
         return Object.values(wordSet);
     }
 
@@ -172,25 +183,36 @@ class ListView {
                                     total_length1) {
         const labelSet = {}
         labelList.forEach(([label, count]) => {
+            const prob = count / total_length;
             if (!labelSet[label]) {
-                labelSet[label] = -count / total_length;
+                labelSet[label] = {
+                    word: label,
+                    groupProb: -prob,
+                    prob: prob,
+                    prob1: 0
+                };
             } else {
-                labelSet[label] -= count / total_length;
+                labelSet[label].groupRob -= prob;
+                labelSet[label].prob = prob;
             }
         });
 
         labelList1.forEach(([label, count]) => {
+            const prob1 = count / total_length1;
             if (!labelSet[label]) {
-                labelSet[label] = count / total_length1;
+                labelSet[label] = {
+                    word: label,
+                    groupProb: prob1,
+                    prob: 0,
+                    prob1: prob1
+                };
             } else {
-                labelSet[label] += count / total_length1;
+                labelSet[label].groupProb += prob1;
+                labelSet[label].prob1 = prob1;
             }
         });
 
-        return Object.entries(labelSet)
-            .map(([label, prob]) => 
-                ({word: label, groupProb: prob})
-            );
+        return Object.values(labelSet);
     }
 
     observe(observable) {

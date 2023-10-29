@@ -313,3 +313,11 @@ margin: 10px;
     padding: 5px;
     background-color: whitesmoke;
 }
+
+.list_view {
+    width: 320px;
+}
+
+.list_view .widget_content {
+    width: 316px;
+}
