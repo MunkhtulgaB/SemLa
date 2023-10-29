@@ -30,8 +30,8 @@ class ListView {
                 `<div value="${element.word}" 
                         style="display: flex; flex-direction: column; align-items: center">                          
                     <svg class="chart" width="70%" height="10px" style="overflow: visible; border: 1px solid lightgrey;">
-                        <text class="small" x="-40" y="10" fill="grey">${(element.prob * 100).toFixed(0)}%</text>
-                        <text class="small" x="103%" y="10" fill="grey">${(element.prob1 * 100).toFixed(0)}%</text>
+                        <text class="small" x="-43" y="10" fill="grey">${this.formatPercentage(element.prob * 100)}%</text>
+                        <text class="small" x="103%" y="10" fill="grey">${this.formatPercentage(element.prob1 * 100)}%</text>
                         <g class="contrastiveness-bar" 
                             style="transform: translate(${offset.toFixed(0)}%, 0);">
                             <rect width="${width}%" height="100%" fill="${color}"></rect>
@@ -55,7 +55,7 @@ class ListView {
 
         this.renderContrastiveBarChart(
             local_concepts_set
-                .sort((a,b) => a.groupProb - b.groupProb),
+                .sort(this.sortByContrastiveness),
             conceptsList
         )
     }
@@ -70,7 +70,7 @@ class ListView {
         wordsList.empty();
         this.renderContrastiveBarChart(
                 local_words_set
-                    .sort((a,b) => a.groupProb - b.groupProb),
+                    .sort(this.sortByContrastiveness),
                 wordsList
             );
     }
@@ -95,7 +95,7 @@ class ListView {
             wordsList.empty();
             this.renderContrastiveBarChart(
                 labelSet
-                    .sort((a,b) => a.groupProb - b.groupProb),
+                    .sort(this.sortByContrastiveness),
                 wordsList
             )
         }
@@ -122,10 +122,23 @@ class ListView {
             wordsList.empty();
             this.renderContrastiveBarChart(
                 labelSet
-                .sort((a,b) => a.groupProb - b.groupProb),
+                .sort(this.sortByContrastiveness),
                 wordsList
             )
         }        
+    }
+
+    sortByContrastiveness(a, b) {
+        return (a.groupProb - b.groupProb) ||
+                b.prob - a.prob;
+    }
+
+    formatPercentage(num) {
+        if (num >= 100) {
+            return num.toFixed(0);
+        } else {
+            return num.toFixed(1);
+        } 
     }
 
     getLabelSetSortedByCount(labelList) {
