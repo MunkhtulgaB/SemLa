@@ -5,7 +5,8 @@ import { updateRelationChartFromCache,
         updateTextSummary,
         loadingImportanceChart, 
         emptyRelationChart, 
-        emptyTokenChart } from "./instance-level.js";
+        emptyTokenChart,
+        initializeRelChartControls } from "./instance-level.js";
 import { populateConfusionTable,
         populateIntentTable } from "./intent-level.js";
 import { filterByIntents, 
@@ -345,7 +346,8 @@ function initializeSystem(dataset_name, model) {
 
             const accuracy = 100 - (dataset.errors.length / data.length) * 100;
             $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
-
+            
+            initializeRelChartControls();
             initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1);
     });
 }

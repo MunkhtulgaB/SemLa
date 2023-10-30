@@ -265,37 +265,6 @@
           </div>
         </div>
 
-        <div class="widget sample-lvl-viz" style="background-color: white;" >
-          <p class="widget_title">
-            Relation (token-to-similarity)
-          </p>
-          <div style="border-bottom: 1px solid grey; font-weight: bold; color: grey; padding: 5px; justify-content: space-between; width: 100%; display: flex;">
-            <div>
-              Contrast sample
-              <br>
-              <span class="contrast-label-instance"></span>
-            </div>
-            <div>
-              Selected sample
-              <br>
-              <span class="predicted-label-instance"></span>
-            </div>
-            <div>
-              Closest sample
-              <br>
-              <span class="predicted-label-instance"></span>
-            </div>
-          </div>
-          <div id="relchart-container" class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
-            <div id="rel_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
-                <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
-              </div>
-              <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
-                <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
-              </div>
-          </div>
-        </div>
-
         <div id="importance-container" class="widget sample-lvl-viz">
           <p class="widget_title">
             Importance
@@ -303,13 +272,17 @@
           <div id="importance-chart-container" class="widget_content sample-lvl-content">
             <canvas id="importance_chart"></canvas>
           </div>
-        </div>
+        </div>    
+        
 
         <div class="widget sample-lvl-viz" style="background-color: white;" >
           <p class="widget_title">
             Relation (token-to-token)
           </p>
-          <div style="border-bottom: 1px solid grey; font-weight: bold; color: grey; padding: 5px; justify-content: space-between; width: 100%; display: flex;">
+          <div class="relchart-control">
+            Showing top-<input type="number" id="topk_tokenchart" name="topk_tokenchart" min="1" value=3> important links per side...
+          </div>
+          <div class="relchart-header">
             <div>
               Contrast sample
               <br>
@@ -326,7 +299,7 @@
               <span class="predicted-label-instance"></span>
             </div>
           </div>
-          <div id="tokenchart-container" class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
+          <div id="tokenchart-container" class="rel-container widget_content sample-lvl-content" style="display: flex; padding: 10px">
               <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
                 <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
               </div>
@@ -335,7 +308,40 @@
               </div>
           </div>
         </div>
-        
+
+        <div class="widget sample-lvl-viz" style="background-color: white;" >
+          <p class="widget_title">
+            Relation (token-to-similarity)
+          </p>
+          <div class="relchart-control">
+            Showing top-<input type="number" id="topk_relchart" name="topk_relchart" min="1" value=3> important links per sample...
+          </div>
+          <div class="relchart-header">
+            <div>
+              Contrast sample
+              <br>
+              <span class="contrast-label-instance"></span>
+            </div>
+            <div>
+              Selected sample
+              <br>
+              <span class="predicted-label-instance"></span>
+            </div>
+            <div>
+              Closest sample
+              <br>
+              <span class="predicted-label-instance"></span>
+            </div>
+          </div>
+          <div id="relchart-container" class="rel-container widget_content sample-lvl-content" style="display: flex; padding: 10px">
+            <div id="rel_chart_left_container" class="rel_chart_left" style="height: 100%; width: 0px; display: inline-block;"> 
+                <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
+              </div>
+              <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
+                <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
+              </div>
+          </div>
+        </div>
         
       </div>
     </div>

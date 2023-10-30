@@ -451,8 +451,6 @@ function renderRelChart(res) {
         .x((d) => d.x)
         .y((d) => d.y);
 
-    const leftcol_sorted = leftcol_data
-                .sort((a,b) => b.importance - a.importance);
     const left_lines = relchart
         .selectAll(".left_links")
         .data(
@@ -501,20 +499,8 @@ function renderRelChart(res) {
         .style(
             "stroke-opacity",
             (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
-        )
-        .style("visibility", function(d) {
-            let topk = 3;
-            topk = Math.min(topk, leftcol_sorted.length);
-            const topk_value = leftcol_sorted[topk - 1].importance;
-            if (d.importance >= topk_value) {
-                return "visible";
-            } else {
-                return "hidden";
-            }
-        });
+        );
 
-    const rightcol_sorted = rightcol_data
-        .sort((a,b) => b.importance - a.importance);
     const right_lines = relchart
         .selectAll(".right_links")
         .data(
@@ -565,17 +551,7 @@ function renderRelChart(res) {
         .style(
             "stroke-opacity",
             (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
-        )
-        .style("visibility", function(d) {
-            let topk = 3;
-            topk = Math.min(topk, rightcol_sorted.length);
-            const topk_value = rightcol_sorted[topk - 1].importance;
-            if (d.importance >= topk_value) {
-                return "visible";
-            } else {
-                return "hidden";
-            }
-        });;
+        );
 
     // Add 2 similarity blocks
     const block_width = 10;
@@ -641,9 +617,7 @@ function renderRelChart(res) {
                 .style("left", event.pageX + 10 + "px");
         })
         .on("mouseout", function (d) {
-            d3.selectAll(".rel_link")
-                .filter((dp) => dp.importance > 0 != d.sign > 0)
-                .style("visibility", "visible");
+            updateRelLinks();
         });
 
     d3.selectAll(".rel_link")
@@ -753,8 +727,6 @@ function renderSecondRelChart(res) {
 
     const chart_width = RELCHART_LEFT_WIDTH;
 
-    const leftcol_sorted = leftcol_data
-        .sort((a,b) => b.importance - a.importance);
     const left_lines = relchart_left
         .selectAll(".left_links_contrast")
         .data(
@@ -802,20 +774,8 @@ function renderSecondRelChart(res) {
         .style(
             "stroke-opacity",
             (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
-        )
-        .style("visibility", function(d) {
-            let topk = 3;
-            topk = Math.min(topk, leftcol_sorted.length);
-            const topk_value = leftcol_sorted[topk - 1].importance;
-            if (d.importance >= topk_value) {
-                return "visible";
-            } else {
-                return "hidden";
-            }
-        });
+        );
 
-    const rightcol_sorted = rightcol_data
-        .sort((a,b) => b.importance - a.importance);
     const right_lines = relchart_left
         .selectAll(".right_links_contrast")
         .data(
@@ -863,17 +823,7 @@ function renderSecondRelChart(res) {
         .style(
             "stroke-opacity",
             (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
-        )
-        .style("visibility", function(d) {
-            let topk = 3;
-            topk = Math.min(topk, rightcol_sorted.length);
-            const topk_value = rightcol_sorted[topk - 1].importance;
-            if (d.importance >= topk_value) {
-                return "visible";
-            } else {
-                return "hidden";
-            }
-        });
+        );
 
     // Add 2 similarity blocks
     const block_width = 10;
@@ -939,9 +889,7 @@ function renderSecondRelChart(res) {
                 .style("left", event.pageX + 10 + "px");
         })
         .on("mouseout", function (d) {
-            d3.selectAll(".rel_link")
-                .filter((dp) => dp.importance > 0 != d.sign > 0)
-                .style("visibility", "visible");
+            updateRelLinks();
         });
 
     // Recalculate stroke opacity for previously visible lines
@@ -994,6 +942,8 @@ function renderSecondRelChart(res) {
         .on("mouseout", function (d) {
             d3.select("#rel_chart_tooltip").style("visibility", "hidden");
         });
+
+    updateRelLinks();
 }
 
 function onMouseOverRelChart(d) {
@@ -1039,10 +989,7 @@ function onMouseOverLeftTokenInTokenChart(d) {
 }
 
 function onMouseOutInTokenChart(d) {
-    d3.selectAll(".token_links, .token_links_contrast").style(
-        "visibility",
-        "visible"
-    );
+    updateTokenLinks();
 }
 
 function renderTokenChart(res) {
@@ -1106,8 +1053,6 @@ function renderTokenChart(res) {
         .concat(old_links_data)
         .map((l) => l.strength);
 
-    const link_data_sorted = link_data
-                    .sort((a,b) => b.strength - a.strength);
     tokenchart
         .selectAll(".token_links")
         .data(link_data)
@@ -1129,18 +1074,7 @@ function renderTokenChart(res) {
         .style(
             "stroke-opacity",
             (d) => minmax(all_link_strengths, Math.abs(d.strength)) ** 3
-        )
-        .style("visibility", function(d) {
-            let topk = 3;
-            topk = Math.min(topk, link_data_sorted.length);
-            
-            const topk_value = link_data_sorted[topk - 1].strength;
-            if (d.strength >= topk_value) {
-                return "visible";
-            } else {
-                return "hidden";
-            }
-        });
+        );
 }
 
 function renderSecondTokenChart(res) {
@@ -1179,8 +1113,6 @@ function renderSecondTokenChart(res) {
         .concat(old_links_data)
         .map((l) => l.strength);
 
-    const link_data_sorted = link_data
-                .sort((a,b) => b.strength - a.strength);
     tokenchart_left
         .selectAll(".token_links_contrast")
         .data(link_data)
@@ -1199,18 +1131,7 @@ function renderSecondTokenChart(res) {
         .style(
             "stroke-opacity",
             (d) => minmax(all_link_strengths, Math.abs(d.strength)) ** 3
-        )
-        .style("visibility", function(d) {
-            let topk = 3;
-            topk = Math.min(topk, link_data_sorted.length);
-            
-            const topk_value = link_data_sorted[topk - 1].strength;
-            if (d.strength >= topk_value) {
-                return "visible";
-            } else {
-                return "hidden";
-            }
-        });
+        );
 
     d3.selectAll(".token_links, .token_links_contrast")
         .on("mouseover", function (d) {
@@ -1223,6 +1144,8 @@ function renderSecondTokenChart(res) {
         .on("mouseout", function (d) {
             d3.select("#rel_chart_tooltip").style("visibility", "hidden");
         });
+
+    updateTokenLinks();
 }
 
 
@@ -1296,6 +1219,51 @@ function minmax(values, value) {
     }
 }
 
+
+function initializeRelChartControls() {
+    d3.select("#topk_relchart")
+        .on("change", function() {
+            updateRelLinks();
+        })
+    d3.select("#topk_tokenchart")
+        .on("change", function() {
+            updateTokenLinks();
+        })
+}
+
+function updateRelLinks() {
+    const topk = $("#topk_relchart").val();
+    filterRelLinks(".left_links", topk, "importance");
+    filterRelLinks(".right_links", topk, "importance");
+    filterRelLinks(".left_links_contrast", topk, "importance");
+    filterRelLinks(".right_links_contrast", topk, "importance");
+}
+
+function updateTokenLinks() {
+    const topk = $("#topk_tokenchart").val();
+    filterRelLinks(".token_links", topk, "strength");
+    filterRelLinks(".token_links_contrast", topk, "strength");
+}
+
+function filterRelLinks(linkSelector, topk, byAttr) {
+    const leftLinks = d3.selectAll(linkSelector).data()
+            .sort((a,b) => 
+                Math.abs(b[byAttr]) - Math.abs(a[byAttr])
+            );
+    d3.selectAll(linkSelector)
+        .style("visibility", function(d) {
+            
+            topk = Math.min(topk, leftLinks.length);
+            const topk_value = leftLinks[topk - 1][byAttr];
+            if (Math.abs(d[byAttr]) >= Math.abs(topk_value)) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
+        });
+}
+
+
 export { updateRelationChartFromCache,
         updateImportanceChartFromCache,
         updateTokenChartFromCache,
@@ -1305,4 +1273,6 @@ export { updateRelationChartFromCache,
         updateTextSummary,
         loadingImportanceChart, 
         emptyRelationChart,
-        emptyTokenChart }
+        emptyTokenChart,
+        initializeRelChartControls
+}
