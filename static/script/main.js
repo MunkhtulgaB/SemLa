@@ -273,8 +273,8 @@ function initializeSystem(dataset_name, model) {
                 const filter = filterByIntentsAndUpdate(data, intents, hullClasses);
                 dataset.addFilter(filter);
                 dataset1.addFilter(filter);
-                map.filterHulls(intents, ["predictedLabelHull"], true);
-                map1.filterHulls(intents, ["goldLabelHull"], true);
+                map.filterHulls(intents, ["predictedLabelHull"]);
+                map1.filterHulls(intents, ["goldLabelHull"]);
             }
 
             let filterBySelectedConfusion = function() {
@@ -283,8 +283,8 @@ function initializeSystem(dataset_name, model) {
                 const filter = filterByIntentsAndUpdate(data, [gt, pred]);
                 dataset.addFilter(filter);
                 dataset1.addFilter(filter);
-                map.filterHulls([gt, pred], ["predictedLabelHull"], false)
-                map1.filterHulls([gt, pred], ["predictedLabelHull"], false);
+                map.filterHulls([gt, pred], ["predictedLabelHull"])
+                map1.filterHulls([gt, pred], ["predictedLabelHull"]);
                 
                 $(".selected-tr").removeClass("selected-tr");
                 $(this).addClass("selected-tr");
@@ -644,11 +644,12 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
             });
                 
             const intents = $("#label_filter").val();
-            const filter = filterByIntentsAndUpdate(dataset.data, intents, hullClasses);
+            const filter = filterByIntentsAndUpdate(dataset.data, intents, ["predictedLabelHull"]);
+            const filter1 = filterByIntentsAndUpdate(dataset.data, intents, ["goldLabelHull"]);
             dataset.addFilter(filter);
-            dataset1.addFilter(filter);
-            map.filterHulls(intents, ["predictedLabelHull"], true);
-            map1.filterHulls(intents, ["goldLabelHull"], true)
+            dataset1.addFilter(filter1);
+            map.filterHulls(intents, ["predictedLabelHull"]);
+            map1.filterHulls(intents, ["goldLabelHull"])
         };
         $(this).change(filterGroup);
         $("#label_filter option").click(filterGroup);

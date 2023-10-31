@@ -441,7 +441,7 @@ class MapView {
         d3.selectAll(".drag_line").style("visibility", "hidden");
     }
 
-    filterHulls(intents, hullClasses, updateDatapoints) {
+    filterHulls(intents, hullClasses) {
         this.#svg_canvas.selectAll("path.labelHull").attr("visibility", "hidden");
         // make the intents specific?
         hullClasses = hullClasses || ["predictedLabelHull"];
@@ -455,23 +455,6 @@ class MapView {
                 }
             });
         });
-
-        if (updateDatapoints) {
-            this.#svg_canvas.selectAll(".datapoint").style("visibility", function(d) {
-                let label;
-                if (hullClasses[0].includes("predicted")) {
-                    label = d.prediction;
-                } else if (hullClasses[0].includes("gold")) {
-                    label = d.ground_truth;
-                }
-
-                if (intents.includes(label)) {
-                    return "visible";
-                } else {
-                    return "hidden";
-                }
-            });
-        }
     }
 
     hideHulls() {

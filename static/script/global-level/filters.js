@@ -59,6 +59,8 @@ class FilterView {
         } else if (filterType == "Confidence") {
             $("input.confThreshold[data-index=0]").val(0);
             $("input.confThreshold[data-index=1]").val(100);
+        } else if (filterType == "Intent") {
+            d3.selectAll("path.labelHull").attr("visibility", "hidden");
         }
     }
 
