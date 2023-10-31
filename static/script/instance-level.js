@@ -426,25 +426,20 @@ function renderRelChart(res) {
         .filter((dp) => dp.importance < 0)
         .map(getWidth);
 
-    const max_pos =
-        pos_left.reduce((a, b) => a + b, 0) >
-            pos_right.reduce((a, b) => a + b, 0)
-            ? pos_left
-            : pos_right;
-    const max_neg =
-        neg_left.reduce((a, b) => a + b, 0) >
-            neg_right.reduce((a, b) => a + b, 0)
-            ? neg_left
-            : neg_right;
-    const total_width = max_pos.concat(max_neg).reduce((a, b) => a + b, 0);
+    const pos_height = pos_left.concat(pos_right)
+                        .reduce((a, b) => a + b, 0);
+
+    const neg_height = neg_left.concat(neg_right)
+                        .reduce((a, b) => a + b, 0);
+    const total_height = pos_height + neg_height;
 
     const PAD = 0;
-    const start_line_pos = chart_height / 2 - total_width / 2;
+    const start_line_pos = chart_height / 2 - total_height / 2;
     const start_line_neg =
         PAD +
         chart_height / 2 +
-        total_width / 2 -
-        max_neg.reduce((a, b) => a + b, 0);
+        total_height / 2 -
+        neg_height;
 
     let linkGenerator = d3
         .linkHorizontal()
@@ -562,14 +557,14 @@ function renderRelChart(res) {
                 sign: 1,
                 fill: "skyblue",
                 stroke: "blue",
-                height: max_pos.reduce((a, b) => a + b, 0),
+                height: pos_height,
                 y: start_line_pos,
             },
             {
                 sign: -1,
                 fill: "pink",
                 stroke: "red",
-                height: max_neg.reduce((a, b) => a + b, 0),
+                height: neg_height,
                 y: start_line_neg,
             },
         ])
@@ -700,25 +695,20 @@ function renderSecondRelChart(res) {
         .filter((dp) => dp.importance < 0)
         .map(getWidth);
 
-    const max_pos =
-        pos_left.reduce((a, b) => a + b, 0) >
-            pos_right.reduce((a, b) => a + b, 0)
-            ? pos_left
-            : pos_right;
-    const max_neg =
-        neg_left.reduce((a, b) => a + b, 0) >
-            neg_right.reduce((a, b) => a + b, 0)
-            ? neg_left
-            : neg_right;
-    const total_width = max_pos.concat(max_neg).reduce((a, b) => a + b, 0);
+    const pos_height = pos_left.concat(pos_right)
+                        .reduce((a, b) => a + b, 0);
+    const neg_height = neg_left.concat(neg_right)
+                        .reduce((a, b) => a + b, 0);
+
+    const total_height = pos_height + neg_height;
 
     const PAD = 0;
-    const start_line_pos = chart_height / 2 - total_width / 2;
+    const start_line_pos = chart_height / 2 - total_height / 2;
     const start_line_neg =
         PAD +
         chart_height / 2 +
-        total_width / 2 -
-        max_neg.reduce((a, b) => a + b, 0);
+        total_height / 2 -
+        neg_height;
 
     let linkGenerator = d3
         .linkHorizontal()
@@ -834,14 +824,14 @@ function renderSecondRelChart(res) {
                 sign: 1,
                 fill: "skyblue",
                 stroke: "blue",
-                height: max_pos.reduce((a, b) => a + b, 0),
+                height: pos_height,
                 y: start_line_pos,
             },
             {
                 sign: -1,
                 fill: "pink",
                 stroke: "red",
-                height: max_neg.reduce((a, b) => a + b, 0),
+                height: neg_height,
                 y: start_line_neg,
             },
         ])
