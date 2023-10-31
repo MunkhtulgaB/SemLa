@@ -746,8 +746,7 @@ function onClick(d, dataset, explanation_set, map) {
                     x2: closest_dp[`${dim_reduction}-dim0`],
                     y2: closest_dp[`${dim_reduction}-dim1`],
                 },
-            ])
-            .style("visibility", "visible");
+            ]);
         
         d3.select(`#${map.containerId} .drag-line-1`)
             .attr("x1", (d[`${dim_reduction}-dim0`]))
@@ -761,7 +760,10 @@ function onClick(d, dataset, explanation_set, map) {
                     x2: dp2[`${dim_reduction}-dim0`],
                     y2: dp2[`${dim_reduction}-dim1`],
                 },
-            ])
+            ]);
+            
+        map.updateDragLines();
+        d3.selectAll(`#${map.containerId} .drag_line`)
             .style("visibility", "visible");
     }
 }
@@ -831,8 +833,7 @@ function onClickSummaryOnly(d, dataset, explanation_set, map) {
                     x2: closest_dp[`${dim_reduction}-dim0`],
                     y2: closest_dp[`${dim_reduction}-dim1`],
                 },
-            ])
-            .style("visibility", "visible");
+            ]);
 
         d3.select(`#${map.containerId} .drag-line-1`)
             .attr("x1", (d[`${dim_reduction}-dim0`]))
@@ -846,7 +847,10 @@ function onClickSummaryOnly(d, dataset, explanation_set, map) {
                     x2: dp2[`${dim_reduction}-dim0`],
                     y2: dp2[`${dim_reduction}-dim1`],
                 },
-            ])
+            ]);
+        
+        map.updateDragLines();
+        d3.selectAll(`#${map.containerId} .drag_line`)
             .style("visibility", "visible");
     }
 
