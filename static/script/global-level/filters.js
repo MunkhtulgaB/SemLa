@@ -1,22 +1,25 @@
 class FilterView {
 
     #dataset;
+    #onRemove;
+    #container_id;
 
-    constructor(dataset) {
+    constructor(container_id, dataset, onRemove) {
         this.#dataset = dataset;
+        this.#onRemove = onRemove;
+        this.#container_id = container_id;
         dataset.addObserver(this);
     }
 
     update(_, msg) {
-        
-        const filterView = $("#current-filters");
+        const filterView = $(`#${this.#container_id}`);
         if (msg == "clear") {
             filterView.html("")
         } else {
             const currentFilters = msg;
             let html = "";
             for (const [type, filter] of Object.entries(currentFilters)) {
-                html += `<span class="p-1 m-1 badge text-bg-primary">
+                html += `<span class="p-1 m-1 badge text-bg-secondary">
                             ${type} ${filter.value}
                             <span data="${type}" class="filter-remove-btn" style="background-color: transparent;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="white" class="bi bi-trash" viewBox="0 0 16 16">
@@ -29,12 +32,12 @@ class FilterView {
             filterView.html(html);
         }
 
-        const self = this;
         $(".filter-remove-btn").unbind("click")
-        $(".filter-remove-btn").click(function() {
-            const filterType = $(this).attr("data");
-            self.undoFilter(filterType);
-        });
+        $(".filter-remove-btn").click(this.#onRemove);
+    }
+
+    setOnRemove(removeFunction) {
+        this.#onRemove = removeFunction;
     }
 
     undoLastFilter() {

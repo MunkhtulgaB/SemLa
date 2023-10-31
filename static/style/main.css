@@ -358,3 +358,7 @@ margin: 10px;
 .filter-remove-btn:hover {
     cursor: pointer;
 }
+
+.filter-container {
+    width: 95%;
+}

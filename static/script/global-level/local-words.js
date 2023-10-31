@@ -53,7 +53,7 @@ class LocalWordsView {
         const dataset = this.#dataset;
 
         let onLocalWordClick = function(filter_name, idxs, words, concepts, goldLabels, predictedLabels) {
-            const filter = new Filter(filter_name, "", null); // dummy filter to update the current filters
+            const filter = new Filter(filter_name, "", idxs); // dummy filter to update the current filters
             dataset.addFilter(filter, true, this.#mapViewId);
             this.setLocalGoldLabels(goldLabels);
             this.setLocalPredictedLabels(predictedLabels);

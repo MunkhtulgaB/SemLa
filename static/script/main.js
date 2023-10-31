@@ -257,6 +257,8 @@ function initializeSystem(dataset_name, model) {
         function (data) {
             const cluster_to_color = d3.schemeSet3;
             const dataset = new Dataset(data);
+            const dataset1 = new Dataset(data);
+
             const explanations = new ExplanationSet(dataset_name);
 
             // Initialize the global and intent level visualizations
@@ -269,7 +271,8 @@ function initializeSystem(dataset_name, model) {
                     
                 const intents = $(elem).val();
                 const filter = filterByIntentsAndUpdate(data, intents, hullClasses);
-                dataset.addFilter(filter)
+                dataset.addFilter(filter);
+                dataset1.addFilter(filter);
                 map.filterHulls(intents, ["predictedLabelHull"], true);
                 map1.filterHulls(intents, ["goldLabelHull"], true);
             }
@@ -279,6 +282,7 @@ function initializeSystem(dataset_name, model) {
                 const pred = d3.select(this).attr("pred");
                 const filter = filterByIntentsAndUpdate(data, [gt, pred]);
                 dataset.addFilter(filter);
+                dataset1.addFilter(filter);
                 map.filterHulls([gt, pred], ["predictedLabelHull"], false)
                 map1.filterHulls([gt, pred], ["predictedLabelHull"], false);
                 
@@ -295,8 +299,18 @@ function initializeSystem(dataset_name, model) {
                                     "semantic_landscape-mirror", 
                                     width, 
                                     height,
-                                    dataset);
-            const filter_view = new FilterView(dataset);
+                                    dataset1);
+
+            const filter_view = new FilterView("current-filters", dataset);
+            const filter_view1 = new FilterView("current-filters-1",dataset1);
+            let onFilterRemove = function() {
+                const filterType = $(this).attr("data");
+                filter_view.undoFilter(filterType);
+                filter_view1.undoFilter(filterType);
+            };
+            filter_view.setOnRemove(onFilterRemove);
+            filter_view1.setOnRemove(onFilterRemove);
+
             const list_view = new ListView(local_words_view);
 
             list_view.observe(local_words_view);
@@ -327,7 +341,7 @@ function initializeSystem(dataset_name, model) {
                                     margin,
                                     width, 
                                     height, 
-                                    dataset,
+                                    dataset1,
                                     explanations,
                                     cluster_to_color, 
                                     dataset.intentToCluster,
@@ -351,12 +365,12 @@ function initializeSystem(dataset_name, model) {
             $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
             
             initializeRelChartControls();
-            initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view);
+            initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view, filter_view1);
     });
 }
 
 
-function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view) {
+function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view, filter_view1) {
     // Initialize the input widgets
     const local_word_toggle = $("#show-local-words");
     const how_many_grams = $("#how-many-grams");
@@ -534,6 +548,7 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
         if (d.length > 0) {
             const filter = filterByDatapointAndUpdate(d[0], dataset.data);
             dataset.addFilter(filter);
+            dataset1.addFilter(filter);
         }
     });
 
@@ -542,8 +557,10 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
         if ($("#show-errors").is(":checked")) {
             const filter = new Filter("Errors", "", dataset.errors_idxs);
             dataset.addFilter(filter);
+            dataset1.addFilter(filter);
         } else {
             dataset.removeFilter("Errors");
+            dataset1.removeFilter("Errors");
         }
     });
 
@@ -587,6 +604,7 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
                 conf_threshold_lower,
                 conf_threshold_upper);
             dataset.addFilter(filter);
+            dataset1.addFilter(filter);
         }
     });
 
@@ -598,10 +616,12 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
         const search_value = e.target.value;
         if (search_value == "") {
             dataset.removeFilter("Search")
+            dataset1.removeFilter("Search");
         } else {
             const search_phrases = search_value.split(";");
             const filter = filterBySearch(dataset.data, search_phrases);
             dataset.addFilter(filter);
+            dataset1.addFilter(filter);
         }
     });
 
@@ -609,6 +629,7 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
     clear_btn.on("click", function (e) {
         resetFilterControls();
         dataset.clearFilters();
+        dataset1.clearFilters();
     });
 
     // Controls on label & cluster widget
@@ -624,7 +645,8 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
                 
             const intents = $("#label_filter").val();
             const filter = filterByIntentsAndUpdate(dataset.data, intents, hullClasses);
-            dataset.addFilter(filter)
+            dataset.addFilter(filter);
+            dataset1.addFilter(filter);
             map.filterHulls(intents, ["predictedLabelHull"], true);
             map1.filterHulls(intents, ["goldLabelHull"], true)
         };
@@ -635,6 +657,7 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
     $(document).bind("keyup", function(e) {
         if (e.key == "Escape") {
             filter_view.undoLastFilter();
+            filter_view1.undoLastFilter();
         }
     });
 }
