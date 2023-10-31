@@ -354,3 +354,7 @@ margin: 10px;
 .widget_content svg {
     overflow: visible;
 }
+
+.filter-remove-btn:hover {
+    cursor: pointer;
+}

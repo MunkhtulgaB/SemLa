@@ -12,6 +12,7 @@ class LocalWordsView {
     #mapViewId;
     #width;
     #height;
+    #dataset;
     #conceptCache;
     #isAlreadyLoading;
     #forceSimulation;
@@ -25,10 +26,11 @@ class LocalWordsView {
     #local_words = [];
     #local_concepts = [];
 
-    constructor(mapViewId, width, height) {
+    constructor(mapViewId, width, height, dataset) {
         this.#mapViewId = mapViewId;
         this.#width = width;
         this.#height = height;
+        this.#dataset = dataset;
 
         this.#conceptCache = {};
         this.isAlreadyLoading = false;
@@ -48,8 +50,11 @@ class LocalWordsView {
             return;
         }
 
+        const dataset = this.#dataset;
+
         let onLocalWordClick = function(filter_name, idxs, words, concepts, goldLabels, predictedLabels) {
-            const filter = new Filter(filter_name, "", idxs);
+            const filter = new Filter(filter_name, "", null); // dummy filter to update the current filters
+            dataset.addFilter(filter, true, this.#mapViewId);
             this.setLocalGoldLabels(goldLabels);
             this.setLocalPredictedLabels(predictedLabels);
             this.setLocalWords(words);

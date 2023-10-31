@@ -289,16 +289,19 @@ function initializeSystem(dataset_name, model) {
             const local_words_view = new LocalWordsView(
                                     "semantic_landscape", 
                                     width, 
-                                    height);
+                                    height,
+                                    dataset);
             const local_words_view1 = new LocalWordsView(
                                     "semantic_landscape-mirror", 
                                     width, 
-                                    height);
+                                    height,
+                                    dataset);
             const filter_view = new FilterView(dataset);
             const list_view = new ListView(local_words_view);
 
             list_view.observe(local_words_view);
             list_view.observe(local_words_view1);
+
 
             let updateBothLocalWordViews = function(isHighFrequencyCall) {
                 local_words_view.update(isHighFrequencyCall);
@@ -348,12 +351,12 @@ function initializeSystem(dataset_name, model) {
             $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
             
             initializeRelChartControls();
-            initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1);
+            initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view);
     });
 }
 
 
-function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1) {
+function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view) {
     // Initialize the input widgets
     const local_word_toggle = $("#show-local-words");
     const how_many_grams = $("#how-many-grams");
@@ -631,8 +634,7 @@ function initializeControlWidgets(dataset, map, map1, cluster_to_color, local_wo
 
     $(document).bind("keyup", function(e) {
         if (e.key == "Escape") {
-            resetFilterControls();
-            dataset.clearFilters();
+            filter_view.undoLastFilter();
         }
     });
 }

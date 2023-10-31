@@ -113,17 +113,21 @@ class Dataset {
         this.#pred_counts = pred_counts;
     }
 
-    addFilter(newFilter, doNotUpdateLocalWords) {
+    addFilter(newFilter, doNotUpdateLocalWords, observerId) {
         if (!this.#filters[newFilter.type]) {
             this.#filters[newFilter.type] = newFilter;
-            this.#filteredData = this.#filteredData.filter((d) => {
-                return newFilter.idxs.includes(d.idx);
-            });
+            if (newFilter.idxs) {
+                this.#filteredData = this.#filteredData.filter((d) => {
+                    return newFilter.idxs.includes(d.idx);
+                });
+            }
         } else {
             this.#filters[newFilter.type] = newFilter;
-            this.#filteredData = this.refilterData();
+            if (newFilter.idxs) {
+                this.#filteredData = this.refilterData();
+            }
         }
-        this.notifyObservers(this.#filters, doNotUpdateLocalWords);
+        this.notifyObservers(this.#filters, doNotUpdateLocalWords, observerId);
     }
 
     removeFilter(filterType) {
@@ -153,16 +157,21 @@ class Dataset {
         this.notifyObservers("clear");
     }
 
-    notifyObservers(msg, doNotUpdateLocalWords) {
+    notifyObservers(msg, doNotUpdateLocalWords, observerId) {
         this.#observers.forEach((observer) => 
             observer.update(this.filteredData.map(d => d.idx), 
                             msg,
-                            doNotUpdateLocalWords));
+                            doNotUpdateLocalWords,
+                            observerId));
     }
 
     addObserver(observer) {
         this.#observers.push(observer);
     } 
+
+    get filters() {
+        return this.#filters;
+    }
 
     get filteredData() {
         return this.#filteredData;

@@ -254,7 +254,10 @@ class MapView {
             .call(zoom);    
     }
 
-    update(newDataIdxs, msg, doNotUpdateLocalWords) {
+    update(newDataIdxs, msg, doNotUpdateLocalWords, observerId) {
+        if (observerId && observerId != this.#container_id) {
+            return;
+        }
         if (!newDataIdxs) return;
         this.filterNodes(newDataIdxs);
         this.updateSymbols();
