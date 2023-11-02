@@ -518,7 +518,8 @@ function initializeHelpTooltips() {
                         by showing the 
                         local concepts, words, and labels (predicted and ground-truth)
                         in the currently visible datapoints all simultaneously.
-                        </p>`);
+                        </p>
+                        `);
 
     addTooltip("#info-sample-level", `
                         <p>
@@ -530,8 +531,50 @@ function initializeHelpTooltips() {
                         The widgets below allow you to analyze 
                         the model and dataset at <b>the label level</b>.
                         </p>`);
-    
-                                
+    addTooltip("#info-local-concepts", `
+                        <p>
+                        The local <b>concepts</b> extracted from the current datapoints on the "Map view" 
+                        (<b>sorted by probability</b> calculated based on the currently visible datapoints).
+                        </p>
+                        
+                        <p>
+                        <b>In comparison mode</b>, these are sorted by <b>contrastiveness</b>,
+                        the difference in probability of occurring in "Group 1"
+                        versus in "Group 2".
+                        </p>`);
+    addTooltip("#info-local-words-list", `
+                        <p>
+                        The local <b>words</b> extracted from the current datapoints on the "Map view" 
+                        (<b>sorted by probability</b> calculated based on the currently visible datapoints).
+                        </p>
+                        
+                        <p>
+                        <b>In comparison mode</b>, these are sorted by <b>contrastiveness</b>,
+                        the difference in probability of occurring in "Group 1"
+                        versus in "Group 2".
+                        </p>`);
+    addTooltip("#info-local-gold-labels", `
+                        <p>
+                        The <b>ground-truth labels</b> of the current datapoints on the "Map view" 
+                        (<b>sorted by probability</b> calculated based on the currently visible datapoints).
+                        </p>
+                        
+                        <p>
+                        <b>In comparison mode</b>, these are sorted by <b>contrastiveness</b>,
+                        the difference in probability of occurring in "Group 1"
+                        versus in "Group 2".
+                        </p>`);
+    addTooltip("#info-local-predicted-labels", `
+                        <p>
+                        The <b>predicted labels</b> of the current datapoints on the "Map view" 
+                        (<b>sorted by probability</b> calculated based on the currently visible datapoints).
+                        </p>
+                        
+                        <p>
+                        <b>In comparison mode</b>, these are sorted by <b>contrastiveness</b>,
+                        the difference in probability of occurring in "Group 1"
+                        versus in "Group 2".
+                        </p>`);                          
 }
 
 
