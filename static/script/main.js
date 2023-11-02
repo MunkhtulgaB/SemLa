@@ -142,6 +142,7 @@ $(document)
     // Comparison mode
     $("#compare-mode").change(function() {
         $(".map-view-header").css("display", "none");
+        $("#filter-container-1").css("display", "none");
         clearSystem();
         initializeSystem(system_config.dataset, 
                         system_config.model);
