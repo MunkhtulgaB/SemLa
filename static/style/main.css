@@ -131,6 +131,20 @@ padding: 5px;
 background-color: whitesmoke;
 }
 
+.advanced-option {
+    display: none;
+}
+
+#list-view {
+position: absolute;
+left: 20px;
+width: 1460px;
+height: fit-content;
+bottom: 20px;
+z-index: 1000;
+}
+
+
 .map-list-view {
 background-color: white;
 z-index: 100;
@@ -164,7 +178,7 @@ position: absolute;
 display: flex;
 height: auto;
 top: 20px;
-bottom: 20px;
+height: 1050px;
 left: 20px;
 background-color: white;
 width: 1460px;

@@ -415,7 +415,7 @@ function hideProgress() {
 
 
 function extractLocalFeatures(visible_dps, feature, total_num_of_leaf_visible_dps) {
-    const is_to_ignore_stopwords = $("#ignore-stopwords").is(":checked");
+    const show_stopwords = $("#show-stopwords").is(":checked");
     const invert = $("#invert").is(":checked");
     const n_grams = $("#how-many-grams").val();
     const locality_threshold = $("#localAreaThreshold").val();
@@ -437,7 +437,7 @@ function extractLocalFeatures(visible_dps, feature, total_num_of_leaf_visible_dp
         if (words) {
             words.forEach(function (word) {
                 if (!word) return;
-                if (is_to_ignore_stopwords
+                if (!show_stopwords
                    && STOP_WORDS.includes(word.toLowerCase()))
                     return;
 

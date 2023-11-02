@@ -58,7 +58,148 @@
             </div>        
           </div>
         </div>
+        
+        <div class="corpus-widget-container">
 
+          <div class="widget" id="filter-options">
+            <p class="widget_title">
+              Filter options
+              <span class="info-sign" id="info-filter-options">&#9432;</span>
+            </p>
+            <div class="widget_content">
+
+              
+              <label for="show-errors">Show errors only</label>
+              <input type="checkbox" id="show-errors" name="show-errors">
+              
+              <div>
+                <label>Confidence thresholds</label>
+                <input type="number" class="confThreshold" data-index="0" value="0" min="0"/>
+                <input type="number" class="confThreshold" data-index="1" value="100" max="100"/>
+              </div>
+
+              <div>
+                <label for="filter">Filter datapoints by substrings</label>
+                <input name="filter" id="filter" style="width: 120px"></input>
+              </div>
+
+              <div class="advanced-option">
+                <label for="group-by">Upon selecting a node, filter:</label>
+                <div>
+                  <input type="radio" name="filter-by" value="support_set" checked>Support set</input>
+                  <input type="radio" name="filter-by" value="ground_truth">Same label</input>
+                  <input type="radio" name="filter-by" value="prediction">Same prediction</input>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="widget" id="local-words">
+            <p class="widget_title">
+              Localized features options
+              <span class="info-sign" id="info-local-words">&#9432;</span>
+            </p>
+            <div class="widget_content">
+              <div>
+                <label for="show-local-words">Show </label>
+                <input type="checkbox" id="show-local-words" name="show-local-words" checked>
+                
+                <label for="local-feature-type-select"> | Type</label>
+                <select id="local-feature-type-select" class="mb-1 form-select-sm inline-select">
+                  <option value="text" selected>Word</option>
+                  <option value="concept">Concept</option>
+                  <option value="ground_truth">Gold label</option>
+                  <option value="prediction">Predicted label</option>
+                  <option value="word_len">Length in words</option>
+                  <option value="char_len">Length in characters</option>
+                </select>
+
+                <label class="word-only-option" for="show-stopwords">| Stopwords</label>
+                <input class="word-only-option" type="checkbox" id="show-stopwords" checked name="show-stopwords">
+              </div>
+              <div>
+                
+              </div>
+
+              <div>
+                <label for="freqThreshold">Frequency thresholds</label>
+                <input type="number" class="freqThreshold" data-index="0" value="30" min="0"/>
+                <input type="number" class="freqThreshold" data-index="1" value="1000"/>
+              </div>
+              <div id="concept-freqThreshold" class="d-none">
+                <label for="freqThreshold-concept">Frequency thresholds (concept)</label>
+                <input type="number" class="freqThreshold-concept" data-index="0" value="2" min="0"/>
+                <input type="number" class="freqThreshold-concept" data-index="1" value="1000"/>
+              </div>
+              <div>
+                <label for="localAreaThreshold">Locality threshold</label>
+                <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="0" max="1000" value=100 step="10">
+              </div>
+
+              <div class="advanced-option">
+                <label for="locality-shape">Locality shape</label>
+                <select id="locality-shape" name="locality-shape" class="mb-1 form-select-sm inline-select">
+                  <option value="gaussian" selected>Gaussian</option>
+                  <option value="square">Square</option>
+                </select>
+
+                <span class="word-only-option">| </span>
+                <input class="word-only-option" type="number" id="how-many-grams" name="how-many-grams" min="1" value=1>
+                <label class="word-only-option" for="how-many-grams">-gram(s)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="widget" id="map_options">
+            <p class="widget_title">
+              Map view options
+              <span class="info-sign" id="info-map-options">&#9432;</span>
+            </p>
+            
+            <div class="widget_content">
+              <div>
+                Model
+                <select id="model-select" class="mb-1 form-select-sm inline-select">
+                  <option value="bert">BERT</option>
+                  <option value="gpt">GPT-3</option>
+                  <option value="roberta">RoBERTa</option>
+                </select>
+              </div>
+              <div>
+                Dataset
+                <select id="dataset-select" class="form-select-sm inline-select">
+                  <option value="banking" selected>BANKING</option>
+                  <option value="hwu">HWU</option>
+                  <option value="clinc">CLINC</option>
+                  <option value="go_emotions" disabled>go_emotions</option>
+                  <option value="sst5" disabled>SST-5</option>
+                  <option value="medical-bios" disabled>medical-bios</option>
+                </select>
+              </div>
+              <div>
+                Accuracy: <span id="accuracy"></span>%
+              </div>
+              <div class="advanced-option">
+                <label for="dim-reduction">Dimension reduction</label>
+                <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
+                <input type="radio" name="dim-reduction" value="umap">umap</input>
+                
+                <label for="group-by">Confidence heatmap</label>
+                <input type="checkbox" id="show-confidence" name="show-confidence">
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div id="list-view" class="widget super-widget">
+        <p class="widget_title">
+          List view
+          <span class="info-sign" id="info-list-view">&#9432;</span>
+        </p>
         <div id="list-view-container">
           <div class="map-list-view">
             <div class="widget list_view">
@@ -92,142 +233,6 @@
             </div>
           </div>
         </div>
-        
-        <div class="corpus-widget-container">
-
-          <div class="widget" id="filter-options">
-            <p class="widget_title">
-              Filter options
-              <span class="info-sign" id="info-filter-options">&#9432;</span>
-            </p>
-            <div class="widget_content">
-
-              
-              <label for="show-errors">Show errors only</label>
-              <input type="checkbox" id="show-errors" name="show-errors">
-              
-              <div>
-                <label>Confidence thresholds</label>
-                <input type="number" class="confThreshold" data-index="0" value="0" min="0"/>
-                <input type="number" class="confThreshold" data-index="1" value="100" max="100"/>
-              </div>
-
-              <div>
-                <label for="filter">Filter datapoints by substrings</label>
-                <input name="filter" id="filter" style="width: 120px"></input>
-              </div>
-
-              <div>
-                <label for="group-by">Upon selecting a node, filter:</label>
-                <div>
-                  <input type="radio" name="filter-by" value="support_set" checked>Support set</input>
-                  <input type="radio" name="filter-by" value="ground_truth">Same label</input>
-                  <input type="radio" name="filter-by" value="prediction">Same prediction</input>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="widget" id="local-words">
-            <p class="widget_title">
-              Localized features options
-              <span class="info-sign" id="info-local-words">&#9432;</span>
-            </p>
-            <div class="widget_content">
-              <div>
-                <label for="show-local-words">Show </label>
-                <input type="checkbox" id="show-local-words" name="show-local-words" checked>
-                
-                <label for="local-feature-type-select"> | Type</label>
-                <select id="local-feature-type-select" class="mb-1 form-select-sm inline-select">
-                  <option value="text" selected>Word</option>
-                  <option value="concept">Concept</option>
-                  <option value="ground_truth">Gold label</option>
-                  <option value="prediction">Predicted label</option>
-                  <option value="word_len">Length in words</option>
-                  <option value="char_len">Length in characters</option>
-                </select>
-                <span class="word-only-option">| </span>
-                <input class="word-only-option" type="number" id="how-many-grams" name="how-many-grams" min="1" value=1>
-                <label class="word-only-option" for="how-many-grams">-gram(s)</label>
-              </div>
-              <div>
-                
-              </div>
-
-              <div>
-                <label for="freqThreshold">Frequency thresholds</label>
-                <input type="number" class="freqThreshold" data-index="0" value="30" min="0"/>
-                <input type="number" class="freqThreshold" data-index="1" value="1000"/>
-              </div>
-              <div id="concept-freqThreshold" class="d-none">
-                <label for="freqThreshold-concept">Frequency thresholds (concept)</label>
-                <input type="number" class="freqThreshold-concept" data-index="0" value="2" min="0"/>
-                <input type="number" class="freqThreshold-concept" data-index="1" value="1000"/>
-              </div>
-              <div>
-                <label for="localAreaThreshold">Locality threshold</label>
-                <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="0" max="1000" value=100 step="10">
-              </div>
-
-              <div>
-                <label for="locality-shape">Locality shape</label>
-                <select id="locality-shape" name="locality-shape" class="mb-1 form-select-sm inline-select">
-                  <option value="gaussian" selected>Gaussian</option>
-                  <option value="square">Square</option>
-                </select>
-                <label class="word-only-option" for="ignore-stopwords">| Hide stopwords</label>
-                <input class="word-only-option" type="checkbox" id="ignore-stopwords" name="ignore-stopwords">
-              </div>
-
-              <div>
-                </div>
-            </div>
-          </div>
-
-          <div class="widget" id="map_options">
-            <p class="widget_title">
-              Map view options
-              <span class="info-sign" id="info-map-options">&#9432;</span>
-            </p>
-            
-            <div class="widget_content">
-              <div>
-                Model
-                <select id="model-select" class="mb-1 form-select-sm inline-select">
-                  <option value="bert">BERT</option>
-                  <option value="gpt">GPT-3</option>
-                  <option value="roberta">RoBERTa</option>
-                </select>
-              </div>
-              <div>
-                Dataset
-                <select id="dataset-select" class="form-select-sm inline-select">
-                  <option value="banking" selected>BANKING</option>
-                  <option value="hwu">HWU</option>
-                  <option value="clinc">CLINC</option>
-                  <option value="go_emotions" disabled>go_emotions</option>
-                  <option value="sst5" disabled>SST-5</option>
-                  <option value="medical-bios" disabled>medical-bios</option>
-                </select>
-              </div>
-              <div>
-                Accuracy: <span id="accuracy"></span>%
-              </div>
-              <div>
-                <label for="dim-reduction">Dimension reduction</label>
-                <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
-                <input type="radio" name="dim-reduction" value="umap">umap</input>
-              </div>
-
-              <label for="group-by">Confidence heatmap</label>
-              <input type="checkbox" id="show-confidence" name="show-confidence">
-
-            </div>
-          </div>
-
-        </div>
-
       </div>
 
       <div id="intent-level" class="widget super-widget">

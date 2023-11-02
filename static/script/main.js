@@ -482,6 +482,12 @@ function initializeHelpTooltips() {
                         <p>
                         It's possible to show only the top-k links per each sample.
                         </p>`);
+    addTooltip("#info-list-view", `
+                        <p>
+                        This view <b>shows simultaneously</b> the 
+                        local concepts, words, and predicted and ground-truth labels
+                        in the currently visible datapoints on the "Map view".
+                        </p>`);
                                 
 }
 
@@ -490,7 +496,7 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     // Initialize the input widgets
     const local_word_toggle = $("#show-local-words");
     const how_many_grams = $("#how-many-grams");
-    const ignore_stop_words = $("#ignore-stopwords");
+    const show_stopwords = $("#show-stopwords");
     const feature_type = $("#local-feature-type-select");
     const area_threshold = $("#localAreaThreshold");
     const show_confidence = $("#show-confidence");
@@ -509,7 +515,7 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     // First, remove all the currently registered event handlers
     [local_word_toggle, 
         how_many_grams,
-        ignore_stop_words,
+        show_stopwords,
         feature_type,
         area_threshold,
         show_confidence,
@@ -546,10 +552,10 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
         }
     });
     how_many_grams.change(updateBothLocalWordViews);
-    ignore_stop_words.change(updateBothLocalWordViews);
+    show_stopwords.change(updateBothLocalWordViews);
     addTooltip("label[for=show-local-words]", "Toggle the localized features");
     addTooltip("label[for=how-many-grams]", `If the feature type is "Word", each feature can be an n-gram instead of a unigram.`);
-    addTooltip("label[for=ignore-stopwords]", "Do not consider stop words");
+    addTooltip("label[for=show-stopwords]", "Do not consider stop words");
 
 
     // Local word (feature) type
