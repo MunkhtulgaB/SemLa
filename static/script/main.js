@@ -81,10 +81,6 @@ let addTooltip = function(selector, content) {
 }
 
 
-// make widgets collapsible
-$(".widget_title").click(function () {
-    $(this).parent().find(".widget_content").slideToggle();
-});
 
 // set the dimensions and margins of the graph
 let margin = { top: 10, right: 30, bottom: 30, left: 60 },
@@ -147,6 +143,7 @@ $(document)
 
     initializeTooltip("super-tooltip", "super-container",
                         "black", "white", 0.95);
+    initializeHelpTooltips();
     initializeDragLines();
     $("#model-select").change(function() {
         const model = $(this).val();
@@ -370,6 +367,125 @@ function initializeSystem(dataset_name, model) {
 }
 
 
+function initializeHelpTooltips() {
+    addTooltip("#info-filter-options", `<p>The options below allow you to select 
+                                        <b>which datapoints</b> (circles) are shown on
+                                        the map above.</p>
+                                        
+                                        <p>For example, you can <i>search</i>
+                                        datapoints containing a certain word (substring) or you can choose
+                                         to show only those datapoints
+                                        for which the model made an erroneous prediction.</p>
+                                        
+                                        <p>Hover over each option for further details.</p>`);
+    addTooltip("#info-local-words", `<p>The options below allow you to control 
+                                     the <b>text</b> visualized over the datapoints in the map above.</p>
+                                     
+                                     <p>The words represent features of 
+                                     a selected type and their "locations". For example, if you select type "Concept"
+                                     using the dropdown list and a small locality threshold 
+                                     using the slider, then you will see only concepts that are 
+                                     highly localized (as opposed to spread-out) on their respective
+                                     locations on the map.
+                                     </p>
+                                     
+                                     <p>Hover over each option for further details.</p>`);
+    addTooltip("#info-map-options", `The basic options below allow you to select which
+                                     <b>dataset and model</b> to load for analysis, which dimension 
+                                     reduction to use, and whether to color the datapoints
+                                     based on model confidence.`);
+    addTooltip("#info-map-header", `<p>This interactive visualization allows you to analyze a model 
+                                    and/or a dataset, using a "map", which shows datapoints of
+                                     the dataset in the <b>embedding space of the model</b>.</p>
+                                     
+                                    <p>The high-dimensional embeddings of the datapoints are 
+                                    projected to 2D using dimension reduction. You can 
+                                    freely explore this projected space using zooming and panning,
+                                    and navigate its various localities using the "Localized features options" and
+                                    the "Filter options".</p>`);
+    addTooltip("#info-labels-clusters", `<p>The list below shows <b>all labels</b> in their 
+                                        respective cluster groups. 
+                                        </p>
+                                        
+                                        <p>
+                                        It provides to option to select one or multiple labels to 
+                                        analyze them on the map view. For example, if you select a 
+                                        single label, only datapoints <b>predicted by the model</b>
+                                         to have that label will be shown on the map.
+                                        </p>
+
+                                        <p>
+                                        It is also possible to compare a predicted group 
+                                        (datapoints predicted as having label x) against the 
+                                        ground-truth group (datapoints that actually have label x).
+                                        </p>`);
+
+    addTooltip("#info-confusions", `<p>
+                                        The table below shows the <b>model's confusions</b>.
+                                        Clicking on the column headers sorts the confusions 
+                                        by the selected column.
+                                    </p>
+                                    <p>
+                                        The first two columns sorts by how frequently the label
+                                        has appeared as either the "ground-truth" or the "prediction"
+                                        in the model's confusions. For example, sorting by "ground-truth"
+                                        will allow quickly identifying which labels had the most or least 
+                                        false negatives.
+                                    </p>
+                                    <p>
+                                        The last column sorts the confusions by how many times the
+                                        model made errors with the exact two labels in the row.
+                                    </p>
+                                    `);
+    addTooltip("#info-sample-summary", `
+                                    <p>
+                                        Summarizes the <b>key information</b> relevant to the 
+                                        selected sample, which include 
+                                        the texts and the labels associated with the 
+                                        <b>selected</b> sample x itself and two related samples:
+                                        the <b>closest</b> sample to x whose label is the predicted label of x,
+                                        and a <b>contrast</b> sample that either has the ground-truth label of x
+                                        or another similar label.
+                                    </p>
+                                    `);
+    addTooltip("#info-feature-importance", `
+                        <p>
+                        Shows the <b>importance of each feature</b> in the selected sample.
+                        </p>
+                        <p>
+                        Each feature's importance, represented by a composite bar,
+                        is the total of normalized importance score from four 
+                        different feature importance estimation methods.
+                        </p>
+                        <p>
+                        By comparing the segments in each bar, it is possible to see 
+                        whether the different estimation methods agree with each other.
+                        </p>
+                        <p>
+                        You can also choose to use only one or a subset of the 
+                        estimation methods by disabling the rest of the methods by
+                        clicking on their names that appear in the legend below the chart.
+                        </p>`);
+    addTooltip("#info-tokenchart", `
+                        <p>
+                        Shows the <b>token-to-token links</b> between the selected sample and its two related samples.
+                        </p>
+                        <p>
+                        It's possible to show only the top-k links per each related sample.
+                        </p>
+                        `);
+    addTooltip("#info-relchart", `
+                        <p>
+                        Shows the <b>token-to-similarity links</b> that represent the contribution of each 
+                        token to the similarity between the samples.
+                        </p>    
+                        <p>
+                        It's possible to show only the top-k links per each sample.
+                        </p>`);
+                                
+}
+
+
 function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view, filter_view1) {
     // Initialize the input widgets
     const local_word_toggle = $("#show-local-words");
@@ -431,9 +547,9 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     });
     how_many_grams.change(updateBothLocalWordViews);
     ignore_stop_words.change(updateBothLocalWordViews);
-    addTooltip("label[for=show-local-words]", "Show localized features");
-    addTooltip("label[for=how-many-grams]", "Show localized n-grams instead of unigrams");
-    addTooltip("label[for=ignore-stopwords]", "Do not show stop words");
+    addTooltip("label[for=show-local-words]", "Toggle the localized features");
+    addTooltip("label[for=how-many-grams]", `If the feature type is "Word", each feature can be an n-gram instead of a unigram.`);
+    addTooltip("label[for=ignore-stopwords]", "Do not consider stop words");
 
 
     // Local word (feature) type
@@ -454,16 +570,34 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
         hideProgress();
     })
     addTooltip("label[for=local-feature-type-select]", 
-                `Select the type of feature you would like to investigate the localization of.
-                <br>For example, choose feature type "Gold label" to see where certain labels are localized.`)
+                `<p>Select the type of feature that you are interested in 
+                analyzing.</p>
+                
+                <p>For example, choose feature type "Gold label" 
+                to see where each label located.</p>`)
 
     // Locality shape
     locality_shape.change(updateBothLocalWordViews);
     addTooltip(
         "label[for=locality-shape]", 
-        `The square locality shape requires all occurrences of the shown localized features to be strictly contained <br>
-        within the locality threshold size, i.e., does not allow outliers.
-        <br>The Gaussian locality shape allows outliers.`
+        `<p>
+        A locality shape defines how to determine the locality and location of a feature
+        based on its occurences.</p>
+
+        <p>
+        The square locality shape defines the locality of a feature 
+        as a box (hypercube) that contains <i>strictly all</i> occurrences
+        of the feature, i.e., it does not allow outliers.
+        The Gaussian option defines locality similarly with a box
+        but allows outliers.</p>
+
+        <p>For these options, the location simply corresponds 
+        to the center of the locality boxes. In short,
+        the locality is the area that contains all or most occurrences of
+        the feature, whereas the location is a point that 
+        represents the area.
+        </p>
+        `
     )
 
     // Local area size threshold
@@ -496,10 +630,15 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
         });
     addTooltip(
         "label[for=localAreaThreshold]",
-        `The size of the locality is defined by this threshold.
-        <br>
-        The red box that appears on the map as you move the slider indicates the current threshold size.
-        The shown features are localized within the same size box as this.
+        `<p>How localized (as opposed to spread-out) should each
+         feature be to be shown?</p>
+        
+         <p>The red box that appears on the map as you move the
+          slider indicates the current locality size. 
+          All or most occurrences (depending on "Locality shape")
+          of each visualized feature will be 
+          contained in a box of this size.
+          </p>
         `
     )
     $("#invert").change(updateBothLocalWordViews);
@@ -517,8 +656,20 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     freq_threshold.change(updateBothLocalWordViews);
     addTooltip(
         "label[for=freqThreshold]",
-        `The frequency of the shown localized features (across all currently visible nodes) is within this range.`
+        `How prominent (frequent in the datapoints) should each feature be to be shown?`
     );
+    addTooltip(
+        "label[for=freqThreshold-concept]",
+        `Concepts are extracted not directly from the datapoints,
+        but by first identifying local words from the datapoints
+        and then recursively identifying localized commonsense conceptual
+        knowledge from the resulting local words.
+        
+        "Frequency thresholds" applies to the first step, 
+        whereas this option applies to the second step.
+        `
+    );
+
 
     freq_threshold_concept.change(updateBothLocalWordViews);
 

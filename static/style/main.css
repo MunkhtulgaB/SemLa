@@ -62,10 +62,6 @@ font-weight: bold;
 font-size: 1.2em;
 }
 
-.widget_title:hover {
-cursor: pointer;
-}
-
 .widget_content {
 height: fit-content;
 max-height: 290px;
@@ -160,7 +156,7 @@ width: 300px;
 #super-container {
 position: relative;
 height: 1440px; 
-width: 2560px;
+width: 2860px;
 }
 
 #corpus-level {
@@ -361,4 +357,16 @@ margin: 10px;
 
 .filter-container {
     width: 95%;
+}
+
+.info-sign {
+    font-weight: lighter;
+    color: grey;
+    cursor: pointer;
+}
+
+#super-tooltip {
+    background-color: whitesmoke !important;
+    max-width: 500px;
+    box-shadow: 1px 1px 10px grey;
 }
