@@ -46,7 +46,7 @@ class ListView {
 
     updateConceptsList() {
         const concepts = this.#observables[0].local_concepts;
-        const concepts1 = this.#observables[1].local_concepts;
+        const concepts1 = (this.#observables[1]) ? this.#observables[1].local_concepts : [];
  
         const local_concepts_set = this.getWordSetWithContrastiveProb(concepts, concepts1);
         const conceptsList = $("#current-list-concept");
@@ -62,7 +62,7 @@ class ListView {
 
     updateWordsList() {
         const words = this.#observables[0].local_words;
-        const words1 = this.#observables[1].local_words;
+        const words1 = (this.#observables[1]) ? this.#observables[1].local_words : [];
 
         const local_words_set = this.getWordSetWithContrastiveProb(words, words1);
         const wordsList = $("#current-list-word");
@@ -77,10 +77,9 @@ class ListView {
 
     updateGoldLabelList() {
         let labels = this.#observables[0].goldLabels;
-        let labels1 = this.#observables[1].goldLabels;
+        let labels1 = (this.#observables[1]) ? this.#observables[1].goldLabels : [];
 
-        if (labels && labels1 && labels.length > 0 
-                    && labels1.length > 0) {
+        if (labels && labels1) {
             const total_length = labels.length;
             const total_length1 = labels1.length;
             
@@ -103,10 +102,9 @@ class ListView {
 
     updatePredictedLabelList() {
         let labels = this.#observables[0].predictedLabels;
-        let labels1 = this.#observables[1].predictedLabels;
+        let labels1 = (this.#observables[1]) ? this.#observables[1].predictedLabels : [];
 
-        if (labels && labels1 && labels.length > 0 
-            && labels1.length > 0) {
+        if (labels && labels1) {
 
             const total_length = labels.length;
             const total_length1 = labels1.length;
@@ -127,6 +125,8 @@ class ListView {
             )
         }        
     }
+
+    
 
     sortByContrastiveness(a, b) {
         return (a.groupProb - b.groupProb) ||

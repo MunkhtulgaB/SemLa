@@ -80,48 +80,16 @@ let addTooltip = function(selector, content) {
     .on("mouseout", () => hideTooltip("#super-tooltip"));
 }
 
+let margin;
+let width;
+let height;
+let bbox;
 
+let svg_canvas;
+let clip;
 
-// set the dimensions and margins of the graph
-let margin = { top: 10, right: 30, bottom: 30, left: 60 },
-    width = 700 - margin.left - margin.right,
-    height = 790 - margin.top - margin.bottom,
-    bbox = {"width": width, "height": height};
-
-// append the SVG object to the body of the page
-let svg_canvas = d3
-    .select("svg#semantic_landscape")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .select("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-// Add a clipPath: everything out of this area won't be drawn.
-let clip = svg_canvas.append("defs")
-    .append("SVG:clipPath")
-    .attr("id", "clip")
-    .append("SVG:rect")
-    .attr("width", width)
-    .attr("height", height)
-    .attr("x", 0)
-    .attr("y", 0);
-
-
-let svg_canvas1 = d3
-    .select("svg#semantic_landscape-mirror")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .select("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-let clip1 = svg_canvas1.append("defs")
-    .append("SVG:clipPath")
-    .attr("id", "clip")
-    .append("SVG:rect")
-    .attr("width", width)
-    .attr("height", height)
-    .attr("x", 0)
-    .attr("y", 0);
+let svg_canvas1;
+let clip1;
     
 
 let dim_reduction = "tsne";
@@ -141,10 +109,6 @@ const system_config = {
 $(document)
     .ready(function () {
 
-    initializeTooltip("super-tooltip", "super-container",
-                        "black", "white", 0.95);
-    initializeHelpTooltips();
-    initializeDragLines();
     $("#model-select").change(function() {
         const model = $(this).val();
         system_config.model = model;
@@ -175,6 +139,14 @@ $(document)
 
     });
 
+    // Comparison mode
+    $("#compare-mode").change(function() {
+        $(".map-view-header").css("display", "none");
+        clearSystem();
+        initializeSystem(system_config.dataset, 
+                        system_config.model);
+    })
+    
     // disable all options first
     $("#dataset-select option")
     .attr("disabled", "disabled");
@@ -186,10 +158,21 @@ $(document)
     })
     
     initializeSystem(system_config.dataset, system_config.model);
+    initializeTooltip("super-tooltip", "super-container",
+        "black", "white", 0.95);
+    initializeHelpTooltips();
+    initializeDragLines();
+
 });
 
 
 function clearSystem() {
+    const is_in_compare_mode = $("#compare-mode").is(":checked");
+    margin = { top: 10, right: 30, bottom: 30, left: 60 };
+    width = ((is_in_compare_mode) ? 700 : 1400) - margin.left - margin.right;
+    height = 790 - margin.top - margin.bottom;
+    bbox = {"width": width, "height": height};
+
     svg_canvas.html(null);
     // Add a clipPath: everything out of this area won't be drawn.
     svg_canvas.append("defs")
@@ -201,16 +184,17 @@ function clearSystem() {
     .attr("x", 0)
     .attr("y", 0);
 
-    svg_canvas1.html(null);
-    svg_canvas1.append("defs")
-    .append("SVG:clipPath")
-    .attr("id", "clip")
-    .append("SVG:rect")
-    .attr("width", width)
-    .attr("height", height)
-    .attr("x", 0)
-    .attr("y", 0);
-
+    if (svg_canvas1) {
+        svg_canvas1.html(null);
+        svg_canvas1.append("defs")
+        .append("SVG:clipPath")
+        .attr("id", "clip")
+        .append("SVG:rect")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("x", 0)
+        .attr("y", 0);
+    }
 
     $("#label_filter").html(`<option value=""></option>`);
     $("#confusion-table").html(`
@@ -245,17 +229,37 @@ function clearSystem() {
 
 
 function initializeSystem(dataset_name, model) {
+    const is_in_compare_mode = $("#compare-mode").is(":checked");
+    margin = { top: 10, right: 30, bottom: 30, left: 60 };
+    width = ((is_in_compare_mode) ? 700 : 1400) - margin.left - margin.right;
+    height = 790 - margin.top - margin.bottom;
+    bbox = {"width": width, "height": height};
+
+    svg_canvas = d3
+        .select("svg#semantic_landscape")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .select("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    clip = svg_canvas.append("defs")
+        .append("SVG:clipPath")
+        .attr("id", "clip")
+        .append("SVG:rect")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("x", 0)
+        .attr("y", 0);
+    
     // Load data
     $("#dataset_name").html(`<b>${dataset_name.toUpperCase()}</b>`);
     $("#model-select").val(model);
-    $("#dataset-select").val(dataset_name)
+    $("#dataset-select").val(dataset_name);
+
     d3.json(
         `static/data/${dataset_name.toLowerCase()}-viz_data-${NUM_CLUSTERS}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent-with-${model.toLowerCase()}.json`,
         function (data) {
             const cluster_to_color = d3.schemeSet3;
             const dataset = new Dataset(data);
-            const dataset1 = new Dataset(data);
-
             const explanations = new ExplanationSet(dataset_name);
 
             // Initialize the global and intent level visualizations
@@ -292,31 +296,22 @@ function initializeSystem(dataset_name, model) {
                                     width, 
                                     height,
                                     dataset);
-            const local_words_view1 = new LocalWordsView(
-                                    "semantic_landscape-mirror", 
-                                    width, 
-                                    height,
-                                    dataset1);
+            let local_words_view1;
 
             const filter_view = new FilterView("current-filters", dataset);
-            const filter_view1 = new FilterView("current-filters-1",dataset1);
             let onFilterRemove = function() {
                 const filterType = $(this).attr("data");
                 filter_view.undoFilter(filterType);
                 filter_view1.undoFilter(filterType);
             };
             filter_view.setOnRemove(onFilterRemove);
-            filter_view1.setOnRemove(onFilterRemove);
-
             const list_view = new ListView(local_words_view);
 
             list_view.observe(local_words_view);
-            list_view.observe(local_words_view1);
-
 
             let updateBothLocalWordViews = function(isHighFrequencyCall) {
                 local_words_view.update(isHighFrequencyCall);
-                local_words_view1.update(isHighFrequencyCall);
+                if (local_words_view1) local_words_view1.update(isHighFrequencyCall);
             }
 
             const map = new MapView("semantic_landscape",
@@ -333,23 +328,58 @@ function initializeSystem(dataset_name, model) {
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name);
-            const map1 = new MapView("semantic_landscape-mirror",
-                                    svg_canvas1, 
-                                    margin,
-                                    width, 
-                                    height, 
-                                    dataset1,
-                                    explanations,
-                                    cluster_to_color, 
-                                    dataset.intentToCluster,
-                                    dim_reduction,
-                                    updateBothLocalWordViews,
-                                    (model != "bert")? onClickSummaryOnly : onClick,
-                                    updateRelationChart,
-                                    dataset_name);
             local_words_view.addObserver(map);
-            local_words_view1.addObserver(map1);
+
+            let map1;
+            let dataset1;
+            let filter_view1;
+
+            if (is_in_compare_mode) {
+                $(".map-view-header").css("display", "block");
+                svg_canvas1 = d3
+                    .select("svg#semantic_landscape-mirror")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .select("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                clip1 = svg_canvas1.append("defs")
+                    .append("SVG:clipPath")
+                    .attr("id", "clip")
+                    .append("SVG:rect")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .attr("x", 0)
+                    .attr("y", 0);
+                    
+                $("#filter-container-1").css("display", "block");
+                dataset1 = new Dataset(data);
+                filter_view1 = new FilterView("current-filters-1",dataset1);
+                filter_view1.setOnRemove(onFilterRemove);
                 
+                local_words_view1 = new LocalWordsView(
+                    "semantic_landscape-mirror", 
+                    width, 
+                    height,
+                    dataset1);
+
+                map1 = new MapView("semantic_landscape-mirror",
+                                svg_canvas1, 
+                                margin,
+                                width, 
+                                height, 
+                                dataset1,
+                                explanations,
+                                cluster_to_color, 
+                                dataset.intentToCluster,
+                                dim_reduction,
+                                updateBothLocalWordViews,
+                                (model != "bert")? onClickSummaryOnly : onClick,
+                                updateRelationChart,
+                                dataset_name);
+                local_words_view1.addObserver(map1);
+                list_view.observe(local_words_view1);
+            }
             populateIntentTable(dataset.clusterToIntent, 
                                 cluster_to_color, 
                                 filterBySelectedIntents);
@@ -525,6 +555,7 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     const freq_threshold_concept = $("input.freqThreshold-concept");
     const locality_shape = $('#locality-shape');
     const label_filter_controls = $(".show-label-group");
+
     // First, remove all the currently registered event handlers
     [local_word_toggle, 
         how_many_grams,
@@ -552,7 +583,7 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
 
     let updateBothLocalWordViews = function(isHighFrequencyCall) {
         local_words_view.update(isHighFrequencyCall);
-        local_words_view1.update(isHighFrequencyCall);
+        if (local_words_view1) local_words_view1.update(isHighFrequencyCall);
     }
 
     // Toggle local words
@@ -1045,18 +1076,20 @@ function initializeDragLines() {
         .attr("stroke", "lightblue")
         .attr("stroke-width", "3");
 
-    svg_canvas1.append("line")
-        .attr("clip-path", "url(#clip)")
-        .attr("class", "drag_line drag-line-0")
-        .style("visibility", "hidden")
-        .attr("stroke", "lightblue")
-        .attr("stroke-width", "3");
-    svg_canvas1.append("line")
-        .attr("clip-path", "url(#clip)")
-        .attr("class", "drag_line drag-line-1")
-        .style("visibility", "hidden")
-        .attr("stroke", "lightblue")
-        .attr("stroke-width", "3");
+    if (svg_canvas1) {
+        svg_canvas1.append("line")
+            .attr("clip-path", "url(#clip)")
+            .attr("class", "drag_line drag-line-0")
+            .style("visibility", "hidden")
+            .attr("stroke", "lightblue")
+            .attr("stroke-width", "3");
+        svg_canvas1.append("line")
+            .attr("clip-path", "url(#clip)")
+            .attr("class", "drag_line drag-line-1")
+            .style("visibility", "hidden")
+            .attr("stroke", "lightblue")
+            .attr("stroke-width", "3");
+    }
 }
 
 alert("This demo is optimized for a 16:9 high resolution screen. Please zoom out to fit to your screen.")

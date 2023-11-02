@@ -50,7 +50,7 @@
               <g>
               </g>
             </svg>
-            <div class="mx-5 filter-container">
+            <div id="filter-container-1" class="mx-5 filter-container">
               <!-- <p class="widget_title">Filters</p> -->
               Current filters:
               <button id="clear-filter" class="badge text-bg-light">Clear</button>
@@ -164,8 +164,7 @@
                   <option value="gpt">GPT-3</option>
                   <option value="roberta">RoBERTa</option>
                 </select>
-              </div>
-              <div>
+
                 Dataset
                 <select id="dataset-select" class="form-select-sm inline-select">
                   <option value="banking" selected>BANKING</option>
@@ -175,10 +174,12 @@
                   <option value="sst5" disabled>SST-5</option>
                   <option value="medical-bios" disabled>medical-bios</option>
                 </select>
-              </div>
-              <div>
                 Accuracy: <span id="accuracy"></span>%
+                <br>
+                <label for="compare-mode">Comparison mode </label>
+                <input type="checkbox" id="compare-mode" name="compare-mode">
               </div>
+
               <div class="advanced-option">
                 <label for="dim-reduction">Dimension reduction</label>
                 <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>

@@ -162,9 +162,10 @@ width: 300px;
 }
 
 .map-view-header {
-    width: 100%;
-    text-align: center;
-    font-weight: bold;
+display: none;
+width: 100%;
+text-align: center;
+font-weight: bold;
 }
 
 #super-container {
@@ -196,7 +197,7 @@ height: 100%;
 }
 
 #map_options {
-width: 330px;
+width: 360px;
 height: 100%;
 }
 
@@ -382,6 +383,10 @@ margin: 10px;
 
 .filter-container {
     width: 95%;
+}
+
+#filter-container-1 {
+    display: none;
 }
 
 .info-sign {
