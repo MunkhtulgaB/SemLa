@@ -395,8 +395,8 @@ function initializeHelpTooltips() {
                                      reduction to use, and whether to color the datapoints
                                      based on model confidence.`);
     addTooltip("#info-map-header", `<p>This interactive visualization allows you to analyze a model 
-                                    and/or a dataset, using a "map", which shows datapoints of
-                                     the dataset in the <b>embedding space of the model</b>.</p>
+                                    and/or a dataset at both the <b>global level</b> and more fine-grained levels, using a "map", which shows datapoints of
+                                     the dataset in the embedding space of the model.</p>
                                      
                                     <p>The high-dimensional embeddings of the datapoints are 
                                     projected to 2D using dimension reduction. You can 
@@ -484,10 +484,23 @@ function initializeHelpTooltips() {
                         </p>`);
     addTooltip("#info-list-view", `
                         <p>
-                        This view <b>shows simultaneously</b> the 
-                        local concepts, words, and predicted and ground-truth labels
-                        in the currently visible datapoints on the "Map view".
+                        This view <b>complements</b> the "Map view"
+                        by showing the 
+                        local concepts, words, and labels (predicted and ground-truth)
+                        in the currently visible datapoints all simultaneously.
                         </p>`);
+
+    addTooltip("#info-sample-level", `
+                        <p>
+                        The visualizations below provide <b>sample-level</b> explanations.
+                        </p>`);
+
+    addTooltip("#info-label-level", `
+                        <p>
+                        The widgets below allow you to analyze 
+                        the model and dataset at <b>the label level</b>.
+                        </p>`);
+    
                                 
 }
 

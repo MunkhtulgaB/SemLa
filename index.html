@@ -235,142 +235,154 @@
         </div>
       </div>
 
+      
       <div id="intent-level" class="widget super-widget">
-        <div id="label-clusters" class="widget intent-clusters">
-          <p class="widget_title">
-            Labels &amp; Clusters
-            <span class="info-sign" id="info-labels-clusters">&#9432;</span>            
-          </p>
-          <div id="label-filter-control">
-            <label for="show-label-group">Select label(s) to show on the map view:</label>
-            <div>
-              <input type="checkbox" class="show-label-group" name="show-label-group" value="predictedLabelHull" checked>Predicted group</input>
-              <input type="checkbox" class="show-label-group" name="show-label-group" value="goldLabelHull">Ground-truth group</input>
-            </div>
-          </div>
-
-          <div id="label-cluster-table-content" class="widget_content label-cluster-table-content">  
-            <select style="width: 100%; height: 100%" size="8" class="label_filter" id="label_filter" multiple>
-              <option value=""></option>
-            </select>
-          </div>
-        </div>
-
-        <div id="confusions" class="widget">
+        <p class="widget_title">
+          Label level
+          <span class="info-sign" id="info-label-level">&#9432;</span>
+        </p>
+        <div id="intent-level-row-container">
+          <div id="label-clusters" class="widget intent-clusters">
             <p class="widget_title">
-              Confusions
-              <span class="info-sign" id="info-confusions">&#9432;</span> 
+              Labels &amp; Clusters
+              <span class="info-sign" id="info-labels-clusters">&#9432;</span>            
             </p>
-            <div class="widget_content" style="overflow-y: scroll; overflow-x: hidden; margin: 10px;">
-              <table id="confusion-table">
-                <tr>
-                  <th column_type="gt" sort_dir="desc" class="sortable-column-header small_td">Ground truth <span class="sort-arrow">&darr;</span></th>
-                  <th column_type="pred" sort_dir="desc"  class="sortable-column-header small_td">Prediction <span class="sort-arrow">&darr;</span></th>
-                  <th column_type="num_confusions" sort_dir="desc" class="sortable-column-header xs_td"># confusions <span class="sort-arrow">&darr;</span></th>
-                </tr>
-              </table>
+            <div id="label-filter-control">
+              <label for="show-label-group">Select label(s) to show on the map view:</label>
+              <div>
+                <input type="checkbox" class="show-label-group" name="show-label-group" value="predictedLabelHull" checked>Predicted group</input>
+                <input type="checkbox" class="show-label-group" name="show-label-group" value="goldLabelHull">Ground-truth group</input>
+              </div>
             </div>
+
+            <div id="label-cluster-table-content" class="widget_content label-cluster-table-content">  
+              <select style="width: 100%; height: 100%" size="8" class="label_filter" id="label_filter" multiple>
+                <option value=""></option>
+              </select>
+            </div>
+          </div>
+
+          <div id="confusions" class="widget">
+              <p class="widget_title">
+                Confusions
+                <span class="info-sign" id="info-confusions">&#9432;</span> 
+              </p>
+              <div class="widget_content" style="overflow-y: scroll; overflow-x: hidden; margin: 10px;">
+                <table id="confusion-table">
+                  <tr>
+                    <th column_type="gt" sort_dir="desc" class="sortable-column-header small_td">Ground truth <span class="sort-arrow">&darr;</span></th>
+                    <th column_type="pred" sort_dir="desc"  class="sortable-column-header small_td">Prediction <span class="sort-arrow">&darr;</span></th>
+                    <th column_type="num_confusions" sort_dir="desc" class="sortable-column-header xs_td"># confusions <span class="sort-arrow">&darr;</span></th>
+                  </tr>
+                </table>
+              </div>
+          </div>
         </div>
       </div>
 
       <div id="rel_chart_tooltip" style="z-index: 1000; visibility: hidden; position: absolute; padding: 5px; border-radius: 5px; font-weight: bold; font-size: 12px; background-color: black; opacity: 0.8; color: white"></div>
       
       <div id="sample-level" class="widget super-widget">
-        
-        <div id="summary-container" class="widget sample-lvl-viz">
-          <p class="widget_title">
-            Sample summary
-            <span class="info-sign" id="info-sample-summary">&#9432;</span>
-          </p>
-          <div class="widget_content sample-lvl-content" style="overflow: auto">
-            <div id="summary">
-              <div class="instance-level-placeholder">
-                Click on a node on the map view to start.
-                <br/>
-                (The instance-level explanations are only available for some models in this demo)
+        <p class="widget_title">
+          Sample level
+          <span class="info-sign" id="info-sample-level">&#9432;</span>
+        </p>
+        <div id="sample-level-container">
+          <div id="summary-container" class="widget sample-lvl-viz">
+            <p class="widget_title">
+              Sample summary
+              <span class="info-sign" id="info-sample-summary">&#9432;</span>
+            </p>
+            <div class="widget_content sample-lvl-content" style="overflow: auto">
+              <div id="summary">
+                <div class="instance-level-placeholder">
+                  Click on a node on the map view to start.
+                  <br/>
+                  (The instance-level explanations are only available for some models in this demo)
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div id="importance-container" class="widget sample-lvl-viz">
-          <p class="widget_title">
-            Importance
-            <span class="info-sign" id="info-feature-importance">&#9432;</span>
-          </p>
-          <div id="importance-chart-container" class="widget_content sample-lvl-content">
-            <canvas id="importance_chart"></canvas>
-          </div>
-        </div>    
-        
+          <div id="importance-container" class="widget sample-lvl-viz">
+            <p class="widget_title">
+              Importance
+              <span class="info-sign" id="info-feature-importance">&#9432;</span>
+            </p>
+            <div id="importance-chart-container" class="widget_content sample-lvl-content">
+              <canvas id="importance_chart"></canvas>
+            </div>
+          </div>    
+          
 
-        <div class="widget sample-lvl-viz" style="background-color: white;" >
-          <p class="widget_title">
-            Relation (token-to-token)
-            <span class="info-sign" id="info-tokenchart">&#9432;</span>
-          </p>
-          <div class="relchart-control">
-            Showing top-<input type="number" id="topk_tokenchart" name="topk_tokenchart" min="1" value=3> important links per side...
-          </div>
-          <div class="relchart-header">
-            <div>
-              Contrast sample
-              <br>
-              <span class="contrast-label-instance"></span>
+          <div class="widget sample-lvl-viz" style="background-color: white;" >
+            <p class="widget_title">
+              Relation (token-to-token)
+              <span class="info-sign" id="info-tokenchart">&#9432;</span>
+            </p>
+            <div class="relchart-control">
+              Showing top-<input type="number" id="topk_tokenchart" name="topk_tokenchart" min="1" value=3> important links per side...
             </div>
-            <div>
-              Selected sample
-              <br>
-              <span class="predicted-label-instance"></span>
-            </div>
-            <div>
-              Closest sample
-              <br>
-              <span class="predicted-label-instance"></span>
-            </div>
-          </div>
-          <div id="tokenchart-container" class="rel-container widget_content sample-lvl-content" style="display: flex; padding: 10px">
-              <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
-                <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
+            <div class="relchart-header">
+              <div>
+                Contrast sample
+                <br>
+                <span class="contrast-label-instance"></span>
               </div>
-              <div id="token_chart_right_container" class="rel_chart_right" style="height: 100%;">
-                <svg id="token_chart" style="height: 100%; width: 100%"></svg>
+              <div>
+                Selected sample
+                <br>
+                <span class="predicted-label-instance"></span>
               </div>
+              <div>
+                Closest sample
+                <br>
+                <span class="predicted-label-instance"></span>
+              </div>
+            </div>
+            <div id="tokenchart-container" class="rel-container widget_content sample-lvl-content" style="display: flex; padding: 10px">
+                <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
+                  <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
+                </div>
+                <div id="token_chart_right_container" class="rel_chart_right" style="height: 100%;">
+                  <svg id="token_chart" style="height: 100%; width: 100%"></svg>
+                </div>
+            </div>
           </div>
-        </div>
 
-        <div class="widget sample-lvl-viz" style="background-color: white;" >
-          <p class="widget_title">
-            Relation (token-to-similarity)
-            <span class="info-sign" id="info-relchart">&#9432;</span>
-          </p>
-          <div class="relchart-control">
-            Showing top-<input type="number" id="topk_relchart" name="topk_relchart" min="1" value=3> important links per sample...
-          </div>
-          <div class="relchart-header">
-            <div>
-              Contrast sample
-              <br>
-              <span class="contrast-label-instance"></span>
+          <div class="widget sample-lvl-viz" style="background-color: white;" >
+            <p class="widget_title">
+              Relation (token-to-similarity)
+              <span class="info-sign" id="info-relchart">&#9432;</span>
+            </p>
+            <div class="relchart-control">
+              Showing top-<input type="number" id="topk_relchart" name="topk_relchart" min="1" value=3> important links per sample...
             </div>
-            <div>
-              Selected sample
-              <br>
-              <span class="predicted-label-instance"></span>
-            </div>
-            <div>
-              Closest sample
-              <br>
-              <span class="predicted-label-instance"></span>
-            </div>
-          </div>
-          <div id="relchart-container" class="rel-container widget_content sample-lvl-content" style="display: flex; padding: 10px">
-            <div id="rel_chart_left_container" class="rel_chart_left" style="height: 100%; width: 0px; display: inline-block;"> 
-                <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
+            <div class="relchart-header">
+              <div>
+                Contrast sample
+                <br>
+                <span class="contrast-label-instance"></span>
               </div>
-              <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
-                <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
+              <div>
+                Selected sample
+                <br>
+                <span class="predicted-label-instance"></span>
               </div>
+              <div>
+                Closest sample
+                <br>
+                <span class="predicted-label-instance"></span>
+              </div>
+            </div>
+            <div id="relchart-container" class="rel-container widget_content sample-lvl-content" style="display: flex; padding: 10px">
+              <div id="rel_chart_left_container" class="rel_chart_left" style="height: 100%; width: 0px; display: inline-block;"> 
+                  <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
+                </div>
+                <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
+                  <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
+                </div>
+            </div>
           </div>
         </div>
         
