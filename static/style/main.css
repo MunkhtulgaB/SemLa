@@ -29,9 +29,9 @@ padding-right: 10px;
 }
 
 .selected-header {
-    background-color: lightgrey;
-    border: 1px solid dimgrey !important;
-    z-index: 1000;
+background-color: lightgrey;
+border: 1px solid dimgrey !important;
+z-index: 1000;
 }
 
 .xs_td {
@@ -48,7 +48,7 @@ background-color: gainsboro;
 }
 
 .widget {
-border: 1px solid darkslategray; 
+border: 1px solid grey; 
 box-shadow: 1px 1px 5px lightgrey;
 border-radius: 3px;
 background-color: white;
@@ -60,6 +60,7 @@ height: fit-content;
 text-align: center;
 font-weight: bold;
 font-size: 1.2em;
+background-color: #dadada;
 }
 
 .widget_content {
@@ -95,6 +96,12 @@ background-color: white;
 overflow: hidden;
 /* box-shadow: 2px 1px 5px grey; */
 border: 1px solid grey;
+}
+
+.super_widget_title {
+background-color: lightblue;
+font-weight: bold;
+font-size: 1.5em;
 }
 
 /* CORPUS LEVEL */
@@ -254,8 +261,7 @@ top: 20px;
 left: 1500px;
 height: 1000px; 
 width: 1280px; 
-opacity: 1; 
-padding: 10px;
+opacity: 1;
 z-index: 100;
 }
 
@@ -280,7 +286,6 @@ background-color: white;
 .sample-lvl-viz {
 width: 600px;
 height: 460px;
-padding: 5px;
 margin-bottom: 10px;
 }
 
@@ -321,10 +326,6 @@ padding: 5px;
 justify-content: space-between; 
 width: 100%; 
 display: flex;
-}
-
-#corpus-lvl-title {
-margin: 10px;
 }
 
 .instance-level-placeholder {
