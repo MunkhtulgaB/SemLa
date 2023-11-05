@@ -27,7 +27,7 @@
         </p>
 
         <div id="container">
-          <div>
+          <div class="comparison-group">
             <div class="map-view-header" style="color: blue;">Group 1</div>
             <svg id="semantic_landscape">
             <g>
@@ -42,7 +42,7 @@
 
           </div>
 
-          <div>
+          <div class="comparison-group">
             <div class="map-view-header" style="color: orange;">Group 2</div>
             <svg id="semantic_landscape-mirror">
               <g>
@@ -77,8 +77,8 @@
               </div>
 
               <div>
-                <label for="filter">Filter datapoints by substrings</label>
-                <input name="filter" id="filter" style="width: 120px"></input>
+                <label for="filter">Filter by substrings</label>
+                <input name="filter" id="filter"></input>
               </div>
 
               <div class="advanced-option">
@@ -114,24 +114,28 @@
 
                 <label class="word-only-option" for="show-stopwords">| Stopwords</label>
                 <input class="word-only-option" type="checkbox" id="show-stopwords" checked name="show-stopwords">
+
+                <span class="word-only-option">| </span>
+                <input class="word-only-option" style="width: 35px;" type="number" id="how-many-grams" name="how-many-grams" min="1" value=1>
+                <label class="word-only-option" for="how-many-grams">-gram(s)</label>
               </div>
               <div>
                 
               </div>
 
               <div>
-                <label for="freqThreshold">Frequency thresholds</label>
+                <b>Thresholds:</b>
+                <label for="freqThreshold">Freq.</label>
                 <input type="number" class="freqThreshold" data-index="0" value="30" min="0"/>
                 <input type="number" class="freqThreshold" data-index="1" value="1000"/>
+                
+                <label for="localAreaThreshold">Locality</label>
+                <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="0" max="1000" value=100 step="10">
               </div>
               <div id="concept-freqThreshold" class="d-none">
-                <label for="freqThreshold-concept">Frequency thresholds (concept)</label>
+                <label for="freqThreshold-concept">Freq. (concept)</label>
                 <input type="number" class="freqThreshold-concept" data-index="0" value="2" min="0"/>
                 <input type="number" class="freqThreshold-concept" data-index="1" value="1000"/>
-              </div>
-              <div>
-                <label for="localAreaThreshold">Locality threshold</label>
-                <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="0" max="1000" value=100 step="10">
               </div>
 
               <div class="advanced-option">
@@ -141,10 +145,7 @@
                   <option value="square">Square</option>
                 </select>
 
-                <span class="word-only-option">| </span>
-                <input class="word-only-option" type="number" id="how-many-grams" name="how-many-grams" min="1" value=1>
-                <label class="word-only-option" for="how-many-grams">-gram(s)</label>
-              </div>
+                </div>
             </div>
           </div>
 
@@ -207,7 +208,7 @@
                 <span class="info-sign" id="info-local-concepts">&#9432;</span>
               </p>
               <div id="concepts-list" class="widget_content">  
-                <div class="contrastive-bar-chart" style="width: 100%;" size="8" name="current-list-concept" id="current-list-concept" multiple>
+                <div class="contrastive-bar-chart" size="8" name="current-list-concept" id="current-list-concept" multiple>
                 </div>
               </div>
             </div>
@@ -217,7 +218,7 @@
                 <span class="info-sign" id="info-local-words-list">&#9432;</span>
               </p>
               <div id="words-list" class="widget_content">  
-                <div class="contrastive-bar-chart" style="width: 100%;" size="8" name="current-list-word" id="current-list-word" multiple>
+                <div class="contrastive-bar-chart" size="8" name="current-list-word" id="current-list-word" multiple>
                 </div>
               </div>
             </div>
@@ -227,7 +228,7 @@
                 <span class="info-sign" id="info-local-gold-labels">&#9432;</span>
               </p>
               <div id="gold-label-list" class="widget_content">  
-                <div class="contrastive-bar-chart" style="width: 100%;" size="8" name="current-list-gold-label" id="current-list-gold-label" multiple>
+                <div class="contrastive-bar-chart" size="8" name="current-list-gold-label" id="current-list-gold-label" multiple>
                 </div>
               </div>
             </div>
@@ -238,7 +239,7 @@
                 <span class="info-sign" id="info-local-predicted-labels">&#9432;</span>
               </p>
               <div id="predicted-label-list" class="widget_content">  
-                <div class="contrastive-bar-chart" style="width: 100%;" size="8" name="current-list-predicted-label" id="current-list-predicted-label" multiple>
+                <div class="contrastive-bar-chart" size="8" name="current-list-predicted-label" id="current-list-predicted-label" multiple>
                 </div>
               </div>
             </div>
@@ -247,24 +248,17 @@
       </div>
 
       
-      <div id="intent-level" class="widget super-widget">
+      <div id="label-level" class="widget super-widget">
         <p class="widget_title super_widget_title">
           Label level
           <span class="info-sign" id="info-label-level">&#9432;</span>
         </p>
-        <div id="intent-level-row-container">
+        <div id="label-level-row-container">
           <div id="label-clusters" class="widget intent-clusters">
             <p class="widget_title">
               Labels &amp; Clusters
               <span class="info-sign" id="info-labels-clusters">&#9432;</span>            
             </p>
-            <div id="label-filter-control">
-              <label for="show-label-group">Select label(s) to show on the map view:</label>
-              <div>
-                <input type="checkbox" class="show-label-group" name="show-label-group" value="predictedLabelHull" checked>Predicted group</input>
-                <input type="checkbox" class="show-label-group" name="show-label-group" value="goldLabelHull">Ground-truth group</input>
-              </div>
-            </div>
 
             <div id="label-cluster-table-content" class="widget_content label-cluster-table-content">  
               <select style="width: 100%; height: 100%" size="8" class="label_filter" id="label_filter" multiple>
@@ -278,7 +272,7 @@
                 Confusions
                 <span class="info-sign" id="info-confusions">&#9432;</span> 
               </p>
-              <div class="widget_content" style="overflow-y: scroll; overflow-x: hidden; margin: 10px;">
+              <div class="widget_content">
                 <table id="confusion-table">
                   <tr>
                     <th column_type="gt" sort_dir="desc" class="sortable-column-header small_td">Ground truth <span class="sort-arrow">&darr;</span></th>
@@ -309,7 +303,7 @@
                 <div class="instance-level-placeholder">
                   Click on a node on the map view to start.
                   <br/>
-                  (The instance-level explanations are only available for some models in this demo)
+                  (Note: The instance-level explanations are available for only some models in this demo)
                 </div>
               </div>
             </div>

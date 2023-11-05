@@ -83,7 +83,6 @@ let addTooltip = function(selector, content) {
 let margin;
 let width;
 let height;
-let bbox;
 
 let svg_canvas;
 let clip;
@@ -104,6 +103,9 @@ const system_config = {
     dataset: "hwu",
     model: "bert"
 }
+
+const WIDTH = 1000;
+const HEIGHT = 500;
 
 
 $(document)
@@ -170,9 +172,8 @@ $(document)
 function clearSystem() {
     const is_in_compare_mode = $("#compare-mode").is(":checked");
     margin = { top: 10, right: 30, bottom: 30, left: 60 };
-    width = ((is_in_compare_mode) ? 700 : 1400) - margin.left - margin.right;
-    height = 790 - margin.top - margin.bottom;
-    bbox = {"width": width, "height": height};
+    width = ((is_in_compare_mode) ? WIDTH/2 : WIDTH) - margin.right;
+    height = HEIGHT;
 
     svg_canvas.html(null);
     // Add a clipPath: everything out of this area won't be drawn.
@@ -189,7 +190,7 @@ function clearSystem() {
         svg_canvas1.html(null);
         svg_canvas1.append("defs")
         .append("SVG:clipPath")
-        .attr("id", "clip")
+        .attr("id", "clip1")
         .append("SVG:rect")
         .attr("width", width)
         .attr("height", height)
@@ -231,10 +232,9 @@ function clearSystem() {
 
 function initializeSystem(dataset_name, model) {
     const is_in_compare_mode = $("#compare-mode").is(":checked");
-    margin = { top: 10, right: 30, bottom: 30, left: 60 };
-    width = ((is_in_compare_mode) ? 700 : 1400) - margin.left - margin.right;
-    height = 790 - margin.top - margin.bottom;
-    bbox = {"width": width, "height": height};
+    margin = { top: 10, right: 10, bottom: 10, left: 20 };
+    width = ((is_in_compare_mode) ? WIDTH/2 : WIDTH) - margin.left - margin.right;
+    height = HEIGHT;
 
     svg_canvas = d3
         .select("svg#semantic_landscape")
@@ -346,7 +346,7 @@ function initializeSystem(dataset_name, model) {
 
                 clip1 = svg_canvas1.append("defs")
                     .append("SVG:clipPath")
-                    .attr("id", "clip")
+                    .attr("id", "clip1")
                     .append("SVG:rect")
                     .attr("width", width)
                     .attr("height", height)
@@ -1122,13 +1122,13 @@ function initializeDragLines() {
 
     if (svg_canvas1) {
         svg_canvas1.append("line")
-            .attr("clip-path", "url(#clip)")
+            .attr("clip-path", "url(#clip1)")
             .attr("class", "drag_line drag-line-0")
             .style("visibility", "hidden")
             .attr("stroke", "lightblue")
             .attr("stroke-width", "3");
         svg_canvas1.append("line")
-            .attr("clip-path", "url(#clip)")
+            .attr("clip-path", "url(#clip1)")
             .attr("class", "drag_line drag-line-1")
             .style("visibility", "hidden")
             .attr("stroke", "lightblue")

@@ -1,4 +1,4 @@
-const RELCHART_LEFT_WIDTH = 255;
+const RELCHART_LEFT_WIDTH = 45; // in percents
 
 
 // Importance
@@ -55,11 +55,14 @@ function updateImportanceChart(d, dataset_name) {
 function createImportanceChart(container_id, data) {
     const ctx = document.getElementById(container_id);
 
-    Chart.defaults.font.size = 15;
+    Chart.defaults.font.size = 12;
     const config = {
         type: "bar",
         data: data,
         options: {
+            layout: {
+                padding: 0,
+            },
             categoryPercentage: 0.9,
             barPercentage: 1,
             maintainAspectRatio: false,
@@ -75,6 +78,13 @@ function createImportanceChart(container_id, data) {
             plugins: {
                 legend: {
                     position: "bottom",
+                    labels: {
+                        font: {
+                            size: 12
+                        },
+                        boxWidth: 18,
+                        padding: 5,
+                    }
                 },
             },
             scales: {
@@ -169,7 +179,7 @@ function updateRelationChartFromCache(res) {
     
     if (current_tokens1.join(" ") == tokens1.join(" ")) {
         $("#rel_chart_left_container").animate({
-            width: RELCHART_LEFT_WIDTH + "px",
+            width: RELCHART_LEFT_WIDTH + "%",
         });
         d3.selectAll("svg#rel_chart_left > *").remove();
         renderSecondRelChart(res);
@@ -200,7 +210,7 @@ function updateTokenChartFromCache(res) {
     const tokens1 = res.tokens1;
     if (current_tokens1.join(" ") == tokens1.join(" ")) {
         $("#token_chart_left_container").animate({
-            width: RELCHART_LEFT_WIDTH + "px",
+            width: RELCHART_LEFT_WIDTH + "%",
         });
         d3.selectAll("svg#token_chart_left > *").remove();
         renderSecondTokenChart(res);
@@ -232,7 +242,7 @@ function updateRelationChart(idx1, idx2, dataset_name) {
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
                     $("#rel_chart_left_container").animate({
-                        width: RELCHART_LEFT_WIDTH + "px",
+                        width: RELCHART_LEFT_WIDTH + "%",
                     });
                     d3.selectAll("svg#rel_chart_left > *").remove();
                     renderSecondRelChart(res);
@@ -270,7 +280,7 @@ function updateTokenChart(idx1, idx2, dataset_name) {
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
                     $("#token_chart_left_container").animate({
-                        width: RELCHART_LEFT_WIDTH + "px",
+                        width: RELCHART_LEFT_WIDTH + "%",
                     });
                     d3.selectAll("svg#token_chart_left > *").remove();
                     renderSecondTokenChart(res);
@@ -715,7 +725,10 @@ function renderSecondRelChart(res) {
         .x((d) => d.x)
         .y((d) => d.y);
 
-    const chart_width = RELCHART_LEFT_WIDTH;
+    
+    const ALIGNMENT_MULTIPLIER = 1.1;
+    const chart_width = d3.select("#rel_chart_left_container")
+                .node().parentNode.clientWidth * (RELCHART_LEFT_WIDTH/100);
 
     const left_lines = relchart_left
         .selectAll(".left_links_contrast")
@@ -745,7 +758,7 @@ function renderSecondRelChart(res) {
                             y: (d.pos + 1) * fontsize + d.pos * spacing_left_col,
                         },
                         target: {
-                            x: chart_width / 2,
+                            x: (chart_width / 2) * ALIGNMENT_MULTIPLIER,
                             y: y_start_line + y_offset + getWidth(d) / 2,
                         },
                         importance: d.importance,
@@ -790,7 +803,7 @@ function renderSecondRelChart(res) {
 
                     return {
                         source: {
-                            x: chart_width / 2,
+                            x: (chart_width / 2) * ALIGNMENT_MULTIPLIER,
                             y: y_start_line + y_offset + getWidth(d) / 2,
                         },
                         target: {
@@ -839,7 +852,7 @@ function renderSecondRelChart(res) {
         .append("rect")
         .attr("fill", (d) => d.fill)
         .attr("stroke", (d) => d.stroke)
-        .attr("x", chart_width / 2 - block_width / 2)
+        .attr("x", (chart_width / 2 - block_width / 2) * ALIGNMENT_MULTIPLIER)
         .attr("y", (d) => d.y)
         .attr("height", (d) => d.height)
         .attr("width", block_width)
