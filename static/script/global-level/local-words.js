@@ -567,7 +567,16 @@ function filterLocalWordsWithGaussianLocality(
 
         const condition = is_within_frequency_threshold && is_within_locality_threshold;
         const inverted_condition = is_within_frequency_threshold && !is_within_locality_threshold;
-        const weight = occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0);
+        let weight;
+        
+        if (occurrences[0] && occurrences[0].frequency) {
+            const occurrences_flat = occurrences.reduce((sum, x) => sum.concat(x.occurrences), []);
+            const occurrence_set = new Set(occurrences_flat);
+            weight = occurrence_set.size;
+        } else {
+            weight = occurrences.length;
+        }
+
         // if the word is frequent enough and
         // if 2*std is in locality threshold
         if ((invert) ? inverted_condition: condition) {
