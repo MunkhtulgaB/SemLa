@@ -291,7 +291,7 @@ class MapView {
         const newX = this.#newX;
         const newY = this.#newY;
 
-        d3.selectAll(".drag_line")
+        d3.selectAll(`#${this.#container_id} .drag_line`)
             .filter((d) => Boolean(d))
             .attr("x1", function (d) {
                 return newX(d.x1);
