@@ -2,6 +2,8 @@ import { initializeTooltip,
     hideTooltip, 
     showMapTooltip,
     moveTooltipToCursor } from "./tooltip.js";
+import { filterByIntents } from "./filters.js";
+import { Filter } from "../data.js";
 import { initializeHulls, drawHulls } from "./hulls.js";
     
 
@@ -38,6 +40,7 @@ class MapView {
     #svg_canvas;
     #intents_to_points_tsne;
     #intents_to_points_umap;
+    #dataset;
     #data;
     #margin;
     #width;
@@ -58,6 +61,7 @@ class MapView {
     #onUpdate;
     #updateCount = 0;
     #previous_intent_symbol_map = {};
+    #selectedLabels;
 
     constructor(container_id, 
                 svg_canvas, 
@@ -81,6 +85,7 @@ class MapView {
         
         this.#container_id = container_id;
         this.#svg_canvas = svg_canvas;
+        this.#dataset = dataset;
         this.#data = data;
         this.#margin = margin;
         this.#width = width;
@@ -119,6 +124,7 @@ class MapView {
         this.#intents_to_points_tsne = intents_to_points_tsne;
         this.#intents_to_points_umap = intents_to_points_umap;
         onUpdate();
+        this.initializeLegend();
     }
 
     initializeAxes() {
@@ -187,17 +193,10 @@ class MapView {
         );
         parent.append(`
             <div class="map-legend">
-
-                <div>
-                    <b>Model:</b>
-                    <select class="model-select-map-specific" class="mb-1 form-select-sm inline-select">
-                    ${model_options}
-                    </select>
-                </div>
                 <div>
                     <b>Label groups:</b>
                     <br>
-                    <input type="checkbox" class="label-group-type-predicted" name="label-group-type-predicted">
+                    <input type="checkbox" class="label-group-type-predicted" name="label-group-type-predicted" checked>
                     <label for="label-group-type-predicted">Predicted</label>
                     <br>
                     <input type="checkbox" class="label-group-type-gold" name="label-group-type-gold">
@@ -212,6 +211,20 @@ class MapView {
             const new_model = $(this).val();
             self.changeModel(new_model);
         });
+
+        let updateLabelGroups = function() {
+            if (self.#selectedLabels) self.selectLabels(self.#selectedLabels);
+        }
+
+        parent.find(".label-group-type-predicted").change(updateLabelGroups);
+        parent.find(".label-group-type-gold").change(updateLabelGroups);
+    }
+
+    selectLabels(labels) {
+        this.#selectedLabels = labels;
+        const filter = filterByIntentsAndUpdate(this.#data, labels, this.hullClasses);
+        this.#dataset.addFilter(filter);
+        this.filterHulls(labels, this.hullClasses);
     }
 
     changeModel(model) {
@@ -503,14 +516,12 @@ class MapView {
         d3.selectAll(".drag_line").style("visibility", "hidden");
     }
 
-    filterHulls(intents, hullClasses) {
+    filterHulls(labels, hullClasses) {
         this.#svg_canvas.selectAll("path.labelHull").attr("visibility", "hidden");
-        // make the intents specific?
-        hullClasses = hullClasses || ["predictedLabelHull"];
         hullClasses.forEach(c => {
             this.#svg_canvas.selectAll("path." + c).attr("visibility", function (d) {
                 let [intent, _] = d;
-                if (intents.includes(intent)) {
+                if (labels.includes(intent)) {
                     return "visible";
                 } else {
                     return "hidden";
@@ -579,6 +590,18 @@ class MapView {
     get containerId() {
         return this.#container_id;
     }
+
+    get hullClasses() {
+        const parent = $(`#${this.#container_id}`).parent();
+        const isPredictedGroupChecked= parent.find(".label-group-type-predicted").is(":checked");
+        const isGoldGroupChecked = parent.find(".label-group-type-gold").is(":checked");
+
+        const hullClasses = [];
+        if (isPredictedGroupChecked) hullClasses.push("predictedLabelHull");
+        if (isGoldGroupChecked) hullClasses.push("goldLabelHull");
+        return hullClasses;
+    }
+
 }
 
 
@@ -589,6 +612,25 @@ function getPosition(dp_element) {
     ];
 }
 
+function filterByIntentsAndUpdate(data, intents, hullClasses) {
+    let filter_idxs = [];
+    
+    if (hullClasses) {
+        hullClasses.forEach(c => {
+            const byGoldLabel = (c == "goldLabelHull") ? true : false;
+            filter_idxs = filter_idxs.concat(
+                            filterByIntents(data, intents, byGoldLabel)
+                        );
+        })
+    } else {
+        filter_idxs = filter_idxs.concat(
+            filterByIntents(data, intents, false)
+        );
+    }
+
+    const filter = new Filter("Intent", "", filter_idxs);
+    return filter;
+}
 
 export { MapView }
 

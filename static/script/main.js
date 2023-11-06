@@ -271,22 +271,17 @@ function initializeSystem(dataset_name, model) {
                     hullClasses.push($(this).val());
                 });
                     
-                const intents = $(elem).val();
-                const filter = filterByIntentsAndUpdate(data, intents, hullClasses);
-                dataset.addFilter(filter);
-                if (dataset1) dataset1.addFilter(filter);
-                map.filterHulls(intents, ["predictedLabelHull"]);
-                if (map1) map1.filterHulls(intents, ["goldLabelHull"]);
+                const labels = $(elem).val();
+                map.selectLabels(labels);
+                if (map1) map1.selectLabels(labels);
             }
 
             let filterBySelectedConfusion = function() {
                 const gt = d3.select(this).attr("gt");
                 const pred = d3.select(this).attr("pred");
-                const filter = filterByIntentsAndUpdate(data, [gt, pred]);
-                dataset.addFilter(filter);
-                if (dataset1) dataset1.addFilter(filter);
-                map.filterHulls([gt, pred], ["predictedLabelHull"])
-                if (map1) map1.filterHulls([gt, pred], ["predictedLabelHull"]);
+
+                map.selectLabels([gt, pred]);
+                if (map1) map1.selectLabels([gt, pred]);
                 
                 $(".selected-tr").removeClass("selected-tr");
                 $(this).addClass("selected-tr");
@@ -885,20 +880,10 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     // Controls on label & cluster widget
     label_filter.unbind("click");
 
-    let filterGroup = function() {
-        const hullClasses = [];
-        $(".show-label-group:checked").each(function(e) {
-            hullClasses.push($(this).val());
-        });
-            
-        const intents = $("#label_filter").val();
-        const filter = filterByIntentsAndUpdate(dataset.data, intents, ["predictedLabelHull"]);
-        const filter1 = filterByIntentsAndUpdate(dataset.data, intents, ["goldLabelHull"]);
-        dataset.addFilter(filter);
-        map.filterHulls(intents, ["predictedLabelHull"]);
-
-        if (dataset1) dataset1.addFilter(filter1);
-        if (map1) map1.filterHulls(intents, ["goldLabelHull"])
+    let filterGroup = function() {            
+        const labels = $("#label_filter").val();
+        map.selectLabels(labels);
+        if (map1) map1.selectLabels(labels);
     };
 
     label_filter.click(filterGroup);
