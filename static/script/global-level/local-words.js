@@ -622,7 +622,7 @@ function bucketNumber(num) {
 
 function fontSize(d) {
     const weight = (d.frequency != d.weight)? d.weight : d.frequency;
-    return Math.min(15 + weight * 0.2, 80);
+    return Math.min(10 + weight * 0.2, 50);
 }
 
 function forceCollide() {
