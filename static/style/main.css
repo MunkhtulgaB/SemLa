@@ -325,6 +325,7 @@ flex-direction: column;
 width: 390px;
 height: 325px;
 margin-bottom: 5px;
+overflow: hidden;
 }
 
 .sample-lvl-content {

@@ -28,10 +28,10 @@ class ListView {
             
             container.append(
                 `<div value="${element.word}" 
-                        style="display: flex; flex-direction: column; align-items: center">                          
+                        style="margin-top: 5px; display: flex; flex-direction: column; align-items: center">                          
                     <svg class="chart" width="70%" height="10px" style="overflow: visible; border: 1px solid lightgrey;">
-                        <text class="small" x="-43" y="10" fill="grey">${this.formatPercentage(element.prob * 100)}%</text>
-                        <text class="small" x="103%" y="10" fill="grey">${this.formatPercentage(element.prob1 * 100)}%</text>
+                        <text font-size="0.8em" x="-32" y="10" fill="grey">${this.formatPercentage(element.prob * 100)}%</text>
+                        <text font-size="0.8em" x="103%" y="10" fill="grey">${this.formatPercentage(element.prob1 * 100)}%</text>
                         <g class="contrastiveness-bar" 
                             style="transform: translate(${offset.toFixed(0)}%, 0);">
                             <rect width="${width}%" height="100%" fill="${color}"></rect>
