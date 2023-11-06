@@ -274,9 +274,9 @@ function initializeSystem(dataset_name, model) {
                 const intents = $(elem).val();
                 const filter = filterByIntentsAndUpdate(data, intents, hullClasses);
                 dataset.addFilter(filter);
-                dataset1.addFilter(filter);
+                if (dataset1) dataset1.addFilter(filter);
                 map.filterHulls(intents, ["predictedLabelHull"]);
-                map1.filterHulls(intents, ["goldLabelHull"]);
+                if (map1) map1.filterHulls(intents, ["goldLabelHull"]);
             }
 
             let filterBySelectedConfusion = function() {
@@ -284,9 +284,9 @@ function initializeSystem(dataset_name, model) {
                 const pred = d3.select(this).attr("pred");
                 const filter = filterByIntentsAndUpdate(data, [gt, pred]);
                 dataset.addFilter(filter);
-                dataset1.addFilter(filter);
+                if (dataset1) dataset1.addFilter(filter);
                 map.filterHulls([gt, pred], ["predictedLabelHull"])
-                map1.filterHulls([gt, pred], ["predictedLabelHull"]);
+                if (map1) map1.filterHulls([gt, pred], ["predictedLabelHull"]);
                 
                 $(".selected-tr").removeClass("selected-tr");
                 $(this).addClass("selected-tr");
@@ -303,7 +303,7 @@ function initializeSystem(dataset_name, model) {
             let onFilterRemove = function() {
                 const filterType = $(this).attr("data");
                 filter_view.undoFilter(filterType);
-                filter_view1.undoFilter(filterType);
+                if (filter_view1) filter_view1.undoFilter(filterType);
             };
             filter_view.setOnRemove(onFilterRemove);
             const list_view = new ListView(local_words_view);
@@ -355,7 +355,7 @@ function initializeSystem(dataset_name, model) {
                     
                 $("#filter-container-1").css("display", "block");
                 dataset1 = new Dataset(data);
-                filter_view1 = new FilterView("current-filters-1",dataset1);
+                filter_view1 = new FilterView("current-filters-1", dataset1);
                 filter_view1.setOnRemove(onFilterRemove);
                 
                 local_words_view1 = new LocalWordsView(
@@ -381,6 +381,7 @@ function initializeSystem(dataset_name, model) {
                 local_words_view1.addObserver(map1);
                 list_view.observe(local_words_view1);
             }
+
             populateIntentTable(dataset.clusterToIntent, 
                                 cluster_to_color, 
                                 filterBySelectedIntents);
@@ -598,7 +599,7 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     const freq_threshold = $("input.freqThreshold");
     const freq_threshold_concept = $("input.freqThreshold-concept");
     const locality_shape = $('#locality-shape');
-    const label_filter_controls = $(".show-label-group");
+    const label_filter = $("#label_filter option");
 
     // First, remove all the currently registered event handlers
     [local_word_toggle, 
@@ -793,7 +794,7 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
         if (d.length > 0) {
             const filter = filterByDatapointAndUpdate(d[0], dataset.data);
             dataset.addFilter(filter);
-            dataset1.addFilter(filter);
+            if (dataset1) dataset1.addFilter(filter);
         }
     });
 
@@ -802,10 +803,10 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
         if ($("#show-errors").is(":checked")) {
             const filter = new Filter("Errors", "", dataset.errors_idxs);
             dataset.addFilter(filter);
-            dataset1.addFilter(filter);
+            if (dataset1) dataset1.addFilter(filter);
         } else {
             dataset.removeFilter("Errors");
-            dataset1.removeFilter("Errors");
+            if (dataset1) dataset1.removeFilter("Errors");
         }
     });
 
@@ -849,7 +850,7 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
                 conf_threshold_lower,
                 conf_threshold_upper);
             dataset.addFilter(filter);
-            dataset1.addFilter(filter);
+            if (dataset1) dataset1.addFilter(filter);
         }
     });
 
@@ -861,12 +862,12 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
         const search_value = e.target.value;
         if (search_value == "") {
             dataset.removeFilter("Search")
-            dataset1.removeFilter("Search");
+            if (dataset1) dataset1.removeFilter("Search");
         } else {
             const search_phrases = search_value.split(";");
             const filter = filterBySearch(dataset.data, search_phrases);
             dataset.addFilter(filter);
-            dataset1.addFilter(filter);
+            if (dataset1) dataset1.addFilter(filter);
         }
     });
 
@@ -874,36 +875,34 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     clear_btn.on("click", function (e) {
         resetFilterControls();
         dataset.clearFilters();
-        dataset1.clearFilters();
+        if (dataset1) dataset1.clearFilters();
     });
 
     // Controls on label & cluster widget
-    label_filter_controls.each(function(e) {
-        $(this).unbind("change");
-        $("#label_filter option").unbind("click");
+    label_filter.unbind("click");
 
-        let filterGroup = function() {
-            const hullClasses = [];
-            $(".show-label-group:checked").each(function(e) {
-                hullClasses.push($(this).val());
-            });
-                
-            const intents = $("#label_filter").val();
-            const filter = filterByIntentsAndUpdate(dataset.data, intents, ["predictedLabelHull"]);
-            const filter1 = filterByIntentsAndUpdate(dataset.data, intents, ["goldLabelHull"]);
-            dataset.addFilter(filter);
-            dataset1.addFilter(filter1);
-            map.filterHulls(intents, ["predictedLabelHull"]);
-            map1.filterHulls(intents, ["goldLabelHull"])
-        };
-        $(this).change(filterGroup);
-        $("#label_filter option").click(filterGroup);
-    });
+    let filterGroup = function() {
+        const hullClasses = [];
+        $(".show-label-group:checked").each(function(e) {
+            hullClasses.push($(this).val());
+        });
+            
+        const intents = $("#label_filter").val();
+        const filter = filterByIntentsAndUpdate(dataset.data, intents, ["predictedLabelHull"]);
+        const filter1 = filterByIntentsAndUpdate(dataset.data, intents, ["goldLabelHull"]);
+        dataset.addFilter(filter);
+        map.filterHulls(intents, ["predictedLabelHull"]);
+
+        if (dataset1) dataset1.addFilter(filter1);
+        if (map1) map1.filterHulls(intents, ["goldLabelHull"])
+    };
+
+    label_filter.click(filterGroup);
 
     $(document).bind("keyup", function(e) {
         if (e.key == "Escape") {
             filter_view.undoLastFilter();
-            filter_view1.undoLastFilter();
+            if (filter_view1) filter_view1.undoLastFilter();
         }
     });
 }

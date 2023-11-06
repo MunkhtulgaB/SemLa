@@ -8,7 +8,7 @@ class FilterView {
         this.#dataset = dataset;
         this.#onRemove = onRemove;
         this.#container_id = container_id;
-        dataset.addObserver(this);
+        if (dataset) dataset.addObserver(this);
     }
 
     update(_, msg) {

@@ -69,7 +69,7 @@ class MapView {
                 onDragEnd,
                 dataset_name) {
         const data = dataset.data;
-        dataset.addObserver(this);
+        if (dataset) dataset.addObserver(this);
         
         this.#container_id = container_id;
         this.#svg_canvas = svg_canvas;
