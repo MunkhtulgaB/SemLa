@@ -328,7 +328,9 @@ function initializeSystem(dataset_name, model) {
                                     updateBothLocalWordViews,
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
-                                    dataset_name);
+                                    dataset_name,
+                                    NUM_CLUSTERS,
+                                    MODEL_DATASET_AVAILABILITY);
             local_words_view.addObserver(map);
 
             let map1;
@@ -377,7 +379,9 @@ function initializeSystem(dataset_name, model) {
                                 updateBothLocalWordViews,
                                 (model != "bert")? onClickSummaryOnly : onClick,
                                 updateRelationChart,
-                                dataset_name);
+                                dataset_name,
+                                NUM_CLUSTERS,
+                                MODEL_DATASET_AVAILABILITY);
                 local_words_view1.addObserver(map1);
                 list_view.observe(local_words_view1);
             }

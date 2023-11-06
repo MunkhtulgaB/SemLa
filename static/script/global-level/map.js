@@ -39,10 +39,15 @@ class MapView {
     #intents_to_points_tsne;
     #intents_to_points_umap;
     #data;
+    #margin;
     #width;
     #height;
     #cluster_to_color;
     #intent_to_cluster;
+    #dataset_name;
+    #num_clusters;
+    #model_dataset_availability;
+
     #xScale;
     #yScale;
     #xAxis;
@@ -67,50 +72,30 @@ class MapView {
                 onUpdate,
                 onClick,
                 onDragEnd,
-                dataset_name) {
+                dataset_name,
+                num_clusters,
+                model_dataset_availability) {
         const data = dataset.data;
         if (dataset) dataset.addObserver(this);
+        
         
         this.#container_id = container_id;
         this.#svg_canvas = svg_canvas;
         this.#data = data;
+        this.#margin = margin;
         this.#width = width;
         this.#height = height;
         this.#cluster_to_color = cluster_to_color;
         this.#intent_to_cluster = intent_to_cluster;
         this.#dim_reduction = dim_reduction;
         this.#onUpdate = onUpdate; 
+        this.#dataset_name = dataset_name;
+        this.#num_clusters = num_clusters;
+        this.#model_dataset_availability = model_dataset_availability;
         
-        // Initialize axes
-        const [x, y] = this.getXYScales(dim_reduction, width, height);
-        let xAxis = svg_canvas.append("g")
-        .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x).tickValues([]));
-        let yAxis = svg_canvas.append("g").call(d3.axisLeft(y).tickValues([]));
-
-        this.#xScale = x;
-        this.#yScale = y;
-        this.#newX = x;
-        this.#newY = y;
-        this.#xAxis= xAxis;
-        this.#yAxis = yAxis;
-
-        // Initialize zoom
-        this.initializeZoom(svg_canvas, 
-            margin, 
-            width, 
-            height, 
-            x, 
-            y, 
-            xAxis, 
-            yAxis, 
-            dim_reduction,
-            onUpdate);
-
-        // Create the scatter plot
-        let scatter = svg_canvas.append("g")
-        .attr("class", "scatter")
-        .attr("clip-path", "url(#clip)");
+        this.initializeAxes();
+        this.initializeZoom();
+        this.initializeDatapoints();
 
         // Initialize dragging behaviour and intent hulls
         const [intents_to_points_tsne, 
@@ -118,21 +103,47 @@ class MapView {
                         cluster_to_color, 
                         intent_to_cluster, 
                         dim_reduction, 
-                        x, 
-                        y,
+                        this.#xScale, 
+                        this.#yScale,
                         false); // hulls for predicted groups
         initializeHulls(data, 
                         cluster_to_color, 
                         intent_to_cluster, 
                         dim_reduction, 
-                        x, 
-                        y,
+                        this.#xScale, 
+                        this.#yScale,
                         true); // hulls for ground-truth groups
 
-        // Draw the points
+        initializeTooltip("map-tooltip", "container");
+
+        this.#intents_to_points_tsne = intents_to_points_tsne;
+        this.#intents_to_points_umap = intents_to_points_umap;
+        onUpdate();
+    }
+
+    initializeAxes() {
+        const [x, y] = this.getXYScales(this.#dim_reduction, this.#width, this.#height);
+        let xAxis = this.#svg_canvas.append("g")
+        .attr("transform", "translate(0," + this.#height + ")")
+        .call(d3.axisBottom(x).tickValues([]));
+        let yAxis = this.#svg_canvas.append("g").call(d3.axisLeft(y).tickValues([]));
+
+        this.#xScale = x;
+        this.#yScale = y;
+        this.#newX = x;
+        this.#newY = y;
+        this.#xAxis= xAxis;
+        this.#yAxis = yAxis;
+    }
+
+    initializeDatapoints() {
+        let scatter = this.#svg_canvas.append("g")
+        .attr("class", "scatter")
+        .attr("clip-path", "url(#clip)");
+
         const self = this;
         scatter.selectAll("path.datapoint")
-            .data(data)
+            .data(this.#data)
             .enter()
             .append("path")
             .attr("id", d => `node-${d.idx}`)
@@ -141,12 +152,12 @@ class MapView {
             .attr("stroke", "#9299a1")
             .attr("fill", function (d) {
                 const label_cluster = (d.label_cluster != undefined)? d.label_cluster : d.intent_cluster;
-                return cluster_to_color[parseInt(label_cluster)];
+                return self.#cluster_to_color[parseInt(label_cluster)];
             })
             .attr("transform", function (d) {
-                const x_pos = d[`${dim_reduction}-dim0`];
-                const y_pos = d[`${dim_reduction}-dim1`];
-                const translation = "translate(" + x(x_pos) + "," + y(y_pos) + ")";
+                const x_pos = d[`${self.#dim_reduction}-dim0`];
+                const y_pos = d[`${self.#dim_reduction}-dim1`];
+                const translation = "translate(" + self.#xScale(x_pos) + "," + self.#yScale(y_pos) + ")";
                 return translation;
             })
             .on("mouseover", showMapTooltip)
@@ -157,12 +168,66 @@ class MapView {
                 onClick(d, dataset, explanation_set, self);
                 self.updateDragLines();
             });
+    }
 
-        initializeTooltip("map-tooltip", "container");
+    initializeLegend() {
+        const parent = $(`#${this.#container_id}`).parent();
+        parent.find(".map-legend").remove();
 
-        this.#intents_to_points_tsne = intents_to_points_tsne;
-        this.#intents_to_points_umap = intents_to_points_umap;
-        onUpdate();
+        const models_available = Object.keys(this.#model_dataset_availability).filter(key => 
+            this.#model_dataset_availability[key].includes(this.#dataset_name)
+        );
+
+        const selected_model = $("#model-select").val();
+        const model_options = models_available.reduce(
+            (soFar, current) => soFar + 
+                        `<option value="${current}" 
+                        ${(selected_model == current)? "selected": ""}>${current}</option>`,
+            ""
+        );
+        parent.append(`
+            <div class="map-legend">
+
+                <div>
+                    <b>Model:</b>
+                    <select class="model-select-map-specific" class="mb-1 form-select-sm inline-select">
+                    ${model_options}
+                    </select>
+                </div>
+                <div>
+                    <b>Label groups:</b>
+                    <br>
+                    <input type="checkbox" class="label-group-type-predicted" name="label-group-type-predicted">
+                    <label for="label-group-type-predicted">Predicted</label>
+                    <br>
+                    <input type="checkbox" class="label-group-type-gold" name="label-group-type-gold">
+                    <label for="label-group-type-gold">Ground-truth</label>
+                </div>
+            </div>
+        `);
+        const model_select = parent.find(".model-select-map-specific");
+        
+        const self = this;
+        model_select.change(function() {
+            const new_model = $(this).val();
+            self.changeModel(new_model);
+        });
+    }
+
+    changeModel(model) {
+        const self = this;
+        d3.json(
+            `static/data/${this.#dataset_name.toLowerCase()}-viz_data-${this.#num_clusters}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent-with-${model.toLowerCase()}.json`,
+            function (data) {
+                self.#svg_canvas.html(null);
+
+                self.#data = data;
+                self.initializeAxes();
+                self.initializeZoom();
+                self.initializeDatapoints();
+                
+                self.#onUpdate();
+        })
     }
 
     initializeDragging(dim_reduction, onDragEnd, dataset_name) {
@@ -224,16 +289,13 @@ class MapView {
     }
 
 
-    initializeZoom(svg_canvas, 
-                    margin, 
-                    width, 
-                    height) {
+    initializeZoom() {
         // Set the zoom and Pan features: how much you can zoom, on which part, and what to do when there is a zoom
         let zoom = d3.zoom()
                     .scaleExtent([0.5, 100]) // This control how much you can unzoom (x0.5) and zoom (x20)
                     .extent([
                         [0, 0],
-                        [width, height],
+                        [this.#width, this.#height],
                     ])
         .on("zoom", function() {
             this.updateChart();
@@ -245,12 +307,12 @@ class MapView {
         .on("end", this.#onUpdate);
 
         // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
-        svg_canvas.append("rect")
-            .attr("width", width)
-            .attr("height", height)
+        this.#svg_canvas.append("rect")
+            .attr("width", this.#width)
+            .attr("height", this.#height)
             .style("fill", "none")
             .style("pointer-events", "all")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .attr("transform", "translate(" + this.#margin.left + "," + this.#margin.top + ")")
             .call(zoom);    
     }
 
