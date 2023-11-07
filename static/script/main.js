@@ -105,7 +105,7 @@ const system_config = {
 }
 
 const WIDTH = 1000;
-const HEIGHT = 500;
+const HEIGHT = 480;
 
 
 $(document)
@@ -394,9 +394,35 @@ function initializeSystem(dataset_name, model) {
             
             initializeRelChartControls();
             initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view, filter_view1);
-    });
+            initializeAdvancedOptionToggle();
+        });
 }
 
+const HIDE = "hide";
+const SHOW = "show"
+const UP_TRIANGLE = "&#x25B2;";
+const DOWN_TRIANGLE = "&#x25BC;";
+
+function initializeAdvancedOptionToggle() {
+    
+    const advanced_option_toggle = $(".advanced-option-toggle");
+    advanced_option_toggle.click(function() {
+        const current_value = $(this).attr("value");
+        const container = $(this).parent().parent();
+
+        if (current_value == HIDE) {
+            $(this).attr("value", SHOW);
+            $(this).html(DOWN_TRIANGLE);
+            container.find(".advanced-option").slideDown();
+            $("#corpus-level").animate({height: "722px"});
+        } else if (current_value == SHOW) {
+            $(this).attr("value", HIDE);
+            $(this).html(UP_TRIANGLE);
+            container.find(".advanced-option").slideUp();
+            $("#corpus-level").animate({height: "705px"});
+        }
+    })
+}
 
 function initializeHelpTooltips() {
     addTooltip("#info-filter-options", `<p>The options below allow you to select 
