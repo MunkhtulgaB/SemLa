@@ -50,6 +50,8 @@ class MapView {
     #dataset_name;
     #num_clusters;
     #model_dataset_availability;
+    #onClick;
+    #explanation_set;
 
     #xScale;
     #yScale;
@@ -97,7 +99,9 @@ class MapView {
         this.#dataset_name = dataset_name;
         this.#num_clusters = num_clusters;
         this.#model_dataset_availability = model_dataset_availability;
-        
+        this.#onClick = onClick;
+        this.#explanation_set = explanation_set;
+
         this.initializeAxes();
         this.initializeZoom();
         this.initializeDatapoints();
@@ -171,7 +175,10 @@ class MapView {
             .on("mouseout", () => hideTooltip("#map-tooltip"))
             .on("click", function(d) {
                 self.selectNode(this);
-                onClick(d, dataset, explanation_set, self);
+                self.#onClick(d, 
+                            self.#dataset, 
+                            self.#explanation_set, 
+                            self);
                 self.updateDragLines();
             });
     }
