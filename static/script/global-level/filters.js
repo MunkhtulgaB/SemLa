@@ -61,6 +61,7 @@ class FilterView {
             $("input.confThreshold[data-index=1]").val(100);
         } else if (filterType == "Intent") {
             d3.selectAll("path.labelHull").attr("visibility", "hidden");
+            d3.selectAll(".map-legend").style("display", "none");
         }
     }
 

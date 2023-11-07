@@ -535,6 +535,8 @@ class MapView {
                 }
             });
         });
+        const parent = $(`#${this.#container_id}`).parent();
+        parent.find(".map-legend").css("display", "block");
     }
 
     hideHulls() {

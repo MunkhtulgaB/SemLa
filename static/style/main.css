@@ -460,6 +460,7 @@ height: 20px;
     height: fit-content;
     max-height: 200px;
     max-width: 130px;
+    display: none;
 }
 
 .label-group-type-predicted {
