@@ -130,6 +130,9 @@ $(document)
         // select an available option
         $("#dataset-select").val(system_config.dataset).change();
         alertCount = 0;
+
+        // uncheck confidence heatmap toggle
+        $("#show-confidence").prop("checked", false);
     });
 
     $("#dataset-select").change(function() {
@@ -404,8 +407,8 @@ const UP_TRIANGLE = "&#x25B2;";
 const DOWN_TRIANGLE = "&#x25BC;";
 
 function initializeAdvancedOptionToggle() {
-    
     const advanced_option_toggle = $(".advanced-option-toggle");
+    advanced_option_toggle.unbind("click");
     advanced_option_toggle.click(function() {
         const current_value = $(this).attr("value");
         const container = $(this).parent().parent();

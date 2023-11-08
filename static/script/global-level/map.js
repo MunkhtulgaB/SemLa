@@ -523,9 +523,9 @@ class MapView {
         d3.selectAll(".drag_line").style("visibility", "hidden");
     }
 
-    filterHulls(labels, hullClasses) {
+    filterHulls(labels) {
         this.#svg_canvas.selectAll("path.labelHull").attr("visibility", "hidden");
-        hullClasses.forEach(c => {
+        this.hullClasses.forEach(c => {
             this.#svg_canvas.selectAll("path." + c).attr("visibility", function (d) {
                 let [intent, _] = d;
                 if (labels.includes(intent)) {
