@@ -103,8 +103,8 @@ const MODEL_DATASET_AVAILABILITY = {
 };
 const NUM_CLUSTERS = 12;
 const system_config = {
-    dataset: "banking",
-    model: "bert-60"
+    dataset: "hwu",
+    model: "bert"
 }
 
 const WIDTH = 1000;
@@ -206,11 +206,15 @@ function clearSystem() {
 
     $("#label_filter").html(`<option value=""></option>`);
     $("#confusion-table").html(`
-        <tr>
-            <th column_type="gt" class="small_td">Ground truth</th>
-            <th column_type="pred" class="small_td">Prediction</th>
-            <th column_type="num_confusions" class="xs_td"># confusions</th>
-        </tr>
+        <thead>
+            <tr>
+                <th column_type="gt" sort_dir="desc" class="sortable-column-header small_td">Ground truth <span class="sort-arrow">&darr;</span></th>
+                <th column_type="pred" sort_dir="desc"  class="sortable-column-header small_td">Prediction <span class="sort-arrow">&darr;</span></th>
+                <th column_type="num_confusions" sort_dir="desc" class="sortable-column-header xs_td"># confusions <span class="sort-arrow">&darr;</span></th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
     `);
     $("#summary").empty();
     $("#importance-chart-container").html(`

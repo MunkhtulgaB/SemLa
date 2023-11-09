@@ -70,7 +70,7 @@ function populateConfusionTable(confusions,
 }
 
 function populate_html_confusion_table(data, onClick) {
-    $("#confusion-table tr").not(":first").remove();
+    $("#confusion-table tbody").empty();
     let html = "";
     data.forEach(function (row) {
         const [gt, pred, num_confusions] = row;
@@ -80,7 +80,7 @@ function populate_html_confusion_table(data, onClick) {
             <td class="xs_td">${num_confusions}</td>
         </tr>`;
     });
-    $("#confusion-table tr").first().after(html);
+    $("#confusion-table tbody").html(html);
     // Add click event to rows
     $(".error_tr").click(onClick);
 };
