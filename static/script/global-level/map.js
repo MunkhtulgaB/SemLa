@@ -2,7 +2,8 @@ import { initializeTooltip,
     hideTooltip, 
     showMapTooltip,
     moveTooltipToCursor } from "./tooltip.js";
-import { filterByIntents } from "./filters.js";
+import { filterByIntents, 
+        calculateConfidence } from "./filters.js";
 import { Filter } from "../data.js";
 import { initializeHulls, drawHulls } from "./hulls.js";
     
@@ -47,6 +48,7 @@ class MapView {
     #height;
     #cluster_to_color;
     #intent_to_cluster;
+    #model_name;
     #dataset_name;
     #num_clusters;
     #model_dataset_availability;
@@ -66,6 +68,9 @@ class MapView {
     #previous_intent_symbol_map = {};
     #selectedLabels;
 
+    #parallelMap;
+
+
     constructor(container_id, 
                 svg_canvas, 
                 margin,
@@ -80,6 +85,7 @@ class MapView {
                 onClick,
                 onDragEnd,
                 dataset_name,
+                model_name,
                 num_clusters,
                 model_dataset_availability,
                 is_in_compare_mode) {
@@ -99,6 +105,7 @@ class MapView {
         this.#dim_reduction = dim_reduction;
         this.#onUpdate = onUpdate; 
         this.#dataset_name = dataset_name;
+        this.#model_name = model_name;
         this.#num_clusters = num_clusters;
         this.#model_dataset_availability = model_dataset_availability;
         this.#onClick = onClick;
@@ -163,10 +170,6 @@ class MapView {
             .attr("class", "datapoint")
             .attr("d", d3.symbol().type(d3.symbolCircle).size(150))
             .attr("stroke", "#9299a1")
-            .attr("fill", function (d) {
-                const label_cluster = (d.label_cluster != undefined)? d.label_cluster : d.intent_cluster;
-                return self.#cluster_to_color[parseInt(label_cluster)];
-            })
             .attr("transform", function (d) {
                 const x_pos = d[`${self.#dim_reduction}-dim0`];
                 const y_pos = d[`${self.#dim_reduction}-dim1`];
@@ -184,6 +187,14 @@ class MapView {
                             self);
                 self.updateDragLines();
             });
+        
+        const isInConfidenceHeatmapMode = $("#show-confidence").prop("checked");
+        
+        if (isInConfidenceHeatmapMode) {
+            this.switchToConfidenceHeatmap();
+        } else {
+            this.switchToClusterBasedColoring();
+        }
     }
 
     initializeLegend() {
@@ -194,7 +205,7 @@ class MapView {
             this.#model_dataset_availability[key].includes(this.#dataset_name)
         );
 
-        const selected_model = $("#model-select").val();
+        const selected_model = this.modelName;
         const model_options = models_available.reduce(
             (soFar, current) => soFar + 
                         `<option value="${current}" 
@@ -226,6 +237,11 @@ class MapView {
         model_select.change(function() {
             const new_model = $(this).val();
             self.changeModel(new_model);
+
+            // if the parallel map has a different model, switch to confidence view
+            if (self.modelName != self.parallelMap.modelName) {
+                $("#show-confidence").prop("checked", true).change();
+            }
         });
 
         let updateLabelGroups = function() {
@@ -240,6 +256,36 @@ class MapView {
         }
     }
 
+    switchToConfidenceHeatmap() {
+        const confidence_color = "#89A4C7";
+
+        d3.selectAll(`#${this.containerId} path.datapoint`)
+            // .attr("stroke", d => d3.color(d3.interpolateMagma(0.9 * calculateConfidence(d))).darker())
+            .attr("fill", (d) => confidence_color)
+            .attr("stroke", (d) => d3.color(confidence_color).darker(0.3))
+            .attr("fill-opacity", (d) =>
+                Math.max(0.2, calculateConfidence(d))
+            );
+    }
+
+    switchToClusterBasedColoring() {
+        const self = this;
+        d3.selectAll(`#${this.containerId} path.datapoint`)
+            .attr("fill", function (d) {
+                let label = parseInt(d["label_cluster"]);
+                return self.#cluster_to_color[label];
+            })
+            .attr("fill-opacity", 1)
+            .attr("stroke", "#9299a1");
+    }
+
+    addParallelMap(map) {
+        if (!this.parallelMap) {
+            this.#parallelMap = map;
+            map.addParallelMap(this);
+        }
+    }
+
     selectLabels(labels) {
         this.#selectedLabels = labels;
         const filter = filterByIntentsAndUpdate(this.#data, labels, this.hullClasses);
@@ -248,6 +294,7 @@ class MapView {
     }
 
     changeModel(model) {
+        this.#model_name = model;
         const self = this;
         d3.json(
             `static/data/${this.#dataset_name.toLowerCase()}-viz_data-${this.#num_clusters}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent-with-${model.toLowerCase()}.json`,
@@ -616,7 +663,6 @@ class MapView {
             Array.from(predicted_intent_set),
         ];
     }
-    
 
     get intentsToPointsTSNE() {
         return this.#intents_to_points_tsne;
@@ -641,6 +687,13 @@ class MapView {
         return hullClasses;
     }
 
+    get modelName() {
+        return this.#model_name;
+    }
+
+    get parallelMap() {
+        return this.#parallelMap;
+    }
 }
 
 

@@ -13,7 +13,6 @@ import { filterByIntents,
          filterBySubstring,
          filterByConfidence,
          filterByDatapoint,
-         calculateConfidence,
          FilterView } from "./global-level/filters.js";
 import { hideProgress, LocalWordsView } from "./global-level/local-words.js";
 import { MapView } from "./global-level/map.js";
@@ -327,6 +326,7 @@ function initializeSystem(dataset_name, model) {
                                     (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name,
+                                    model,
                                     NUM_CLUSTERS,
                                     MODEL_DATASET_AVAILABILITY,
                                     is_in_compare_mode);
@@ -377,11 +377,14 @@ function initializeSystem(dataset_name, model) {
                                 dim_reduction,
                                 updateBothLocalWordViews,
                                 (model != "bert")? onClickSummaryOnly : onClick,
-                                updateRelationChart,
+                                updateRelationChart,                             
                                 dataset_name,
+                                model,
                                 NUM_CLUSTERS,
                                 MODEL_DATASET_AVAILABILITY,
                                 is_in_compare_mode);
+                map1.addParallelMap(map);
+
                 local_words_view1.addObserver(map1);
                 list_view.observe(local_words_view1);
             }
@@ -843,25 +846,11 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     // Show confidence?
     show_confidence.on("change", function () {
         if ($("#show-confidence").is(":checked")) {
-            // color in the same way and differentiate by opacity
-            const confidence_color = "#89A4C7";
-
-            d3.selectAll("path.datapoint")
-                // .attr("stroke", d => d3.color(d3.interpolateMagma(0.9 * calculateConfidence(d))).darker())
-                .attr("fill", (d) => confidence_color)
-                .attr("stroke", (d) => d3.color(confidence_color).darker(0.3))
-                .attr("fill-opacity", (d) =>
-                    Math.max(0.2, calculateConfidence(d))
-                );
+            map.switchToConfidenceHeatmap();
+            if (map1) map1.switchToConfidenceHeatmap();
         } else {
-            // switch back to normal coloring
-            d3.selectAll("path.datapoint")
-                .attr("fill", function (d) {
-                    let label = parseInt(d["label_cluster"]);
-                    return cluster_to_color[label];
-                })
-                .attr("fill-opacity", 1)
-                .attr("stroke", "#9299a1");
+            map.switchToClusterBasedColoring();
+            if (map1) map1.switchToClusterBasedColoring();
         }
     });
 
