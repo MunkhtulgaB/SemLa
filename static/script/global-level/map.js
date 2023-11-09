@@ -380,6 +380,10 @@ class MapView {
         .on("zoom", function() {
             this.updateChart();
             this.updateSymbols();
+            if (this.isInCompareMode) {
+                this.parallelMap.updateChart();
+                this.parallelMap.updateSymbols();
+            }
         }.bind(this))
         .on("start", function () {
             d3.selectAll(".scatter").selectAll(".local_word").remove();
@@ -455,7 +459,7 @@ class MapView {
 
     updatePositions(xScale, yScale, dim_reduction) {
         // update positions
-        d3.selectAll("path.datapoint").attr("transform", function (d) {
+        d3.selectAll(`#${this.containerId} path.datapoint`).attr("transform", function (d) {
             const translation =
                 "translate(" +
                 xScale(d[`${dim_reduction}-dim0`]) +
@@ -602,8 +606,7 @@ class MapView {
         const parent = $(`#${this.#container_id}`).parent();
         parent.find(".map-legend").css("display", "block");
 
-        const isInCompareMode = $("#compare-mode").prop("checked");
-        if (isInCompareMode) {
+        if (this.isInCompareMode) {
             parent.find(".model-select-legend").css("display", "block");        
         } else {
             parent.find(".model-select-legend").css("display", "none");        
@@ -693,6 +696,10 @@ class MapView {
 
     get parallelMap() {
         return this.#parallelMap;
+    }
+
+    get isInCompareMode() {
+        return $("#compare-mode").prop("checked");
     }
 }
 
