@@ -487,3 +487,7 @@ height: 20px;
 .label-group-type-predicted {
     border: 1px solid red;
 }
+
+.model-select-legend {
+display: none;
+}

@@ -8,7 +8,7 @@ import { updateRelationChartFromCache,
         emptyTokenChart,
         initializeRelChartControls } from "./instance-level.js";
 import { populateConfusionTable,
-        populateIntentTable } from "./intent-level.js";
+        populateLabelTable } from "./intent-level.js";
 import { filterByIntents, 
          filterBySubstring,
          filterByConfidence,
@@ -328,7 +328,8 @@ function initializeSystem(dataset_name, model) {
                                     updateRelationChart,
                                     dataset_name,
                                     NUM_CLUSTERS,
-                                    MODEL_DATASET_AVAILABILITY);
+                                    MODEL_DATASET_AVAILABILITY,
+                                    is_in_compare_mode);
             local_words_view.addObserver(map);
 
             let map1;
@@ -379,12 +380,13 @@ function initializeSystem(dataset_name, model) {
                                 updateRelationChart,
                                 dataset_name,
                                 NUM_CLUSTERS,
-                                MODEL_DATASET_AVAILABILITY);
+                                MODEL_DATASET_AVAILABILITY,
+                                is_in_compare_mode);
                 local_words_view1.addObserver(map1);
                 list_view.observe(local_words_view1);
             }
 
-            populateIntentTable(dataset.clusterToIntent, 
+            populateLabelTable(dataset.clusterToIntent, 
                                 cluster_to_color, 
                                 filterBySelectedIntents);
             populateConfusionTable(dataset.confusions, 
@@ -908,14 +910,6 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
 
     // Controls on label & cluster widget
     label_filter.unbind("click");
-
-    let filterGroup = function() {            
-        const labels = $("#label_filter").val();
-        map.selectLabels(labels);
-        if (map1) map1.selectLabels(labels);
-    };
-
-    label_filter.click(filterGroup);
 
     $(document).bind("keyup", function(e) {
         if (e.key == "Escape") {

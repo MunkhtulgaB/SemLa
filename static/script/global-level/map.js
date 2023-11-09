@@ -52,6 +52,7 @@ class MapView {
     #model_dataset_availability;
     #onClick;
     #explanation_set;
+    #is_in_compare_mode;
 
     #xScale;
     #yScale;
@@ -80,7 +81,8 @@ class MapView {
                 onDragEnd,
                 dataset_name,
                 num_clusters,
-                model_dataset_availability) {
+                model_dataset_availability,
+                is_in_compare_mode) {
         const data = dataset.data;
         if (dataset) dataset.addObserver(this);
         
@@ -101,6 +103,7 @@ class MapView {
         this.#model_dataset_availability = model_dataset_availability;
         this.#onClick = onClick;
         this.#explanation_set = explanation_set;
+        this.#is_in_compare_mode = is_in_compare_mode;
 
         this.initializeAxes();
         this.initializeZoom();
@@ -200,7 +203,13 @@ class MapView {
         );
         parent.append(`
             <div class="map-legend">
-                <div>
+                <div class="model-select-legend">
+                    <b>Model:</b>
+                    <select class="model-select-map-specific">
+                        ${model_options}
+                    </select>
+                </div>
+                <div class="group-type-legend">
                     <b>Label groups:</b>
                     <br>
                     <input type="checkbox" class="label-group-type-predicted" name="label-group-type-predicted" checked>
@@ -225,13 +234,17 @@ class MapView {
 
         parent.find(".label-group-type-predicted").change(updateLabelGroups);
         parent.find(".label-group-type-gold").change(updateLabelGroups);
+
+        if (this.#is_in_compare_mode) {
+            this.showLegend();
+        }
     }
 
     selectLabels(labels) {
         this.#selectedLabels = labels;
         const filter = filterByIntentsAndUpdate(this.#data, labels, this.hullClasses);
         this.#dataset.addFilter(filter);
-        this.filterHulls(labels, this.hullClasses);
+        this.filterHulls(labels);
     }
 
     changeModel(model) {
@@ -535,8 +548,25 @@ class MapView {
                 }
             });
         });
+        this.showLegend(true);
+    }
+
+    showLegend(showGroupTypeCheckboxes) {
         const parent = $(`#${this.#container_id}`).parent();
         parent.find(".map-legend").css("display", "block");
+
+        const isInCompareMode = $("#compare-mode").prop("checked");
+        if (isInCompareMode) {
+            parent.find(".model-select-legend").css("display", "block");        
+        } else {
+            parent.find(".model-select-legend").css("display", "none");        
+        }
+
+        if (showGroupTypeCheckboxes) {
+            parent.find(".group-type-legend").css("display", "block");
+        } else {
+            parent.find(".group-type-legend").css("display", "none");
+        }
     }
 
     hideHulls() {

@@ -99,7 +99,7 @@ function toggleSortDirection(headerElem) {
 }
 
 
-function populateIntentTable(cluster_to_intent, 
+function populateLabelTable(cluster_to_intent, 
                             cluster_to_color,
                             onChange) {                         
     const label_filter = $("#label_filter");
@@ -122,9 +122,9 @@ function populateIntentTable(cluster_to_intent,
     });
 
     label_filter
-        .change(function() {
+        .click(function() {
             onChange(this);
         });
 }
 
-export { populateConfusionTable, populateIntentTable }
+export { populateConfusionTable, populateLabelTable }
