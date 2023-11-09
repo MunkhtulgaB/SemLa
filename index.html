@@ -162,6 +162,11 @@
                 Model
                 <select id="model-select" class="mb-1 form-select-sm inline-select">
                   <option value="bert">BERT</option>
+                  <option value="bert-60">BERT-60%</option>
+                  <option value="bert-40">BERT-40%</option>
+                  <option value="bert-20">BERT-20%</option>
+                  <option value="bert-0">BERT-0%</option>
+
                   <option value="gpt">GPT-3</option>
                   <option value="roberta">RoBERTa</option>
                 </select>
@@ -180,7 +185,7 @@
                 <label for="compare-mode">Comparison mode </label>
                 <input type="checkbox" id="compare-mode" name="compare-mode">
 
-                <label for="group-by"> | Confidence heatmap</label>
+                <label for="group-by"> | Confidence mode</label>
                 <input type="checkbox" id="show-confidence" name="show-confidence">
               </div>
 

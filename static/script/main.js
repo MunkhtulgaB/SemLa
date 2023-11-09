@@ -95,12 +95,16 @@ let dim_reduction = "tsne";
 const MODEL_DATASET_AVAILABILITY = {
     "gpt": ["banking", "go_emotions", "medical-bios"],
     "bert": ["banking", "hwu", "clinc"],
-    "roberta": ["go_emotions", "sst5"]
+    "roberta": ["go_emotions", "sst5"],
+    "bert-60": ["banking"],
+    "bert-40": ["banking"],
+    "bert-20": ["banking"],
+    "bert-0": ["banking"],
 };
 const NUM_CLUSTERS = 12;
 const system_config = {
-    dataset: "hwu",
-    model: "bert"
+    dataset: "banking",
+    model: "bert-60"
 }
 
 const WIDTH = 1000;
