@@ -491,3 +491,15 @@ height: 20px;
 .model-select-legend {
 display: none;
 }
+
+.full-list-toggle {
+cursor: pointer;
+float: right;
+margin-right: 5px;
+margin-top: 3px;
+border: 1px solid darkgrey;
+width: 15px;
+height: 15px;
+font-size: 10px;
+color: dimgrey;
+}

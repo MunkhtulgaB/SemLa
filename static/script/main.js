@@ -428,12 +428,12 @@ function initializeAdvancedOptionToggle() {
 
         if (current_value == HIDE) {
             $(this).attr("value", SHOW);
-            $(this).html(DOWN_TRIANGLE);
+            $(this).html(UP_TRIANGLE);
             container.find(".advanced-option").slideDown();
             $("#corpus-level").animate({height: "722px"});
         } else if (current_value == SHOW) {
             $(this).attr("value", HIDE);
-            $(this).html(UP_TRIANGLE);
+            $(this).html(DOWN_TRIANGLE);
             container.find(".advanced-option").slideUp();
             $("#corpus-level").animate({height: "705px"});
         }

@@ -1,3 +1,12 @@
+const GROUP1_COLOR = "blue";
+const GROUP2_COLOR = "orange";
+const MAX_ENTRIES = 7;
+const HIDE = "hide";
+const SHOW = "show";
+const UP_TRIANGLE = "&#x25B2;";
+const DOWN_TRIANGLE = "&#x25BC;";
+
+
 class ListView {
 
     #observables = [];
@@ -7,41 +16,137 @@ class ListView {
         this.updateWordsList();
         this.updateGoldLabelList();
         this.updatePredictedLabelList();
+        this.initializeFullListToggle();
     }
 
-    renderContrastiveBarChart(entries, container) {
+    initializeFullListToggle() {
+        const self = this;
+        const listToggle = $(".full-list-toggle");
+        listToggle.unbind("click");
+        listToggle.click(function() {
+            const current_value = $(this).attr("value");
+            const id = $(this).attr("id");
+
+            if (current_value == HIDE) {
+                $(this).attr("value", SHOW);
+                $(this).html(UP_TRIANGLE);
+            } else if (current_value == SHOW) {
+                $(this).attr("value", HIDE);
+                $(this).html(DOWN_TRIANGLE);
+            }
+
+            if (id == "concept-toggle") {
+                self.updateConceptsList();
+            } else if (id == "word-toggle") {
+                self.updateWordsList();
+            } else if (id == "gold-label-toggle") {
+                self.updateGoldLabelList();
+            } else if (id == "predicted-label-toggle") {
+                self.updatePredictedLabelList();
+            }
+        });
+    }
+
+    isShortened(entryType) {
+        return $(`#${entryType}-toggle`).attr("value") == HIDE;
+    }
+
+    renderContrastiveBarChart(entries, container, entryType) {
+        if (this.isShortened(entryType) && entries.length > MAX_ENTRIES) {
+            entries = this.shortenEntries(entries);
+        }
+
         const maxValue = 1; // Math.max(...local_words_set.map(x => Math.abs(x.groupProb)));
         entries.forEach(element => {
-            const relative_prob = (maxValue == 0) ? 0 : Math.abs(element.groupProb) / Math.abs(maxValue);
-            let offset;
-            let width;
-            let color;
-            if (element.groupProb < 0) {
-                offset = 50 -  50 * relative_prob;
-                width = 50 * relative_prob;
-                color = "blue";
-            } else {
-                offset = 50;
-                width = 50 * relative_prob;
-                color = "orange";
-            }
-            
-            container.append(
-                `<div value="${element.word}" 
-                        style="margin-top: 5px; display: flex; flex-direction: column; align-items: center">                          
-                    <svg class="chart" width="70%" height="10px" style="overflow: visible; border: 1px solid lightgrey;">
-                        <text font-size="0.8em" x="-32" y="10" fill="grey">${this.formatPercentage(element.prob * 100)}%</text>
-                        <text font-size="0.8em" x="103%" y="10" fill="grey">${this.formatPercentage(element.prob1 * 100)}%</text>
-                        <g class="contrastiveness-bar" 
-                            style="transform: translate(${offset.toFixed(0)}%, 0);">
-                            <rect width="${width}%" height="100%" fill="${color}"></rect>
-                        </g>
-                    </svg>
-                    <div style="text-align: center; font-weight: bold">
-                        ${element.word}
+            if (element == "...") {
+                container.append(`
+                    <div style="text-align: center; font-size: 1.3em;">
+                        ...
                     </div>
-                </div>`);
+                `);
+            } else {
+                const relative_prob = (maxValue == 0) ? 0 : Math.abs(element.groupProb) / Math.abs(maxValue);
+                let offset;
+                let width;
+                let color;
+                if (element.groupProb < 0) {
+                    offset = 50 -  50 * relative_prob;
+                    width = 50 * relative_prob;
+                    color = GROUP1_COLOR;
+                } else {
+                    offset = 50;
+                    width = 50 * relative_prob;
+                    color = GROUP2_COLOR;
+                }
+                
+                container.append(
+                    `<div value="${element.word}" 
+                            style="margin-top: 5px; display: flex; flex-direction: column; align-items: center">                          
+                        <svg class="chart" width="70%" height="10px" style="overflow: visible; border: 1px solid lightgrey;">
+                            <text font-size="0.8em" x="-32" y="10" fill="grey">${this.formatPercentage(element.prob * 100)}%</text>
+                            <text font-size="0.8em" x="103%" y="10" fill="grey">${this.formatPercentage(element.prob1 * 100)}%</text>
+                            <g class="contrastiveness-bar" 
+                                style="transform: translate(${offset.toFixed(0)}%, 0);">
+                                <rect width="${width}%" height="100%" fill="${color}"></rect>
+                            </g>
+                        </svg>
+                        <div style="text-align: center; font-weight: bold">
+                            ${element.word}
+                        </div>
+                    </div>`);
+            }
         });
+    }
+
+    shortenEntries(entries) {
+        // The first 2 and the last 2 will definitely be shown
+        const start = entries.slice(0,2);
+        const end = entries.slice(-2);
+
+        // The middle ones will be 2 neutral ones 
+        // or 1 negative, neutral, positive each
+        // or 1 negative and 1 positive
+        const negative_entries = [];
+        const positive_entries = [];
+        const neutral_entries = [];
+        entries.slice(2, entries.length-2).forEach(entry => {
+            if (entry.groupProb < 0) {
+                negative_entries.push(entry);
+            } else if (entry.groupProb > 0) {
+                positive_entries.push(entry);
+            } else {
+                neutral_entries.push(entry);
+            }
+        });
+
+        let middle_entries = [];
+        if (neutral_entries.length >= 2) {
+            middle_entries = neutral_entries.slice(0,2);
+        } else if (neutral_entries.length == 1) {
+            middle_entries = [
+                negative_entries[negative_entries.length-1],
+                neutral_entries[0],
+                positive_entries[0]
+            ].filter(x => x != undefined).slice(0,2);
+        } else {
+            if (negative_entries.length == 0) {
+                middle_entries = positive_entries.slice(0,2);
+            } else if (positive_entries.length == 0) {
+                middle_entries = negative_entries.slice(-2);
+            } else {
+                middle_entries = [
+                    negative_entries[negative_entries.length-1],
+                    positive_entries[0]
+                ] 
+            }
+        }
+        entries = start
+                .concat(["..."])
+                .concat(middle_entries)
+                .concat(["..."])
+                .concat(end);
+        entries = entries.filter(x => x != undefined);
+        return entries;
     }
 
     updateConceptsList() {
@@ -56,7 +161,8 @@ class ListView {
         this.renderContrastiveBarChart(
             local_concepts_set
                 .sort(this.sortByContrastiveness),
-            conceptsList
+            conceptsList,
+            "concept"
         )
     }
 
@@ -71,7 +177,8 @@ class ListView {
         this.renderContrastiveBarChart(
                 local_words_set
                     .sort(this.sortByContrastiveness),
-                wordsList
+                wordsList,
+                "word"
             );
     }
 
@@ -95,7 +202,8 @@ class ListView {
             this.renderContrastiveBarChart(
                 labelSet
                     .sort(this.sortByContrastiveness),
-                wordsList
+                wordsList,
+                "gold-label"
             )
         }
     }
@@ -121,7 +229,8 @@ class ListView {
             this.renderContrastiveBarChart(
                 labelSet
                 .sort(this.sortByContrastiveness),
-                wordsList
+                wordsList,
+                "predicted-label"
             )
         }        
     }
@@ -236,7 +345,6 @@ class ListView {
     get observables() {
         return this.#observables;
     }
-    
 
 }
 
