@@ -8,9 +8,8 @@ import { updateRelationChartFromCache,
         emptyTokenChart,
         initializeRelChartControls } from "./instance-level.js";
 import { populateConfusionTable,
-        populateLabelTable } from "./intent-level.js";
-import { filterByIntents, 
-         filterBySubstring,
+        populateLabelTable } from "./label-level.js";
+import { filterBySubstring,
          filterByConfidence,
          filterByDatapoint,
          FilterView } from "./global-level/filters.js";
@@ -29,26 +28,6 @@ import { ListView } from "./global-level/list-view.js";
 let filterBySearch = function(data, search_phrases) {
     const filter_idxs = filterBySubstring(data, search_phrases);
     const filter = new Filter("Search", "", filter_idxs);
-    return filter;
-}
-
-let filterByIntentsAndUpdate = function(data, intents, hullClasses) {
-    let filter_idxs = [];
-    
-    if (hullClasses) {
-        hullClasses.forEach(c => {
-            const byGoldLabel = (c == "goldLabelHull") ? true : false;
-            filter_idxs = filter_idxs.concat(
-                            filterByIntents(data, intents, byGoldLabel)
-                        );
-        })
-    } else {
-        filter_idxs = filter_idxs.concat(
-            filterByIntents(data, intents, false)
-        );
-    }
-
-    const filter = new Filter("Intent", "", filter_idxs);
     return filter;
 }
 
@@ -267,14 +246,14 @@ function initializeSystem(dataset_name, model) {
     $("#dataset-select").val(dataset_name);
 
     d3.json(
-        `static/data/${dataset_name.toLowerCase()}-viz_data-${NUM_CLUSTERS}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent-with-${model.toLowerCase()}.json`,
+        `static/data/${dataset_name.toLowerCase()}-viz_data-${NUM_CLUSTERS}-clusters-label_cluster_chosen_by_majority_in-predicted-label-with-${model.toLowerCase()}.json`,
         function (data) {
             const cluster_to_color = d3.schemeSet3;
             const dataset = new Dataset(data);
             const explanations = new ExplanationSet(dataset_name);
 
-            // Initialize the global and intent level visualizations
-            let filterBySelectedIntents = function(elem) {
+            // Initialize the global and label level visualizations
+            let filterBySelectedLabels = function(elem) {
                 // Control in label & cluster widget
                 const hullClasses = [];
                 $(".show-label-group:checked").each(function(e) {
@@ -328,7 +307,7 @@ function initializeSystem(dataset_name, model) {
                                     dataset,
                                     explanations,
                                     cluster_to_color, 
-                                    dataset.intentToCluster,
+                                    dataset.labelToCluster,
                                     dim_reduction,
                                     updateBothLocalWordViews,
                                     (model != "bert")? onClickSummaryOnly : onClick,
@@ -381,7 +360,7 @@ function initializeSystem(dataset_name, model) {
                                 dataset1,
                                 explanations,
                                 cluster_to_color, 
-                                dataset.intentToCluster,
+                                dataset.labelToCluster,
                                 dim_reduction,
                                 updateBothLocalWordViews,
                                 (model != "bert")? onClickSummaryOnly : onClick,
@@ -397,9 +376,9 @@ function initializeSystem(dataset_name, model) {
                 list_view.observe(local_words_view1);
             }
 
-            populateLabelTable(dataset.clusterToIntent, 
+            populateLabelTable(dataset.clusterToLabel, 
                                 cluster_to_color, 
-                                filterBySelectedIntents);
+                                filterBySelectedLabels);
             populateConfusionTable(dataset.confusions, 
                                     dataset.gtCounts, 
                                     dataset.predCounts,

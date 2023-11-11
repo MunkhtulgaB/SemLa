@@ -99,22 +99,22 @@ function toggleSortDirection(headerElem) {
 }
 
 
-function populateLabelTable(cluster_to_intent, 
+function populateLabelTable(cluster_to_label, 
                             cluster_to_color,
                             onChange) {                         
     const label_filter = $("#label_filter");
     label_filter.empty();
 
-    Object.entries(cluster_to_intent).forEach(function (entry) {
+    Object.entries(cluster_to_label).forEach(function (entry) {
         const [cluster, labels] = entry;
-        const intent_set = new Set(labels);
+        const label_set = new Set(labels);
         let color = cluster_to_color[cluster];
         color = d3.color(color).brighter(0.2);
 
         let optgroup_content = "";
-        intent_set.forEach(
-            (intent) =>
-                (optgroup_content += `<option value="${intent}" style="background-color: ${color}">${intent}</option>`)
+        label_set.forEach(
+            (label) =>
+                (optgroup_content += `<option value="${label}" style="background-color: ${color}">${label}</option>`)
         );
         label_filter.append(
             `<optgroup label="Cluster #${cluster}">${optgroup_content}</optgroup>`

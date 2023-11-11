@@ -257,7 +257,7 @@ overflow: initial;
     flex-direction: row;
 }
 
-/* INTENT LEVEL */
+/* Label LEVEL */
 
 #label-level {
 position: absolute;
@@ -442,7 +442,7 @@ color: grey;
 }
 
 .filter-container .badge {
-    margin: 0 !important;
+    margin: 0 0 0 3px !important;
 }
 
 #filter-container-1 {

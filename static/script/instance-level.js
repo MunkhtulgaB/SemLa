@@ -1159,7 +1159,7 @@ function updateTextSummary(d, closest_dp, dp2) {
 
     const html = `<div>
             <p><b>Text: </b> ${d.text}<p>
-            <p><b>Predicted</b> intent was 
+            <p><b>Predicted</b> label was 
                 <b>
                     <span style="color: ${color}">
                     ${d.prediction}
@@ -1168,7 +1168,7 @@ function updateTextSummary(d, closest_dp, dp2) {
                 based on closest support example.
             </p>
             ${!is_prediction_correct
-                ? `<p><b>Ground-truth</b> intent is <b>${d.ground_truth}</b>.</p>`
+                ? `<p><b>Ground-truth</b> label is <b>${d.ground_truth}</b>.</p>`
                 : ""
             }
             </div>

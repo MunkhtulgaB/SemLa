@@ -59,7 +59,7 @@ class FilterView {
         } else if (filterType == "Confidence") {
             $("input.confThreshold[data-index=0]").val(0);
             $("input.confThreshold[data-index=1]").val(100);
-        } else if (filterType == "Intent") {
+        } else if (filterType == "Label") {
             d3.selectAll("path.labelHull").attr("visibility", "hidden");
             d3.selectAll(".group-type-legend").style("display", "none");
         }
@@ -84,9 +84,9 @@ function filterBySubstring(data, search_phrases) {
 }
 
 
-function filterByIntents(data, intents, byGoldLabel) {
+function filterByLabels(data, labels, byGoldLabel) {
     const dp_idxs = data
-        .filter((d) => intents.includes((byGoldLabel) ?
+        .filter((d) => labels.includes((byGoldLabel) ?
                                             d.ground_truth
                                             : d.prediction))
         .map((d) => d.idx);
@@ -147,8 +147,8 @@ function softmax(values) {
 
 
 function getVisibleDatapoints(width, height, mapViewId) {
-    let gold_intents = [];
-    let predicted_intents = [];
+    let gold_labels = [];
+    let predicted_labels = [];
 
     const visibles = d3.selectAll(`#${mapViewId} .datapoint`).filter(function (d) {
         let x = this.transform.baseVal[0].matrix.e;
@@ -157,22 +157,22 @@ function getVisibleDatapoints(width, height, mapViewId) {
         let is_visible = d3.select(this).style("visibility") == "visible";
         is_visible = is_visible && 0 < x && x < width && 0 < y && y < height;
         if (is_visible) {
-            gold_intents.push(d["ground_truth"]);
-            predicted_intents.push(d["prediction"]);
+            gold_labels.push(d["ground_truth"]);
+            predicted_labels.push(d["prediction"]);
         }
         return is_visible;
     });
 
     return [
         visibles,
-        gold_intents,
-        predicted_intents,
+        gold_labels,
+        predicted_labels,
     ];
 }
 
 
 export { 
-    filterByIntents, 
+    filterByLabels, 
     filterByConfidence,
     filterByDatapoint,
     getVisibleDatapoints, 

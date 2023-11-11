@@ -1,8 +1,8 @@
 function initializeHulls(data, cluster_to_color, 
-                            intent_to_cluster, dim_reduction, X, Y, byGoldLabel) {
-    // before drawing the points, draw polygonHulls around each intent group
-    const intents_to_points_tsne = {};
-    const intents_to_points_umap = {};
+                            label_to_cluster, dim_reduction, X, Y, byGoldLabel) {
+    // before drawing the points, draw polygonHulls around each label group
+    const labels_to_points_tsne = {};
+    const labels_to_points_umap = {};
 
     data.forEach(function (d) {
         const x_pos_tsne = d[`tsne-dim0`];
@@ -12,23 +12,23 @@ function initializeHulls(data, cluster_to_color,
 
         const label = (byGoldLabel) ? d.ground_truth : d.prediction;
         // save the locations for later
-        if (!intents_to_points_tsne[label]) {
-            intents_to_points_tsne[label] = [
+        if (!labels_to_points_tsne[label]) {
+            labels_to_points_tsne[label] = [
                 [x_pos_tsne, y_pos_tsne],
             ];
         } else {
-            intents_to_points_tsne[label].push([
+            labels_to_points_tsne[label].push([
                 x_pos_tsne,
                 y_pos_tsne,
             ]);
         }
 
-        if (!intents_to_points_umap[label]) {
-            intents_to_points_umap[label] = [
+        if (!labels_to_points_umap[label]) {
+            labels_to_points_umap[label] = [
                 [x_pos_umap, y_pos_umap],
             ];
         } else {
-            intents_to_points_umap[label].push([
+            labels_to_points_umap[label].push([
                 x_pos_umap,
                 y_pos_umap,
             ]);
@@ -36,15 +36,15 @@ function initializeHulls(data, cluster_to_color,
     });
 
     drawHulls(
-        dim_reduction == "tsne" ? intents_to_points_tsne : intents_to_points_umap,
+        dim_reduction == "tsne" ? labels_to_points_tsne : labels_to_points_umap,
         cluster_to_color,
-        intent_to_cluster,
+        label_to_cluster,
         X, 
         Y,
         byGoldLabel
     );
 
-    return [intents_to_points_tsne, intents_to_points_umap]
+    return [labels_to_points_tsne, labels_to_points_umap]
 }
 
 
@@ -71,7 +71,7 @@ function drawHulls(labels2points, cluster_to_color,
         .append("path")
         .attr("class", hullClass + " labelHull")
         .attr("d", function (d) {
-            const [intent, pts] = d;
+            const [label, pts] = d;
             const scaled_pts = pts.map(function (pt) {
                 return [X(pt[0]), Y(pt[1])];
             });

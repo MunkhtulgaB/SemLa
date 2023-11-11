@@ -117,7 +117,7 @@ class TextProcessor:
             self.datasets[dataset] = raw_datasets
 
             import json
-            prediction_data_file = "static/data/" + dataset + "-viz_data-8-clusters-intent_cluster_chosen_by_majority_in-predicted-intent.json"
+            prediction_data_file = "static/data/" + dataset + "-viz_data-8-clusters-label_cluster_chosen_by_majority_in-predicted-label.json"
             with open(prediction_data_file, "r") as f:
                 self.prediction_data[dataset] = json.load(f)
 

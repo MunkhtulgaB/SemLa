@@ -2,7 +2,7 @@ import { initializeTooltip,
     hideTooltip, 
     showMapTooltip,
     moveTooltipToCursor } from "./tooltip.js";
-import { filterByIntents, 
+import { filterByLabels, 
         calculateConfidence } from "./filters.js";
 import { Filter } from "../data.js";
 import { initializeHulls, drawHulls } from "./hulls.js";
@@ -39,15 +39,15 @@ symbols.push(d3.symbol().type(customSymbolDownTriangle).size(100));
 class MapView {
     #container_id;
     #svg_canvas;
-    #intents_to_points_tsne;
-    #intents_to_points_umap;
+    #labels_to_points_tsne;
+    #labels_to_points_umap;
     #dataset;
     #data;
     #margin;
     #width;
     #height;
     #cluster_to_color;
-    #intent_to_cluster;
+    #label_to_cluster;
     #model_name;
     #dataset_name;
     #num_clusters;
@@ -65,7 +65,7 @@ class MapView {
     #newY;
     #onUpdate;
     #updateCount = 0;
-    #previous_intent_symbol_map = {};
+    #previous_label_symbol_map = {};
     #selectedLabels;
 
     #parallelMap;
@@ -79,7 +79,7 @@ class MapView {
                 dataset, 
                 explanation_set,
                 cluster_to_color, 
-                intent_to_cluster,
+                label_to_cluster,
                 dim_reduction,
                 onUpdate,
                 onClick,
@@ -101,7 +101,7 @@ class MapView {
         this.#width = width;
         this.#height = height;
         this.#cluster_to_color = cluster_to_color;
-        this.#intent_to_cluster = intent_to_cluster;
+        this.#label_to_cluster = label_to_cluster;
         this.#dim_reduction = dim_reduction;
         this.#onUpdate = onUpdate; 
         this.#dataset_name = dataset_name;
@@ -116,18 +116,18 @@ class MapView {
         this.initializeZoom();
         this.initializeDatapoints();
 
-        // Initialize dragging behaviour and intent hulls
-        const [intents_to_points_tsne, 
-                intents_to_points_umap] = initializeHulls(data, 
+        // Initialize dragging behaviour and label hulls
+        const [labels_to_points_tsne, 
+                labels_to_points_umap] = initializeHulls(data, 
                         cluster_to_color, 
-                        intent_to_cluster, 
+                        label_to_cluster, 
                         dim_reduction, 
                         this.#xScale, 
                         this.#yScale,
                         false); // hulls for predicted groups
         initializeHulls(data, 
                         cluster_to_color, 
-                        intent_to_cluster, 
+                        label_to_cluster, 
                         dim_reduction, 
                         this.#xScale, 
                         this.#yScale,
@@ -135,8 +135,8 @@ class MapView {
 
         initializeTooltip("map-tooltip", "container");
 
-        this.#intents_to_points_tsne = intents_to_points_tsne;
-        this.#intents_to_points_umap = intents_to_points_umap;
+        this.#labels_to_points_tsne = labels_to_points_tsne;
+        this.#labels_to_points_umap = labels_to_points_umap;
         onUpdate();
         this.initializeLegend();
     }
@@ -288,7 +288,7 @@ class MapView {
 
     selectLabels(labels) {
         this.#selectedLabels = labels;
-        const filter = filterByIntentsAndUpdate(this.#data, labels, this.hullClasses);
+        const filter = filterByLabelsAndUpdate(this.#data, labels, this.hullClasses);
         this.#dataset.addFilter(filter);
         this.filterHulls(labels);
     }
@@ -297,7 +297,7 @@ class MapView {
         this.#model_name = model;
         const self = this;
         d3.json(
-            `static/data/${this.#dataset_name.toLowerCase()}-viz_data-${this.#num_clusters}-clusters-intent_cluster_chosen_by_majority_in-predicted-intent-with-${model.toLowerCase()}.json`,
+            `static/data/${this.#dataset_name.toLowerCase()}-viz_data-${this.#num_clusters}-clusters-label_cluster_chosen_by_majority_in-predicted-label-with-${model.toLowerCase()}.json`,
             function (data) {
                 self.#svg_canvas.html(null);
 
@@ -470,55 +470,55 @@ class MapView {
         });
         // update hulls
         d3.selectAll(".labelHull").attr("d", function (d) {
-            const [intent, pts] = d;
+            const [label, pts] = d;
             const scaled_hull = pts.map((pt) => [xScale(pt[0]), yScale(pt[1])]);
             return `M${scaled_hull.join("L")}Z`;
         });
     }
 
     updateSymbols() {
-        const [currently_visible_dps, gold_intent_set, _] = this.getVisibleDatapoints();
+        const [currently_visible_dps, gold_label_set, _] = this.getVisibleDatapoints();
 
         const self = this;
-        if (gold_intent_set.length <= symbols.length) {
-            const intents_with_symbols = Object.keys(self.#previous_intent_symbol_map)
+        if (gold_label_set.length <= symbols.length) {
+            const labels_with_symbols = Object.keys(self.#previous_label_symbol_map)
                 .map((k) => parseInt(k))
-                .filter((k) => gold_intent_set.includes(k));
-            const intents_without_symbols = gold_intent_set.filter(
-                (intent) => !intents_with_symbols.includes(intent)
+                .filter((k) => gold_label_set.includes(k));
+            const labels_without_symbols = gold_label_set.filter(
+                (label) => !labels_with_symbols.includes(label)
             );
-            const used_symbols = intents_with_symbols.map(
-                (k) => self.#previous_intent_symbol_map[k]
+            const used_symbols = labels_with_symbols.map(
+                (k) => self.#previous_label_symbol_map[k]
             );
             const remaining_symbols = symbols.filter(
                 (sym) => !used_symbols.includes(sym)
             );
     
-            if (intents_without_symbols.length > remaining_symbols.length) {
+            if (labels_without_symbols.length > remaining_symbols.length) {
                 throw new Error(
-                    "There aren't enough symbols to assign to the newly visible intents: " +
-                    `${intents_without_symbols.length} !< ${remaining_symbols.length}`
+                    "There aren't enough symbols to assign to the newly visible labels: " +
+                    `${labels_without_symbols.length} !< ${remaining_symbols.length}`
                 );
             }
     
-            const intent_to_symbol = Object.fromEntries(
-                intents_without_symbols.map((intent, i) => [
-                    intent,
+            const label_to_symbol = Object.fromEntries(
+                labels_without_symbols.map((label, i) => [
+                    label,
                     remaining_symbols[i],
                 ])
             );
             currently_visible_dps.attr("d", function (d) {
-                const intent = d.ground_truth_label_idx;
-                if (intents_with_symbols.includes(intent)) {
-                    return self.#previous_intent_symbol_map[intent](d);
+                const label = d.ground_truth_label_idx;
+                if (labels_with_symbols.includes(label)) {
+                    return self.#previous_label_symbol_map[label](d);
                 } else {
-                    return intent_to_symbol[intent](d);
+                    return label_to_symbol[label](d);
                 }
             });
     
-            self.#previous_intent_symbol_map = Object.assign(
-                self.#previous_intent_symbol_map,
-                intent_to_symbol
+            self.#previous_label_symbol_map = Object.assign(
+                self.#previous_label_symbol_map,
+                label_to_symbol
             );
         } else {
             currently_visible_dps.attr(
@@ -533,10 +533,10 @@ class MapView {
         const [x, y] = this.getXYScales(dim_reduction);
         drawHulls(
             dim_reduction == "tsne"
-            ? this.intentsToPointsTSNE
-            : this.intentsToPointsUMAP,
+            ? this.labelsToPointsTSNE
+            : this.labelsToPointsUMAP,
             this.#cluster_to_color, 
-            this.#intent_to_cluster,
+            this.#label_to_cluster,
             x, y
         );
         this.#xScale = x;
@@ -591,8 +591,8 @@ class MapView {
         this.#svg_canvas.selectAll("path.labelHull").attr("visibility", "hidden");
         this.hullClasses.forEach(c => {
             this.#svg_canvas.selectAll("path." + c).attr("visibility", function (d) {
-                let [intent, _] = d;
-                if (labels.includes(intent)) {
+                let [label, _] = d;
+                if (labels.includes(label)) {
                     return "visible";
                 } else {
                     return "hidden";
@@ -641,8 +641,8 @@ class MapView {
     getVisibleDatapoints() {
         const width = this.#width;
         const height = this.#height;
-        let gold_intents = [];
-        let predicted_intents = [];
+        let gold_labels = [];
+        let predicted_labels = [];
     
         const visibles = d3.selectAll(".datapoint").filter(function (d) {
             let x = this.transform.baseVal[0].matrix.e;
@@ -651,28 +651,28 @@ class MapView {
             let is_visible = d3.select(this).style("visibility") == "visible";
             is_visible = is_visible && 0 < x && x < width && 0 < y && y < height;
             if (is_visible) {
-                gold_intents.push(d["ground_truth_label_idx"]);
-                predicted_intents.push(d["prediction_label_idx"]);
+                gold_labels.push(d["ground_truth_label_idx"]);
+                predicted_labels.push(d["prediction_label_idx"]);
             }
             return is_visible;
         });
     
-        let gold_intent_set = [...new Set(gold_intents)];
-        let predicted_intent_set = [...new Set(predicted_intents)];
+        let gold_label_set = [...new Set(gold_labels)];
+        let predicted_label_set = [...new Set(predicted_labels)];
     
         return [
             visibles,
-            Array.from(gold_intent_set),
-            Array.from(predicted_intent_set),
+            Array.from(gold_label_set),
+            Array.from(predicted_label_set),
         ];
     }
 
-    get intentsToPointsTSNE() {
-        return this.#intents_to_points_tsne;
+    get labelsToPointsTSNE() {
+        return this.#labels_to_points_tsne;
     }
 
-    get intentsToPointsUMAP() {
-        return this.#intents_to_points_umap;
+    get labelsToPointsUMAP() {
+        return this.#labels_to_points_umap;
     }
 
     get containerId() {
@@ -711,23 +711,23 @@ function getPosition(dp_element) {
     ];
 }
 
-function filterByIntentsAndUpdate(data, intents, hullClasses) {
+function filterByLabelsAndUpdate(data, labels, hullClasses) {
     let filter_idxs = [];
     
     if (hullClasses) {
         hullClasses.forEach(c => {
             const byGoldLabel = (c == "goldLabelHull") ? true : false;
             filter_idxs = filter_idxs.concat(
-                            filterByIntents(data, intents, byGoldLabel)
+                            filterByLabels(data, labels, byGoldLabel)
                         );
         })
     } else {
         filter_idxs = filter_idxs.concat(
-            filterByIntents(data, intents, false)
+            filterByLabels(data, labels, false)
         );
     }
 
-    const filter = new Filter("Intent", "", filter_idxs);
+    const filter = new Filter("Label", "", filter_idxs);
     return filter;
 }
 

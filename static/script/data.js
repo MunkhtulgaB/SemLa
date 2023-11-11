@@ -32,8 +32,8 @@ class Dataset {
     #errors;
     #errors_idxs
     #confusions;
-    #cluster_to_intent;
-    #intent_to_cluster;
+    #cluster_to_label;
+    #label_to_cluster;
     #gt_counts;
     #pred_counts;
     #filteredData;
@@ -43,30 +43,30 @@ class Dataset {
     constructor(data) {
         this.#data = data;
         this.#filteredData = data;
-        this.initIntentClusterMaps(data);
+        this.initLabelClusterMaps(data);
         this.initErrorAndConfusionLists(data);
     }
 
-    initIntentClusterMaps(data) {
-        const cluster_to_intent = {};
-        const intent_to_cluster = {};
+    initLabelClusterMaps(data) {
+        const cluster_to_label = {};
+        const label_to_cluster = {};
 
         data.forEach(function (d) {
             const label_cluster = (d.label_cluster != undefined)? d.label_cluster : d.intent_cluster;
         
-            if (!cluster_to_intent[label_cluster]) {
-                cluster_to_intent[label_cluster] = new Set([d.prediction]);
+            if (!cluster_to_label[label_cluster]) {
+                cluster_to_label[label_cluster] = new Set([d.prediction]);
             } else {
-                cluster_to_intent[label_cluster].add(d.prediction);
+                cluster_to_label[label_cluster].add(d.prediction);
             }
 
-            if (!intent_to_cluster[d.prediction]) {
-                intent_to_cluster[d.prediction] = label_cluster;
+            if (!label_to_cluster[d.prediction]) {
+                label_to_cluster[d.prediction] = label_cluster;
             }
         });
 
-        this.#cluster_to_intent = cluster_to_intent;
-        this.#intent_to_cluster = intent_to_cluster;
+        this.#cluster_to_label = cluster_to_label;
+        this.#label_to_cluster = label_to_cluster;
     }
 
     initErrorAndConfusionLists(data) {
@@ -205,12 +205,12 @@ class Dataset {
         return this.#pred_counts;
     }
 
-    get clusterToIntent() {
-        return this.#cluster_to_intent;
+    get clusterToLabel() {
+        return this.#cluster_to_label;
     }
 
-    get intentToCluster() {
-        return this.#intent_to_cluster;
+    get labelToCluster() {
+        return this.#label_to_cluster;
     }
 }
 
