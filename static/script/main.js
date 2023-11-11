@@ -798,6 +798,7 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
         ).val(); // TO REFACTOR: use const and let instead of let or vice versa consistently
         dim_reduction = dim_reduction_attr;
         map.switchDimReduction(dim_reduction);
+        map1.switchDimReduction(dim_reduction);
         updateBothLocalWordViews();
     });
 

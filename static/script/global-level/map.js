@@ -5,8 +5,7 @@ import { initializeTooltip,
 import { filterByLabels, 
         calculateConfidence } from "./filters.js";
 import { Filter } from "../data.js";
-import { initializeHulls, drawHulls } from "./hulls.js";
-    
+
 
 const symbolNames = [
     "Circle",
@@ -118,20 +117,8 @@ class MapView {
 
         // Initialize dragging behaviour and label hulls
         const [labels_to_points_tsne, 
-                labels_to_points_umap] = initializeHulls(data, 
-                        cluster_to_color, 
-                        label_to_cluster, 
-                        dim_reduction, 
-                        this.#xScale, 
-                        this.#yScale,
-                        false); // hulls for predicted groups
-        initializeHulls(data, 
-                        cluster_to_color, 
-                        label_to_cluster, 
-                        dim_reduction, 
-                        this.#xScale, 
-                        this.#yScale,
-                        true); // hulls for ground-truth groups
+                labels_to_points_umap] = this.initializeHulls(false); // hulls for predicted groups
+        this.initializeHulls(true); // hulls for ground-truth groups
 
         initializeTooltip("map-tooltip", "container");
 
@@ -256,6 +243,102 @@ class MapView {
         }
     }
 
+    initializeHulls(byGoldLabel) {
+        const data = this.#data;
+        const cluster_to_color = this.#cluster_to_color;
+        const label_to_cluster = this.#label_to_cluster;
+        const dim_reduction = this.#dim_reduction;
+        const X = this.#xScale;
+        const Y = this.#yScale;
+
+        // before drawing the points, draw polygonHulls around each label group
+        const labels_to_points_tsne = {};
+        const labels_to_points_umap = {};
+
+        data.forEach(function (d) {
+            const x_pos_tsne = d[`tsne-dim0`];
+            const y_pos_tsne = d[`tsne-dim1`];
+            const x_pos_umap = d[`umap-dim0`];
+            const y_pos_umap = d[`umap-dim1`];
+
+            const label = (byGoldLabel) ? d.ground_truth : d.prediction;
+            // save the locations for later
+            if (!labels_to_points_tsne[label]) {
+                labels_to_points_tsne[label] = [
+                    [x_pos_tsne, y_pos_tsne],
+                ];
+            } else {
+                labels_to_points_tsne[label].push([
+                    x_pos_tsne,
+                    y_pos_tsne,
+                ]);
+            }
+
+            if (!labels_to_points_umap[label]) {
+                labels_to_points_umap[label] = [
+                    [x_pos_umap, y_pos_umap],
+                ];
+            } else {
+                labels_to_points_umap[label].push([
+                    x_pos_umap,
+                    y_pos_umap,
+                ]);
+            }
+        });
+
+        this.drawHulls(
+            dim_reduction == "tsne" ? labels_to_points_tsne : labels_to_points_umap,
+            cluster_to_color,
+            label_to_cluster,
+            X, 
+            Y,
+            byGoldLabel
+        );
+
+        return [labels_to_points_tsne, labels_to_points_umap]
+    }
+
+    drawHulls(labels2points, cluster_to_color, 
+                        label_to_cluster, X, Y, byGoldLabel) {
+        const polyHullsData = {};
+        for (const label in labels2points) {
+            const pts = labels2points[label];
+            if (pts.length < 3) {
+                for (let i = 0; i < 3 - pts.length; i++) {
+                    pts.push(pts[0]);
+                }
+            }
+            const hull = d3.polygonHull(pts);
+            polyHullsData[label] = hull;
+        }
+
+        const hullClass = (byGoldLabel) ? "goldLabelHull" : "predictedLabelHull";
+
+        this.#svg_canvas.selectAll("path." + hullClass).remove();
+        this.#svg_canvas.selectAll("path." + hullClass)
+            .data(Object.entries(polyHullsData))
+            .enter()
+            .append("path")
+            .attr("class", hullClass + " labelHull")
+            .attr("d", function (d) {
+                const [label, pts] = d;
+                const scaled_pts = pts.map(function (pt) {
+                    return [X(pt[0]), Y(pt[1])];
+                });
+                return `M${scaled_pts.join("L")}Z`;
+            })
+            .style("stroke", "lightblue")
+            .style("stroke-width", 3)
+            .attr("stroke-dasharray", (byGoldLabel) ? "4": "")
+            .style("fill-opacity", (byGoldLabel) ? "0.4" : "0.4")
+            .style("fill", function (d) {
+                const [label, pts] = d;
+                return cluster_to_color[label_to_cluster[label]];
+            })
+            .attr("visibility", "hidden")
+            .style("pointer-events", "none");
+    }
+
     switchToConfidenceHeatmap() {
         const confidence_color = "#89A4C7";
 
@@ -305,9 +388,11 @@ class MapView {
                 self.initializeAxes();
                 self.initializeZoom();
                 self.initializeDatapoints();
+                self.initializeHulls(false);
+                self.initializeHulls(true);
                 
                 self.#onUpdate();
-        })
+        });
     }
 
     initializeDragging(dim_reduction, onDragEnd, dataset_name) {
@@ -531,7 +616,7 @@ class MapView {
     switchDimReduction(dim_reduction) {
         this.#dim_reduction = dim_reduction;
         const [x, y] = this.getXYScales(dim_reduction);
-        drawHulls(
+        this.drawHulls(
             dim_reduction == "tsne"
             ? this.labelsToPointsTSNE
             : this.labelsToPointsUMAP,
