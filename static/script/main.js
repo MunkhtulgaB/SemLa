@@ -617,7 +617,9 @@ function initializeHelpTooltips() {
                         <b>In comparison mode</b>, these are sorted by <b>contrastiveness</b>,
                         the difference in probability of occurring in "Group 1"
                         versus in "Group 2".
-                        </p>`);                          
+                        </p>`);
+    addTooltip(".full-list-toggle", `Click to expand/collapse list`);
+    addTooltip(".advanced-option-toggle", "Click to show/hide advanced options")   
 }
 
 
