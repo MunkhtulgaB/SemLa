@@ -471,7 +471,7 @@ class MapView {
             }
         }.bind(this))
         .on("start", function () {
-            d3.selectAll(".scatter").selectAll(".local_word").remove();
+            d3.selectAll(`#${this.container_id} .scatter`).selectAll(".local_word").remove();
         })
         .on("end", this.#onUpdate);
 
@@ -539,12 +539,12 @@ class MapView {
     }
 
     hideDragLines() {
-        d3.selectAll(".drag_line").style("visibility", "hidden");
+        d3.selectAll(`#${this.#container_id} .drag_line`).style("visibility", "hidden");
     }
 
     updatePositions(xScale, yScale, dim_reduction) {
         // update positions
-        d3.selectAll(`#${this.containerId} path.datapoint`).attr("transform", function (d) {
+        this.#svg_canvas.selectAll(`#${this.containerId} path.datapoint`).attr("transform", function (d) {
             const translation =
                 "translate(" +
                 xScale(d[`${dim_reduction}-dim0`]) +
@@ -554,7 +554,7 @@ class MapView {
             return translation;
         });
         // update hulls
-        d3.selectAll(".labelHull").attr("d", function (d) {
+        this.#svg_canvas.selectAll(".labelHull").attr("d", function (d) {
             const [label, pts] = d;
             const scaled_hull = pts.map((pt) => [xScale(pt[0]), yScale(pt[1])]);
             return `M${scaled_hull.join("L")}Z`;
@@ -669,7 +669,7 @@ class MapView {
             }
         }).style("opacity", 1);
     
-        d3.selectAll(".drag_line").style("visibility", "hidden");
+        d3.selectAll(`#${this.#container_id} .drag_line`).style("visibility", "hidden");
     }
 
     filterHulls(labels) {
@@ -729,7 +729,7 @@ class MapView {
         let gold_labels = [];
         let predicted_labels = [];
     
-        const visibles = d3.selectAll(".datapoint").filter(function (d) {
+        const visibles = this.#svg_canvas.selectAll(".datapoint").filter(function (d) {
             let x = this.transform.baseVal[0].matrix.e;
             let y = this.transform.baseVal[0].matrix.f;
     
