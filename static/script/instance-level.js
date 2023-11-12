@@ -159,6 +159,10 @@ function formatImportanceData(res) {
 let relChart1;
 let relChart2;
 
+function emptyImportanceChart() {
+    d3.selectAll("#importance_chart > *").remove();
+}
+
 function emptyRelationChart() {
     d3.selectAll("svg#rel_chart > *").remove();
     d3.selectAll("svg#rel_chart_left > *").remove();
@@ -1275,6 +1279,7 @@ export { updateRelationChartFromCache,
         updateTokenChart,
         updateTextSummary,
         loadingImportanceChart, 
+        emptyImportanceChart,
         emptyRelationChart,
         emptyTokenChart,
         initializeRelChartControls

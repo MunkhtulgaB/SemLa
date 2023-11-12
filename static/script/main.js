@@ -1,17 +1,9 @@
-import { updateRelationChartFromCache,
-        updateImportanceChartFromCache,
-        updateTokenChartFromCache,
-        updateRelationChart,
-        updateTextSummary,
-        loadingImportanceChart, 
-        emptyRelationChart, 
-        emptyTokenChart,
+import { updateRelationChart,
         initializeRelChartControls } from "./instance-level.js";
 import { populateConfusionTable,
         populateLabelTable } from "./label-level.js";
 import { filterBySubstring,
          filterByConfidence,
-         filterByDatapoint,
          FilterView } from "./global-level/filters.js";
 import { hideProgress, LocalWordsView } from "./global-level/local-words.js";
 import { MapView } from "./global-level/map.js";
@@ -38,13 +30,6 @@ let filterByConfidenceAndUpdate = function(data,
                                             conf_threshold_lower, 
                                             conf_threshold_upper);
     const filter = new Filter("Confidence", "", filter_idxs);
-    return filter;
-}
-
-let filterByDatapointAndUpdate = function(dp, data) {
-    const filter_by = $('input[name="filter-by"]:checked').val();
-    const filter_idxs = filterByDatapoint(dp, data, filter_by);
-    const filter = new Filter("Datapoint", "", filter_idxs);
     return filter;
 }
 
@@ -149,8 +134,6 @@ $(document)
     initializeTooltip("super-tooltip", "super-container",
         "black", "white", 0.95);
     initializeHelpTooltips();
-    initializeDragLines();
-
 });
 
 
@@ -161,27 +144,7 @@ function clearSystem() {
     height = HEIGHT;
 
     svg_canvas.html(null);
-    // Add a clipPath: everything out of this area won't be drawn.
-    svg_canvas.append("defs")
-    .append("SVG:clipPath")
-    .attr("id", "clip")
-    .append("SVG:rect")
-    .attr("width", width)
-    .attr("height", height)
-    .attr("x", 0)
-    .attr("y", 0);
-
-    if (svg_canvas1) {
-        svg_canvas1.html(null);
-        svg_canvas1.append("defs")
-        .append("SVG:clipPath")
-        .attr("id", "clip1")
-        .append("SVG:rect")
-        .attr("width", width)
-        .attr("height", height)
-        .attr("x", 0)
-        .attr("y", 0);
-    }
+    if (svg_canvas1) svg_canvas1.html(null);
 
     $("#label_filter").html(`<option value=""></option>`);
     $("#confusion-table").html(`
@@ -215,7 +178,6 @@ function clearSystem() {
             <svg id="token_chart" style="height: 100%; width: 100%"></svg>
         </div>
     `);
-    initializeDragLines();      
 }
 
 
@@ -310,7 +272,6 @@ function initializeSystem(dataset_name, model) {
                                     dataset.labelToCluster,
                                     dim_reduction,
                                     updateBothLocalWordViews,
-                                    (model != "bert")? onClickSummaryOnly : onClick,
                                     updateRelationChart,
                                     dataset_name,
                                     model,
@@ -363,7 +324,6 @@ function initializeSystem(dataset_name, model) {
                                 dataset.labelToCluster,
                                 dim_reduction,
                                 updateBothLocalWordViews,
-                                (model != "bert")? onClickSummaryOnly : onClick,
                                 updateRelationChart,                             
                                 dataset_name,
                                 model,
@@ -906,224 +866,5 @@ function resetFilterControls() {
     $("input.confThreshold[data-index=1]").val(100);
 }
 
-
-function onClick(d, dataset, explanation_set, map) {
-    // Filter the related nodes and highlight the selected node
-    const data = dataset.data;
-    const newFilter = filterByDatapointAndUpdate(d, data);
-    dataset.addFilter(newFilter);
-    
-    // Identify the closest datapoint
-    const similarities_sorted = Array.from(d.distances[0].entries()).sort(
-        (a, b) => b[1] - a[1]
-    );
-    const support_dps = d.support_set.map((idx) => data[idx]);
-    const closest_dp = support_dps[similarities_sorted[0][0]]; // closest dp
-    
-    if (closest_dp.ground_truth_label_idx != d.prediction_label_idx) {
-        throw new Error();
-    }
-    let dp2;
-
-    if (d.prediction == d.ground_truth) {
-        dp2 = support_dps[similarities_sorted[1][0]]; // second closest dp
-    } else {
-        dp2 = support_dps.find(
-            (dp) => dp.ground_truth_label_idx == d.ground_truth_label_idx
-        );
-    }
-
-    updateTextSummary(d, closest_dp, dp2);
-    loadingImportanceChart();
-    emptyRelationChart();
-    emptyTokenChart();
-
-    const tok2sim_relations = explanation_set.token2similarity_relations;
-    const importances = explanation_set.importances;
-    const tok2token_relations =  explanation_set.token2token_relations;
-    updateRelationChartFromCache(tok2sim_relations[d.idx].right);
-    updateRelationChartFromCache(tok2sim_relations[d.idx].left);
-    updateImportanceChartFromCache(importances[d.idx]);
-    updateTokenChartFromCache(tok2token_relations[d.idx].right);
-    updateTokenChartFromCache(tok2token_relations[d.idx].left);
-
-    // draw the draglines to the two support examples
-    const filter_by = $('input[name="filter-by"]:checked').val();
-    if (filter_by == "support_set") {
-        // if the nodes are currently filtered out, show them half transparent
-        const closest_node =  d3.select(`#node-${closest_dp.idx}`);
-        const dp2_node = d3.select(`#node-${dp2.idx}`);
-
-        closest_node
-            .style("opacity", function() {
-                if (closest_node.style("visibility") == "hidden") {
-                    return 0.3;
-                }
-            })
-            .style("visibility", "visible");
-        dp2_node
-            .style("opacity", function() {
-                if (dp2_node.style("visibility") == "hidden") {
-                    return 0.3;
-                }
-            })
-            .style("visibility", "visible");
-            
-        d3.select(`#${map.containerId} .drag-line-0`)
-            .attr("x1", (d[`${dim_reduction}-dim0`]))
-            .attr("y1", (d[`${dim_reduction}-dim1`]))
-            .attr("x2", (closest_dp[`${dim_reduction}-dim0`]))
-            .attr("y2", (closest_dp[`${dim_reduction}-dim1`]))
-            .data([
-                {
-                    x1: d[`${dim_reduction}-dim0`],
-                    y1: d[`${dim_reduction}-dim1`],
-                    x2: closest_dp[`${dim_reduction}-dim0`],
-                    y2: closest_dp[`${dim_reduction}-dim1`],
-                },
-            ]);
-        
-        d3.select(`#${map.containerId} .drag-line-1`)
-            .attr("x1", (d[`${dim_reduction}-dim0`]))
-            .attr("y1", (d[`${dim_reduction}-dim1`]))
-            .attr("x2", (dp2[`${dim_reduction}-dim0`]))
-            .attr("y2", (dp2[`${dim_reduction}-dim1`]))
-            .data([
-                {
-                    x1: d[`${dim_reduction}-dim0`],
-                    y1: d[`${dim_reduction}-dim1`],
-                    x2: dp2[`${dim_reduction}-dim0`],
-                    y2: dp2[`${dim_reduction}-dim1`],
-                },
-            ]);
-            
-        map.updateDragLines();
-        d3.selectAll(`#${map.containerId} .drag_line`)
-            .style("visibility", "visible");
-    }
-}
-
-
-let alertCount = 0;
-
-function onClickSummaryOnly(d, dataset, explanation_set, map) {
-    // Filter the related nodes and highlight the selected node
-    const data = dataset.data;
-    const newFilter = filterByDatapointAndUpdate(d, data);
-    dataset.addFilter(newFilter);
-    
-    // Identify the closest datapoint
-    const similarities_sorted = Array.from(d.distances[0].entries()).sort(
-        (a, b) => b[1] - a[1]
-    );
-    const support_dps = d.support_set.map((idx) => data[idx]);
-    const closest_dp = support_dps[similarities_sorted[0][0]]; // closest dp
-
-    if (closest_dp.ground_truth_label_idx != d.prediction_label_idx) {
-        throw new Error();
-    }
-    let dp2;
-
-    if (d.prediction == d.ground_truth) {
-        dp2 = support_dps[similarities_sorted[1][0]]; // second closest dp
-    } else {
-        dp2 = support_dps.find(
-            (dp) => dp.ground_truth_label_idx == d.ground_truth_label_idx
-        );
-    }
-
-    updateTextSummary(d, closest_dp, dp2);
-    
-    // draw the draglines to the two support examples
-    const filter_by = $('input[name="filter-by"]:checked').val();
-    if (filter_by == "support_set") {
-        // if the nodes are currently filtered out, show them half transparent
-        const closest_node =  d3.select(`#node-${closest_dp.idx}`);
-        const dp2_node = d3.select(`#node-${dp2.idx}`);
-
-        closest_node
-            .style("opacity", function() {
-                if (closest_node.style("visibility") == "hidden") {
-                    return 0.3;
-                }
-            })
-            .style("visibility", "visible");
-        dp2_node
-            .style("opacity", function() {
-                if (dp2_node.style("visibility") == "hidden") {
-                    return 0.3;
-                }
-            })
-            .style("visibility", "visible");
-
-        d3.select(`#${map.containerId} .drag-line-0`)
-            .attr("x1", (d[`${dim_reduction}-dim0`]))
-            .attr("y1", (d[`${dim_reduction}-dim1`]))
-            .attr("x2", (closest_dp[`${dim_reduction}-dim0`]))
-            .attr("y2", (closest_dp[`${dim_reduction}-dim1`]))
-            .data([
-                {
-                    x1: d[`${dim_reduction}-dim0`],
-                    y1: d[`${dim_reduction}-dim1`],
-                    x2: closest_dp[`${dim_reduction}-dim0`],
-                    y2: closest_dp[`${dim_reduction}-dim1`],
-                },
-            ]);
-
-        d3.select(`#${map.containerId} .drag-line-1`)
-            .attr("x1", (d[`${dim_reduction}-dim0`]))
-            .attr("y1", (d[`${dim_reduction}-dim1`]))
-            .attr("x2", (dp2[`${dim_reduction}-dim0`]))
-            .attr("y2", (dp2[`${dim_reduction}-dim1`]))
-            .data([
-                {
-                    x1: d[`${dim_reduction}-dim0`],
-                    y1: d[`${dim_reduction}-dim1`],
-                    x2: dp2[`${dim_reduction}-dim0`],
-                    y2: dp2[`${dim_reduction}-dim1`],
-                },
-            ]);
-        
-        map.updateDragLines();
-        d3.selectAll(`#${map.containerId} .drag_line`)
-            .style("visibility", "visible");
-    }
-
-    if (alertCount == 0) {
-        alert("Instance-level explanation data for this model is currently unavailable. Only a simple summary will be shown.");
-        alertCount++;
-    }
-}
-
-
-function initializeDragLines() {
-    svg_canvas.append("line")
-        .attr("clip-path", "url(#clip)")
-        .attr("class", "drag_line drag-line-0")
-        .style("visibility", "hidden")
-        .attr("stroke", "lightblue")
-        .attr("stroke-width", "3");
-        svg_canvas.append("line")
-        .attr("clip-path", "url(#clip)")
-        .attr("class", "drag_line drag-line-1")
-        .style("visibility", "hidden")
-        .attr("stroke", "lightblue")
-        .attr("stroke-width", "3");
-
-    if (svg_canvas1) {
-        svg_canvas1.append("line")
-            .attr("clip-path", "url(#clip1)")
-            .attr("class", "drag_line drag-line-0")
-            .style("visibility", "hidden")
-            .attr("stroke", "lightblue")
-            .attr("stroke-width", "3");
-        svg_canvas1.append("line")
-            .attr("clip-path", "url(#clip1)")
-            .attr("class", "drag_line drag-line-1")
-            .style("visibility", "hidden")
-            .attr("stroke", "lightblue")
-            .attr("stroke-width", "3");
-    }
-}
 
 alert("This demo is optimized for a 16:9 high resolution screen. Please zoom out to fit to your screen.")

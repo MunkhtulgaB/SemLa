@@ -3,8 +3,17 @@ import { initializeTooltip,
     showMapTooltip,
     moveTooltipToCursor } from "./tooltip.js";
 import { filterByLabels, 
+        filterByDatapoint,
         calculateConfidence } from "./filters.js";
 import { Filter } from "../data.js";
+import { updateTextSummary,
+         loadingImportanceChart,
+         emptyImportanceChart,
+         emptyRelationChart,
+         emptyTokenChart,
+         updateImportanceChartFromCache,
+         updateRelationChartFromCache,
+         updateTokenChartFromCache } from "../instance-level.js"; 
 
 
 const symbolNames = [
@@ -51,7 +60,6 @@ class MapView {
     #dataset_name;
     #num_clusters;
     #model_dataset_availability;
-    #onClick;
     #explanation_set;
     #is_in_compare_mode;
 
@@ -68,6 +76,7 @@ class MapView {
     #selectedLabels;
 
     #parallelMap;
+    #alertCount = 0;
 
 
     constructor(container_id, 
@@ -81,7 +90,6 @@ class MapView {
                 label_to_cluster,
                 dim_reduction,
                 onUpdate,
-                onClick,
                 onDragEnd,
                 dataset_name,
                 model_name,
@@ -107,24 +115,27 @@ class MapView {
         this.#model_name = model_name;
         this.#num_clusters = num_clusters;
         this.#model_dataset_availability = model_dataset_availability;
-        this.#onClick = onClick;
         this.#explanation_set = explanation_set;
         this.#is_in_compare_mode = is_in_compare_mode;
 
+        this.initialize();
+    }
+
+    initialize() {
         this.initializeAxes();
         this.initializeZoom();
         this.initializeDatapoints();
+        this.initializeDragLines();
 
         // Initialize dragging behaviour and label hulls
         const [labels_to_points_tsne, 
-                labels_to_points_umap] = this.initializeHulls(false); // hulls for predicted groups
+            labels_to_points_umap] = this.initializeHulls(false); // hulls for predicted groups
         this.initializeHulls(true); // hulls for ground-truth groups
-
         initializeTooltip("map-tooltip", "container");
 
         this.#labels_to_points_tsne = labels_to_points_tsne;
         this.#labels_to_points_umap = labels_to_points_umap;
-        onUpdate();
+        this.#onUpdate();
         this.initializeLegend();
     }
 
@@ -168,10 +179,7 @@ class MapView {
             .on("mouseout", () => hideTooltip("#map-tooltip"))
             .on("click", function(d) {
                 self.selectNode(this);
-                self.#onClick(d, 
-                            self.#dataset, 
-                            self.#explanation_set, 
-                            self);
+                self.explainSample(d);
                 self.updateDragLines();
             });
         
@@ -385,14 +393,23 @@ class MapView {
                 self.#svg_canvas.html(null);
 
                 self.#data = data;
-                self.initializeAxes();
-                self.initializeZoom();
-                self.initializeDatapoints();
-                self.initializeHulls(false);
-                self.initializeHulls(true);
-                
-                self.#onUpdate();
+                self.initialize();
         });
+    }
+
+    initializeDragLines() {
+        this.#svg_canvas.append("line")
+        .attr("clip-path", "url(#clip)")
+        .attr("class", "drag_line drag-line-0")
+        .style("visibility", "hidden")
+        .attr("stroke", "lightblue")
+        .attr("stroke-width", "3");
+        this.#svg_canvas.append("line")
+        .attr("clip-path", "url(#clip)")
+        .attr("class", "drag_line drag-line-1")
+        .style("visibility", "hidden")
+        .attr("stroke", "lightblue")
+        .attr("stroke-width", "3");
     }
 
     initializeDragging(dim_reduction, onDragEnd, dataset_name) {
@@ -752,6 +769,113 @@ class MapView {
         ];
     }
 
+    
+    explainSample(d) {
+        // Filter the related nodes and highlight the selected node
+        const data = this.#data;
+        const explanation_set = this.#explanation_set;
+        const newFilter = filterByDatapointAndUpdate(d, data);
+        this.#dataset.addFilter(newFilter);
+        
+        // Identify the closest datapoint
+        const similarities_sorted = Array.from(d.distances[0].entries()).sort(
+            (a, b) => b[1] - a[1]
+        );
+        const support_dps = d.support_set.map((idx) => data[idx]);
+        const closest_dp = support_dps[similarities_sorted[0][0]]; // closest dp
+        
+        if (closest_dp.ground_truth_label_idx != d.prediction_label_idx) {
+            throw new Error();
+        }
+        let dp2;
+    
+        if (d.prediction == d.ground_truth) {
+            dp2 = support_dps[similarities_sorted[1][0]]; // second closest dp
+        } else {
+            dp2 = support_dps.find(
+                (dp) => dp.ground_truth_label_idx == d.ground_truth_label_idx
+            );
+        }
+    
+        updateTextSummary(d, closest_dp, dp2);
+        emptyImportanceChart();
+        emptyRelationChart();
+        emptyTokenChart();
+    
+        if (this.#model_name == "bert") {
+            const tok2sim_relations = explanation_set.token2similarity_relations;
+            const importances = explanation_set.importances;
+            const tok2token_relations =  explanation_set.token2token_relations;
+            updateRelationChartFromCache(tok2sim_relations[d.idx].right);
+            updateRelationChartFromCache(tok2sim_relations[d.idx].left);
+            updateImportanceChartFromCache(importances[d.idx]);
+            updateTokenChartFromCache(tok2token_relations[d.idx].right);
+            updateTokenChartFromCache(tok2token_relations[d.idx].left);
+        } else {
+            // Tell the user there is no explanation data for this model
+            if (this.#alertCount == 0) {
+                alert("Instance-level explanation data for this model is currently unavailable. Only a simple summary will be shown.");
+                this.#alertCount++;
+            }
+        }
+        
+        // draw the draglines to the two support examples
+        const filter_by = $('input[name="filter-by"]:checked').val();
+        if (filter_by == "support_set") {
+            // if the nodes are currently filtered out, show them half transparent
+            const closest_node =  d3.select(`#node-${closest_dp.idx}`);
+            const dp2_node = d3.select(`#node-${dp2.idx}`);
+    
+            closest_node
+                .style("opacity", function() {
+                    if (closest_node.style("visibility") == "hidden") {
+                        return 0.3;
+                    }
+                })
+                .style("visibility", "visible");
+            dp2_node
+                .style("opacity", function() {
+                    if (dp2_node.style("visibility") == "hidden") {
+                        return 0.3;
+                    }
+                })
+                .style("visibility", "visible");
+            
+            const dim_reduction = this.#dim_reduction;
+            d3.select(`#${this.containerId} .drag-line-0`)
+                .attr("x1", (d[`${dim_reduction}-dim0`]))
+                .attr("y1", (d[`${dim_reduction}-dim1`]))
+                .attr("x2", (closest_dp[`${dim_reduction}-dim0`]))
+                .attr("y2", (closest_dp[`${dim_reduction}-dim1`]))
+                .data([
+                    {
+                        x1: d[`${dim_reduction}-dim0`],
+                        y1: d[`${dim_reduction}-dim1`],
+                        x2: closest_dp[`${dim_reduction}-dim0`],
+                        y2: closest_dp[`${dim_reduction}-dim1`],
+                    },
+                ]);
+            
+            d3.select(`#${this.containerId} .drag-line-1`)
+                .attr("x1", (d[`${dim_reduction}-dim0`]))
+                .attr("y1", (d[`${dim_reduction}-dim1`]))
+                .attr("x2", (dp2[`${dim_reduction}-dim0`]))
+                .attr("y2", (dp2[`${dim_reduction}-dim1`]))
+                .data([
+                    {
+                        x1: d[`${dim_reduction}-dim0`],
+                        y1: d[`${dim_reduction}-dim1`],
+                        x2: dp2[`${dim_reduction}-dim0`],
+                        y2: dp2[`${dim_reduction}-dim1`],
+                    },
+                ]);
+
+            this.updateDragLines();
+            d3.selectAll(`#${this.containerId} .drag_line`)
+                .style("visibility", "visible");
+        }
+    }
+
     get labelsToPointsTSNE() {
         return this.#labels_to_points_tsne;
     }
@@ -813,6 +937,13 @@ function filterByLabelsAndUpdate(data, labels, hullClasses) {
     }
 
     const filter = new Filter("Label", "", filter_idxs);
+    return filter;
+}
+
+function filterByDatapointAndUpdate(dp, data) {
+    const filter_by = $('input[name="filter-by"]:checked').val();
+    const filter_idxs = filterByDatapoint(dp, data, filter_by);
+    const filter = new Filter("Datapoint", "", filter_idxs);
     return filter;
 }
 
