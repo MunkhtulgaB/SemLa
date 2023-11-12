@@ -123,9 +123,9 @@ class MapView {
 
     initialize() {
         this.initializeAxes();
+        this.initializeDragLines();
         this.initializeZoom();
         this.initializeDatapoints();
-        this.initializeDragLines();
 
         // Initialize dragging behaviour and label hulls
         const [labels_to_points_tsne, 
@@ -178,9 +178,9 @@ class MapView {
             .on("mousemove", () => moveTooltipToCursor("#map-tooltip"))
             .on("mouseout", () => hideTooltip("#map-tooltip"))
             .on("click", function(d) {
-                self.selectNode(this);
-                self.explainSample(d);
-                self.updateDragLines();
+                self.selectNode(d.idx);
+                if (self.#parallelMap) 
+                    self.#parallelMap.selectNode(d.idx, true);
             });
         
         const isInConfidenceHeatmapMode = $("#show-confidence").prop("checked");
@@ -510,7 +510,7 @@ class MapView {
         this.filterNodes(newDataIdxs);
         this.updateSymbols();
         if (msg == "clear") {
-            this.clearSelectedNode();
+            this.clearHighlightedNode();
             this.hideHulls();
         }
         if (!doNotUpdateLocalWords) this.#onUpdate();
@@ -725,19 +725,11 @@ class MapView {
         this.filterHulls([]);
     }
 
-    clearSelectedNode() {
-        $(".selected-dp")
-        .attr("stroke", "#9299a1")
-        .attr("stroke-width", "1px")
-        .removeClass("selected-dp");
-    }
-
-    selectNode(node) {
-        this.clearSelectedNode();
-        $(node)
-            .attr("stroke", "red")
-            .attr("stroke-width", "3px")
-            .addClass("selected-dp");
+    clearHighlightedNode() {
+        $(`#${this.#container_id} .selected-dp`)
+            .attr("stroke", "#9299a1")
+            .attr("stroke-width", "1px")
+            .removeClass("selected-dp");
     }
 
     getVisibleDatapoints() {
@@ -769,19 +761,39 @@ class MapView {
         ];
     }
 
-    
-    explainSample(d) {
-        // Filter the related nodes and highlight the selected node
-        const data = this.#data;
-        const explanation_set = this.#explanation_set;
-        const newFilter = filterByDatapointAndUpdate(d, data);
+    selectNode(idx, isSampleToBeNotExplained) {
+        const d = this.#svg_canvas.select(`#node-${idx}`).data()[0];
+        this.highlightNode(d);
+        this.filterNode(d);
+        const [closest_dp, contrast_dp] = this.identifyTwoKeySupportSamples(d);
+
+        if (!isSampleToBeNotExplained) { 
+            this.explainSample(d, closest_dp, contrast_dp);
+        }
+        this.drawDragLines(d, closest_dp, contrast_dp);
+        this.updateDragLines();
+    }
+
+    highlightNode(d) {
+        const node = this.#svg_canvas.select(`#node-${d.idx}`).node();
+        this.clearHighlightedNode();
+        $(node)
+            .attr("stroke", "red")
+            .attr("stroke-width", "3px")
+            .addClass("selected-dp");
+    }
+
+    filterNode(d) {
+        const newFilter = filterByDatapointAndUpdate(d, this.#data);
         this.#dataset.addFilter(newFilter);
-        
+    }
+
+    identifyTwoKeySupportSamples(d) {
         // Identify the closest datapoint
         const similarities_sorted = Array.from(d.distances[0].entries()).sort(
             (a, b) => b[1] - a[1]
         );
-        const support_dps = d.support_set.map((idx) => data[idx]);
+        const support_dps = d.support_set.map((idx) => this.#data[idx]);
         const closest_dp = support_dps[similarities_sorted[0][0]]; // closest dp
         
         if (closest_dp.ground_truth_label_idx != d.prediction_label_idx) {
@@ -796,16 +808,19 @@ class MapView {
                 (dp) => dp.ground_truth_label_idx == d.ground_truth_label_idx
             );
         }
+        return [closest_dp, dp2];
+    }
     
+    explainSample(d, closest_dp, dp2) {
         updateTextSummary(d, closest_dp, dp2);
         emptyImportanceChart();
         emptyRelationChart();
         emptyTokenChart();
     
         if (this.#model_name == "bert") {
-            const tok2sim_relations = explanation_set.token2similarity_relations;
-            const importances = explanation_set.importances;
-            const tok2token_relations =  explanation_set.token2token_relations;
+            const tok2sim_relations = this.#explanation_set.token2similarity_relations;
+            const importances = this.#explanation_set.importances;
+            const tok2token_relations =  this.#explanation_set.token2token_relations;
             updateRelationChartFromCache(tok2sim_relations[d.idx].right);
             updateRelationChartFromCache(tok2sim_relations[d.idx].left);
             updateImportanceChartFromCache(importances[d.idx]);
@@ -818,13 +833,14 @@ class MapView {
                 this.#alertCount++;
             }
         }
-        
-        // draw the draglines to the two support examples
+    }
+
+    drawDragLines(d, closest_dp, dp2) {
         const filter_by = $('input[name="filter-by"]:checked').val();
         if (filter_by == "support_set") {
             // if the nodes are currently filtered out, show them half transparent
-            const closest_node =  d3.select(`#node-${closest_dp.idx}`);
-            const dp2_node = d3.select(`#node-${dp2.idx}`);
+            const closest_node = this.#svg_canvas.select(`#node-${closest_dp.idx}`);
+            const dp2_node = this.#svg_canvas.select(`#node-${dp2.idx}`);
     
             closest_node
                 .style("opacity", function() {

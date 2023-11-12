@@ -62,6 +62,11 @@ class FilterView {
         } else if (filterType == "Label") {
             d3.selectAll("path.labelHull").attr("visibility", "hidden");
             d3.selectAll(".group-type-legend").style("display", "none");
+        } else if (filterType == "Datapoint") {
+            $(`.selected-dp`)
+                .attr("stroke", "#9299a1")
+                .attr("stroke-width", "1px")
+                .removeClass("selected-dp");
         }
     }
 
