@@ -503,3 +503,8 @@ height: 15px;
 font-size: 10px;
 color: dimgrey;
 }
+
+.label-select-map-specific {
+    margin: 0;
+    width: 80px;
+}

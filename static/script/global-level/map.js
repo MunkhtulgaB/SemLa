@@ -209,6 +209,13 @@ class MapView {
                         ${(selected_model == current)? "selected": ""}>${current}</option>`,
             ""
         );
+
+        const labels_selected = this.#selectedLabels || [];
+        const label_options = labels_selected.reduce(
+            (soFar, current) => soFar + 
+            `<option value="${current}"}>${current}</option>`,
+            ""
+        );
         parent.append(`
             <div class="map-legend">
                 <div class="model-select-legend">
@@ -219,6 +226,11 @@ class MapView {
                 </div>
                 <div class="group-type-legend">
                     <b>Label groups:</b>
+                    <br>
+                    <select class="label-select-map-specific">
+                        <option value="all" selected>All selected</option>
+                        ${label_options}
+                    </select>
                     <br>
                     <input type="checkbox" class="label-group-type-predicted" name="label-group-type-predicted" checked>
                     <label for="label-group-type-predicted">Predicted</label>
@@ -239,6 +251,12 @@ class MapView {
             if (self.modelName != self.parallelMap.modelName) {
                 $("#show-confidence").prop("checked", true).change();
             }
+        });
+
+        const label_select = parent.find(".label-select-map-specific");
+        label_select.change(function() {
+            const selected_label = $(this).val();
+            self.selectLabels([selected_label], true);
         });
 
         let updateLabelGroups = function() {
@@ -379,11 +397,26 @@ class MapView {
         }
     }
 
-    selectLabels(labels) {
+    selectLabels(labels, doNotUpdateLabelOptions) {
         this.#selectedLabels = labels;
         const filter = filterByLabelsAndUpdate(this.#data, labels, this.hullClasses);
         this.#dataset.addFilter(filter);
         this.filterHulls(labels);
+
+        if (!doNotUpdateLabelOptions) {
+            // Add the labels to the legend
+            const parent = $(`#${this.#container_id}`).parent();
+            const label_select = parent.find(".label-select-map-specific");
+
+            const labels_selected = this.#selectedLabels || [];
+            const label_options = labels_selected.reduce(
+                (soFar, current) => soFar + 
+                `<option value="${current}"}>${current}</option>`,
+                `<option value="all" selected>All selected</option>`
+            );
+
+            label_select.html(label_options);
+        }
     }
 
     changeModel(model) {
