@@ -523,8 +523,8 @@ class MapView {
             }
         }.bind(this))
         .on("start", function () {
-            d3.selectAll(`#${this.container_id} .scatter`).selectAll(".local_word").remove();
-        })
+            d3.selectAll(`#${this.containerId} .local_word`).remove();
+        }.bind(this))
         .on("end", this.#onUpdate);
 
         // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
