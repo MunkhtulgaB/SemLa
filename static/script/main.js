@@ -96,8 +96,6 @@ $(document)
 
         // select an available option
         $("#dataset-select").val(system_config.dataset).change();
-        alertCount = 0;
-
         // uncheck confidence heatmap toggle
         $("#show-confidence").prop("checked", false);
     });
