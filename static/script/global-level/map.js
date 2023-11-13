@@ -523,7 +523,10 @@ class MapView {
             }
         }.bind(this))
         .on("start", function () {
-            d3.selectAll(`#${this.containerId} .local_word`).remove();
+            this.clearLocalWords();
+            if (this.isInCompareMode) {
+                this.parallelMap.clearLocalWords();
+            }
         }.bind(this))
         .on("end", this.#onUpdate);
 
@@ -535,6 +538,10 @@ class MapView {
             .style("pointer-events", "all")
             .attr("transform", "translate(" + this.#margin.left + "," + this.#margin.top + ")")
             .call(zoom);    
+    }
+
+    clearLocalWords() {
+        d3.selectAll(`#${this.containerId} .local_word`).remove();
     }
 
     update(newDataIdxs, msg, doNotUpdateLocalWords, observerId) {
