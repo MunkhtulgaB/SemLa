@@ -159,8 +159,10 @@ function getVisibleDatapoints(width, height, mapViewId) {
         let x = this.transform.baseVal[0].matrix.e;
         let y = this.transform.baseVal[0].matrix.f;
 
-        let is_visible = d3.select(this).style("visibility") == "visible";
+        let is_visible = d3.select(this).style("visibility") == "visible"
+                && d3.select(this).style("opacity") == 1;
         is_visible = is_visible && 0 < x && x < width && 0 < y && y < height;
+        
         if (is_visible) {
             gold_labels.push(d["ground_truth"]);
             predicted_labels.push(d["prediction"]);

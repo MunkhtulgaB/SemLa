@@ -3,11 +3,13 @@ class Filter {
     #type;
     #value;
     #idxs;
+    #isImportant;
     
-    constructor(type, value, idxs) {
+    constructor(type, value, idxs, isImportant) {
         this.#type = type;
         this.#value = value;
         this.#idxs = idxs;
+        this.#isImportant = isImportant;
     }
 
     get type() {
@@ -20,6 +22,10 @@ class Filter {
 
     get idxs() {
         return this.#idxs;
+    }
+
+    get isImportant() {
+        return this.#isImportant;
     }
 
 }
@@ -120,6 +126,16 @@ class Dataset {
                 this.#filteredData = this.#filteredData.filter((d) => {
                     return newFilter.idxs.includes(d.idx);
                 });
+
+                if (newFilter.isImportant) {
+                    const must_have_data = this.#data.filter(d => 
+                        newFilter.idxs.includes(d.idx));
+                    
+                    this.#filteredData = Array.from(
+                        new Set(this.#filteredData
+                                .concat(must_have_data))
+                    );
+                }
             }
         } else {
             this.#filters[newFilter.type] = newFilter;
@@ -139,15 +155,25 @@ class Dataset {
     refilterData() {
         const filters = Object.values(this.#filters);
         if (filters.length == 0) return this.#data;
-        const idxs = filters.map(filter => filter.idxs);
-        let idxs_intersection = idxs[0];
-        const other_idxs = idxs.slice(1,);
+        let idxs_intersection = filters[0].idxs;
+        const other_filters = filters.slice(1,);
         
-        other_idxs.forEach((other_idxs) => {
+        other_filters.forEach((other_filter) => {
             idxs_intersection = idxs_intersection.filter((idx) =>
-                other_idxs.includes(idx)
+                other_filter.idxs.includes(idx)
             )
         });
+
+        // if there are any important filters,
+        // add their idxs in any case
+        filters.filter(x => x.isImportant).forEach((filter) => {
+            idxs_intersection = Array.from(
+                new Set(idxs_intersection
+                            .concat(filter.idxs)
+                        )
+            );
+        })
+
         return this.#data.filter((d) => idxs_intersection.includes(d.idx));
     }
 

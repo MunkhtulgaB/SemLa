@@ -123,9 +123,7 @@ class MapView {
 
     initialize() {
         this.initializeAxes();
-        this.initializeDragLines();
         this.initializeZoom();
-        this.initializeDatapoints();
 
         // Initialize dragging behaviour and label hulls
         const [labels_to_points_tsne, 
@@ -133,8 +131,12 @@ class MapView {
         this.initializeHulls(true); // hulls for ground-truth groups
         initializeTooltip("map-tooltip", "container");
 
+        
         this.#labels_to_points_tsne = labels_to_points_tsne;
         this.#labels_to_points_umap = labels_to_points_umap;
+
+        this.initializeDragLines();
+        this.initializeDatapoints();
         this.#onUpdate();
         this.initializeLegend();
     }
@@ -763,13 +765,15 @@ class MapView {
 
     selectNode(idx, isSampleToBeNotExplained) {
         const d = this.#svg_canvas.select(`#node-${idx}`).data()[0];
-        this.highlightNode(d);
-        this.filterNode(d);
         const [closest_dp, contrast_dp] = this.identifyTwoKeySupportSamples(d);
+        
+        this.highlightNode(d);
+        this.filterNode(d, closest_dp, contrast_dp);
 
         if (!isSampleToBeNotExplained) { 
             this.explainSample(d, closest_dp, contrast_dp);
         }
+
         this.drawDragLines(d, closest_dp, contrast_dp);
         this.updateDragLines();
     }
@@ -783,8 +787,22 @@ class MapView {
             .addClass("selected-dp");
     }
 
-    filterNode(d) {
-        const newFilter = filterByDatapointAndUpdate(d, this.#data);
+    filterNode(d, closest_dp, contrast_dp) {
+        let newFilter;
+
+        if (this.isInCompareMode) {
+            let idxs;
+            if (this.containerId == "semantic_landscape-mirror") {
+                // show the closest dp only on the right side
+                idxs = [closest_dp.idx];
+            } else if (this.containerId == "semantic_landscape") {
+                // show the contrast dp only on the left side
+                idxs = [contrast_dp.idx];
+            }
+            newFilter = new Filter("Datapoint", "", idxs, true);
+        } else {
+            newFilter = filterByDatapointAndUpdate(d, this.#data);
+        }
         this.#dataset.addFilter(newFilter);
     }
 
@@ -839,20 +857,33 @@ class MapView {
         const filter_by = $('input[name="filter-by"]:checked').val();
         if (filter_by == "support_set") {
             // if the nodes are currently filtered out, show them half transparent
+            const selected_node = this.#svg_canvas.select(`#node-${d.idx}`);
             const closest_node = this.#svg_canvas.select(`#node-${closest_dp.idx}`);
             const dp2_node = this.#svg_canvas.select(`#node-${dp2.idx}`);
     
+            let closest_node_link_opacity = 1;
+            let contrast_node_link_opacity = 1;
+
+            selected_node
+                .style("opacity", function() {
+                    if (selected_node.style("visibility") == "hidden") {
+                        return 0.2;
+                    }
+                })
+                .style("visibility", "visible");
             closest_node
                 .style("opacity", function() {
                     if (closest_node.style("visibility") == "hidden") {
-                        return 0.3;
+                        closest_node_link_opacity = 0.2;
+                        return 0.2;
                     }
                 })
                 .style("visibility", "visible");
             dp2_node
                 .style("opacity", function() {
                     if (dp2_node.style("visibility") == "hidden") {
-                        return 0.3;
+                        contrast_node_link_opacity = 0.2;
+                        return 0.2;
                     }
                 })
                 .style("visibility", "visible");
@@ -863,6 +894,7 @@ class MapView {
                 .attr("y1", (d[`${dim_reduction}-dim1`]))
                 .attr("x2", (closest_dp[`${dim_reduction}-dim0`]))
                 .attr("y2", (closest_dp[`${dim_reduction}-dim1`]))
+                .style("opacity", closest_node_link_opacity)
                 .data([
                     {
                         x1: d[`${dim_reduction}-dim0`],
@@ -877,6 +909,7 @@ class MapView {
                 .attr("y1", (d[`${dim_reduction}-dim1`]))
                 .attr("x2", (dp2[`${dim_reduction}-dim0`]))
                 .attr("y2", (dp2[`${dim_reduction}-dim1`]))
+                .style("opacity", contrast_node_link_opacity) 
                 .data([
                     {
                         x1: d[`${dim_reduction}-dim0`],
