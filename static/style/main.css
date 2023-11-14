@@ -508,3 +508,27 @@ color: dimgrey;
     margin: 0;
     width: 80px;
 }
+
+.lasso-tool-btn {
+position: absolute;
+border: 1px solid grey;
+bottom: 35px;
+right: 10px;
+width: fit-content;
+height: fit-content;
+padding: 5px;
+border-radius: 2px;
+}
+
+.lasso-tool-btn:hover {
+background-color: lightgrey;
+cursor: pointer;
+}
+
+.lasso-icon {
+border: 2px solid grey;
+width: 15px;
+height: 15px;
+border-style: dotted;
+border-radius: 3px;
+}

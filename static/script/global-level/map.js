@@ -62,6 +62,7 @@ class MapView {
     #model_dataset_availability;
     #explanation_set;
     #is_in_compare_mode;
+    #is_lasso_active;
 
     #xScale;
     #yScale;
@@ -139,6 +140,148 @@ class MapView {
         this.initializeDatapoints();
         this.#onUpdate();
         this.initializeLegend();
+        this.initializeLassoTool();
+    }
+
+    initializeLassoTool() {
+        const parent = $(`#${this.#container_id}`).parent();
+        const self = this;
+        parent.append(`
+            <div class="lasso-tool-btn">
+                <div class="lasso-icon">
+                </div>
+            </div>
+        `)
+
+        parent.find(".lasso-tool-btn").click(function() {
+            self.toggleLassoTool();
+        })
+        parent.css("cursor", "alias");
+    }
+
+    toggleLassoTool() {
+        if (this.#is_lasso_active) {
+            this.endLassoTool();
+        } else {
+            this.startLassoTool();
+        }
+    }
+
+    startLassoTool() {
+        this.#is_lasso_active = true;
+        const parent = $(`#${this.#container_id}`).parent();
+        parent.css("cursor", "crosshair")
+        this.pauseZoom();
+        this.drawLasso();
+
+        const self = this;
+        const svg = this.#svg_canvas.node().parentNode
+        
+        const pt = svg.createSVGPoint()
+        let transformCursorPositionToSVGSpace = function(event){
+            pt.x = event.clientX; 
+            pt.y = event.clientY;
+            return pt.matrixTransform(
+                svg.getScreenCTM().inverse()
+            );
+        }
+
+        this.#svg_canvas.append("rect")
+            .attr("class", "lasso-interface")
+            .attr("width", this.#width)
+            .attr("height", this.#height)
+            .style("fill", "none")
+            .style("pointer-events", "all")
+            .on("mousedown", function() {
+                self.isDrawingLasso = true;
+                self.lassoPoints = [];
+            })
+            .on("mousemove", function() {
+                if (self.isDrawingLasso) {
+                    const location = transformCursorPositionToSVGSpace(d3.event);
+                    self.lassoPoints.push([location.x,
+                                            location.y]);
+                    self.drawLasso();
+                    self.getSamplesInLasso();
+                }
+            })
+            .on("mouseup", function() {
+                self.isDrawingLasso = false;
+                const idxs = self.getSamplesInLasso();
+                const lasso_filter = new Filter("Lasso", "", idxs);
+                self.#dataset.addFilter(lasso_filter);
+                self.endLassoTool();
+            });
+    }
+
+    drawLasso() {
+        const self = this;
+        this.#svg_canvas.selectAll("path.lasso").remove();
+        this.#svg_canvas.selectAll("path.lasso")
+            .data([this.lassoPoints])
+            .enter()
+            .append("path")
+            .attr("class", "lasso")
+            .attr("d", function (pts) {
+                const canvas_corners = [
+                    [0,0],
+                    [0, self.#height],
+                    [self.#width, self.#height],
+                    [self.#width, 0],
+                ];
+
+                if (pts && pts.length > 0) {
+                    const scaled_pts = pts.map(function (pt) {
+                        return [
+                            pt[0] - self.#margin.left,
+                            pt[1] - self.#margin.top
+                        ];
+                    });
+                    return `M${canvas_corners.join("L")}Z
+                        M${scaled_pts.join("L")}Z`;
+                } else {
+                    return `M${canvas_corners.join("L")}Z`;
+                }
+                
+            })
+            .style("fill-opacity", 0.2)
+            .style("fill", "black")
+            .style("stroke", "grey")
+            .style("stroke-width", 2)
+            .attr("visibility", "visible")
+            .style("pointer-events", "none");
+    }
+
+    getSamplesInLasso() {
+        const self = this;
+        const dim_reduction = this.#dim_reduction;
+        const idxs = [];
+
+        d3.selectAll(`#${this.containerId} path.datapoint`)
+            .each(function(d) {
+                const pos = [
+                    self.#newX(d[`${dim_reduction}-dim0`]) + self.#margin.left,
+                    self.#newY(d[`${dim_reduction}-dim1`]) + self.#margin.top,
+                ]
+                const isInLasso = self.lassoPoints 
+                        && self.lassoPoints.length > 3
+                        && d3.polygonContains(self.lassoPoints, pos);
+                
+                if (isInLasso) {
+                    idxs.push(d.idx);
+                }
+            });
+        return idxs;
+    }
+
+    endLassoTool() {
+        this.#is_lasso_active = false;
+        const parent = $(`#${this.#container_id}`).parent();
+        parent.css("cursor", "alias")
+        this.resumeZoom();
+        parent.find(".lasso-interface").remove();
+        this.#svg_canvas.selectAll("path.lasso").remove();
+        this.lassoPoints = [];
     }
 
     initializeAxes() {
@@ -505,10 +648,19 @@ class MapView {
         return drag;
     }
 
+    pauseZoom() {
+        this.#svg_canvas.select(".zoom-interface")
+            .style("pointer-events", "none");
+    }
+
+    resumeZoom() {
+        this.#svg_canvas.select(".zoom-interface").call(this.zoom)
+            .style("pointer-events", "all");
+    }
 
     initializeZoom() {
         // Set the zoom and Pan features: how much you can zoom, on which part, and what to do when there is a zoom
-        let zoom = d3.zoom()
+        this.zoom = d3.zoom()
                     .scaleExtent([0.5, 100]) // This control how much you can unzoom (x0.5) and zoom (x20)
                     .extent([
                         [0, 0],
@@ -532,12 +684,12 @@ class MapView {
 
         // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
         this.#svg_canvas.append("rect")
+            .attr("class", "zoom-interface")
             .attr("width", this.#width)
             .attr("height", this.#height)
             .style("fill", "none")
             .style("pointer-events", "all")
-            .attr("transform", "translate(" + this.#margin.left + "," + this.#margin.top + ")")
-            .call(zoom);    
+            .call(this.zoom);    
     }
 
     clearLocalWords() {
