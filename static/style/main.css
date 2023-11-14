@@ -439,6 +439,7 @@ color: grey;
 .filter-container {
     width: 95%;
     margin-bottom: 0;
+    margin-left: 20px;
 }
 
 .filter-container .badge {
@@ -512,7 +513,7 @@ color: dimgrey;
 .lasso-tool-btn {
 position: absolute;
 border: 1px solid grey;
-bottom: 35px;
+top: 455px;
 right: 10px;
 width: fit-content;
 height: fit-content;

@@ -19,8 +19,9 @@ class FilterView {
             const currentFilters = msg;
             let html = "";
             for (const [type, filter] of Object.entries(currentFilters)) {
+                const value = (filter.value) ? ": " + filter.value : "";
                 html += `<span class="p-1 m-1 badge text-bg-secondary">
-                            ${type} ${filter.value}
+                            ${type} ${value}
                             <span data="${type}" class="filter-remove-btn" style="background-color: transparent;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="white" class="bi bi-trash" viewBox="0 0 16 16">
                                     <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"/>

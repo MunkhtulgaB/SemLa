@@ -706,6 +706,7 @@ class MapView {
         if (msg == "clear") {
             this.clearHighlightedNode();
             this.hideHulls();
+            this.showLegend(false);
         }
         if (!doNotUpdateLocalWords) this.#onUpdate();
     }
@@ -915,6 +916,11 @@ class MapView {
         }
     }
 
+    hideLegend() {
+        const parent = $(`#${this.#container_id}`).parent();
+        parent.find(".map-legend").css("display", "none");
+    }
+
     hideHulls() {
         this.filterHulls([]);
     }
@@ -984,14 +990,17 @@ class MapView {
 
         if (this.isInCompareMode) {
             let idxs;
+            let filter_value;
             if (this.containerId == "semantic_landscape-mirror") {
                 // show the closest dp only on the right side
                 idxs = [closest_dp.idx];
+                filter_value = "Closest sample to #" + d.idx;
             } else if (this.containerId == "semantic_landscape") {
                 // show the contrast dp only on the left side
                 idxs = [contrast_dp.idx];
+                filter_value = "Contrast sample to #" + d.idx;
             }
-            newFilter = new Filter("Datapoint", "", idxs, true);
+            newFilter = new Filter("Datapoint", filter_value, idxs, true);
         } else {
             newFilter = filterByDatapointAndUpdate(d, this.#data);
         }
@@ -1177,14 +1186,15 @@ function filterByLabelsAndUpdate(data, labels, hullClasses) {
         );
     }
 
-    const filter = new Filter("Label", "", filter_idxs);
+    const filter_value = (labels.length == 1)? labels[0] : "all selected";
+    const filter = new Filter("Label", filter_value, filter_idxs);
     return filter;
 }
 
 function filterByDatapointAndUpdate(dp, data) {
     const filter_by = $('input[name="filter-by"]:checked').val();
     const filter_idxs = filterByDatapoint(dp, data, filter_by);
-    const filter = new Filter("Datapoint", "", filter_idxs);
+    const filter = new Filter("Datapoint", "#" + dp.idx, filter_idxs);
     return filter;
 }
 
