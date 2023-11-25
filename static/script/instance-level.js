@@ -424,26 +424,28 @@ function renderRelChart(res) {
     );
 
     // Draw links
-    const getWidth = (d) =>
+    const x_start = Math.max(...left_text_bboxes.map((b) => b.width)) + 5;
+    const x_end = chart_width - (Math.max(...right_text_bboxes.map((b) => b.width)) + 5);
+    const x_middle = x_start + (x_end - x_start) / 2;
+    
+    const getHeight = (d) =>
         10 * minmax(all_importance, Math.abs(d.importance));
 
     const pos_left = leftcol_data
-        .filter((dp) => dp.importance > 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance > 0);
     const neg_left = leftcol_data
-        .filter((dp) => dp.importance < 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance < 0);
     const pos_right = rightcol_data
-        .filter((dp) => dp.importance > 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance > 0);
     const neg_right = rightcol_data
-        .filter((dp) => dp.importance < 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance < 0);
 
     const pos_height = pos_left.concat(pos_right)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
     const neg_height = neg_left.concat(neg_right)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
     const total_height = pos_height + neg_height;
 
@@ -469,12 +471,12 @@ function renderRelChart(res) {
                     const positives_so_far_sum = leftcol_data
                         .slice(0, i)
                         .filter((dp) => dp.importance > 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
                     const negatives_so_far_sum = leftcol_data
                         .slice(0, i)
                         .filter((dp) => dp.importance < 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
                     const y_start_line =
@@ -485,12 +487,12 @@ function renderRelChart(res) {
                     return {
                         pos: i,
                         source: {
-                            x: Math.max(...left_text_bboxes.map((b) => b.width)) + 5,
+                            x: x_start,
                             y: (d.pos + 1) * fontsize + d.pos * spacing_left_col,
                         },
                         target: {
-                            x: chart_width / 2,
-                            y: y_start_line + y_offset + getWidth(d) / 2,
+                            x: x_middle,
+                            y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         importance: d.importance,
                     };
@@ -518,13 +520,15 @@ function renderRelChart(res) {
                 .map(function (d, i) {
                     const positives_so_far_sum = rightcol_data
                         .slice(0, i)
+                        .concat(leftcol_data)
                         .filter((dp) => dp.importance > 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
                     const negatives_so_far_sum = rightcol_data
                         .slice(0, i)
+                        .concat(leftcol_data)
                         .filter((dp) => dp.importance < 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
                     const y_start_line =
@@ -535,13 +539,11 @@ function renderRelChart(res) {
                     return {
                         pos: i,
                         source: {
-                            x: chart_width / 2,
-                            y: y_start_line + y_offset + getWidth(d) / 2,
+                            x: x_middle,
+                            y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         target: {
-                            x:
-                                chart_width -
-                                (Math.max(...right_text_bboxes.map((b) => b.width)) + 5),
+                            x: x_end,
                             y: (d.pos + 1) * fontsize + d.pos * spacing_right_col,
                         },
                         importance: d.importance,
@@ -586,7 +588,7 @@ function renderRelChart(res) {
         .append("rect")
         .attr("fill", (d) => d.fill)
         .attr("stroke", (d) => d.stroke)
-        .attr("x", chart_width / 2 - block_width / 2)
+        .attr("x", x_middle - block_width / 2)
         .attr("y", (d) => d.y)
         .attr("height", (d) => d.height)
         .attr("width", block_width)
@@ -599,25 +601,13 @@ function renderRelChart(res) {
                 .style("visibility", "visible")
                 .html(
                     `Total ${d.sign > 0 ? "positive" : "negative"} gradients:
-            ${d.sign > 0
-                        ? leftcol_data
-                            .map((dp) => dp.importance)
-                            .filter((imp) => imp > 0)
-                            .concat(
-                                rightcol_data
-                                    .map((dp) => dp.importance)
-                                    .filter((imp) => imp > 0)
-                            )
+                    ${d.sign > 0 ? 
+                        pos_left.concat(pos_right)
+                            .map(d => d.importance)
                             .reduce((a, b) => a + b, 0)
-                            .toFixed(1)
-                        : leftcol_data
-                            .map((dp) => dp.importance)
-                            .filter((imp) => imp < 0)
-                            .concat(
-                                rightcol_data
-                                    .map((dp) => dp.importance)
-                                    .filter((imp) => imp < 0)
-                            )
+                            .toFixed(1): 
+                        neg_left.concat(neg_right)
+                            .map(d => d.importance)
                             .reduce((a, b) => a + b, 0)
                             .toFixed(1)
                     }`
@@ -693,25 +683,30 @@ function renderSecondRelChart(res) {
     );
 
     // Render links
-    const getWidth = (d) =>
+    const chart_width = d3.select("#rel_chart_left_container")
+        .node().parentNode.clientWidth * (RELCHART_LEFT_WIDTH/100);
+
+    const x_start = Math.max(...left_text_bboxes.map((b) => b.width)) + 5;
+    const x_end = chart_width * 0.9;
+    const x_middle = x_start + (x_end - x_start) / 2;
+    
+    const getHeight = (d) =>
         10 * minmax(all_importance, Math.abs(d.importance));
 
     const pos_left = leftcol_data
-        .filter((dp) => dp.importance > 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance > 0);
     const neg_left = leftcol_data
-        .filter((dp) => dp.importance < 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance < 0);
     const pos_right = rightcol_data
-        .filter((dp) => dp.importance > 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance > 0);
     const neg_right = rightcol_data
-        .filter((dp) => dp.importance < 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance < 0);
 
     const pos_height = pos_left.concat(pos_right)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
     const neg_height = neg_left.concat(neg_right)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
     const total_height = pos_height + neg_height;
@@ -729,11 +724,6 @@ function renderSecondRelChart(res) {
         .x((d) => d.x)
         .y((d) => d.y);
 
-    
-    const ALIGNMENT_MULTIPLIER = 1.1;
-    const chart_width = d3.select("#rel_chart_left_container")
-                .node().parentNode.clientWidth * (RELCHART_LEFT_WIDTH/100);
-
     const left_lines = relchart_left
         .selectAll(".left_links_contrast")
         .data(
@@ -743,12 +733,12 @@ function renderSecondRelChart(res) {
                     const positives_so_far_sum = leftcol_data
                         .slice(0, i)
                         .filter((dp) => dp.importance > 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
                     const negatives_so_far_sum = leftcol_data
                         .slice(0, i)
                         .filter((dp) => dp.importance < 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
                     const y_start_line =
@@ -758,12 +748,12 @@ function renderSecondRelChart(res) {
 
                     return {
                         source: {
-                            x: Math.max(...left_text_bboxes.map((b) => b.width)) + 5,
+                            x: x_start,
                             y: (d.pos + 1) * fontsize + d.pos * spacing_left_col,
                         },
                         target: {
-                            x: (chart_width / 2) * ALIGNMENT_MULTIPLIER,
-                            y: y_start_line + y_offset + getWidth(d) / 2,
+                            x: x_middle,
+                            y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         importance: d.importance,
                     };
@@ -791,13 +781,15 @@ function renderSecondRelChart(res) {
                 .map(function (d, i) {
                     const positives_so_far_sum = rightcol_data
                         .slice(0, i)
+                        .concat(leftcol_data)
                         .filter((dp) => dp.importance > 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
                     const negatives_so_far_sum = rightcol_data
                         .slice(0, i)
+                        .concat(leftcol_data)
                         .filter((dp) => dp.importance < 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
                     const y_start_line =
@@ -807,11 +799,11 @@ function renderSecondRelChart(res) {
 
                     return {
                         source: {
-                            x: (chart_width / 2) * ALIGNMENT_MULTIPLIER,
-                            y: y_start_line + y_offset + getWidth(d) / 2,
+                            x: x_middle,
+                            y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         target: {
-                            x: chart_width * 0.9,
+                            x: x_end,
                             y: (d.pos + 1) * fontsize + d.pos * spacing_right_col,
                         },
                         importance: d.importance,
@@ -856,7 +848,7 @@ function renderSecondRelChart(res) {
         .append("rect")
         .attr("fill", (d) => d.fill)
         .attr("stroke", (d) => d.stroke)
-        .attr("x", (chart_width / 2 - block_width / 2) * ALIGNMENT_MULTIPLIER)
+        .attr("x", x_middle - block_width / 2)
         .attr("y", (d) => d.y)
         .attr("height", (d) => d.height)
         .attr("width", block_width)
@@ -869,25 +861,13 @@ function renderSecondRelChart(res) {
                 .style("visibility", "visible")
                 .html(
                     `Total ${d.sign > 0 ? "positive" : "negative"} gradients:
-            ${d.sign > 0
-                        ? leftcol_data
-                            .map((dp) => dp.importance)
-                            .filter((imp) => imp > 0)
-                            .concat(
-                                rightcol_data
-                                    .map((dp) => dp.importance)
-                                    .filter((imp) => imp > 0)
-                            )
+                    ${d.sign > 0 ? 
+                        pos_left.concat(pos_right)
+                            .map(d => d.importance)
                             .reduce((a, b) => a + b, 0)
-                            .toFixed(1)
-                        : leftcol_data
-                            .map((dp) => dp.importance)
-                            .filter((imp) => imp < 0)
-                            .concat(
-                                rightcol_data
-                                    .map((dp) => dp.importance)
-                                    .filter((imp) => imp < 0)
-                            )
+                            .toFixed(1): 
+                        neg_left.concat(neg_right)
+                            .map(d => d.importance)
                             .reduce((a, b) => a + b, 0)
                             .toFixed(1)
                     }`
