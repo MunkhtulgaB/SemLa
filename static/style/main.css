@@ -533,3 +533,7 @@ height: 15px;
 border-style: dotted;
 border-radius: 3px;
 }
+
+#summary hr {
+margin: 0.1rem 0;
+}
