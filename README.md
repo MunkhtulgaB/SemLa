@@ -10,6 +10,18 @@ SemLa is a tool for analyzing fine-grained text classification models, which is 
 
 <hr>
 
+## Cite us
+
+```
+@inproceedings{Battogtokh2024,
+  author={Battogtokh, Munkhtulga and Davidescu, Cosmin and Luck, Michael and Borgo, Rita},
+  booktitle={The Proceedings of The 38th Annual AAAI Conference on Artificial Intelligence}, 
+  title={SemLa: A Visual Analysis System for Fine-grained Text Classification}, 
+  year={2024},
+}
+```
+<hr>
+
 ## Our algorithm for computing the locality of features
 
 Localized Feature Clouds (LFC) interactively complement the map with a layer of visual summary that immediately reveals patterns about various localities in the _currently_ visible space (the results change as the user zooms or pans). LFC is different from traditional word clouds in that the features are positioned semantically in the embedding space.
