@@ -120,48 +120,46 @@ class LocalWordsView {
     showLocalConcepts(local_words, onClick, total_num_of_visible_dps) {
         return new Promise((resolve, reject) => {
             // characterize each word with various features
-            const local_concepts = [];
-
+            let progress = 0;
             showProgress(0, local_words.length);
-            local_words.forEach((word_data) => {   
-                this.loadConceptCache()
-                .then(() => this.getConcepts(word_data.word))
-                .then((edges) => {
-                    local_concepts.push(word_data.word);
-                    const [concepts, rels] = edges;           
-                    word_data["concepts"] = concepts;
-                    word_data["rels"] = rels;
 
-                    // check all words are processed
-                    let progress = 0;
-                    const isComplete = local_words.every((word_data, i) => {
-                        progress++;
-                        return local_concepts.includes(word_data.word);
+            this.loadConceptCache()
+                .then(() => {
+                    local_words.forEach((word_data) => {
+                        
+                        this.getConcepts(word_data.word)
+                        .then((edges) => {
+                            const [concepts, rels] = edges;           
+                            word_data["concepts"] = concepts;
+                            word_data["rels"] = rels;
+                            progress++;
+
+                            // check all words are processed
+                            const isComplete = progress == local_words.length;        
+                            const magnitudeOrder = orderOfMagnitude(local_words.length);
+
+                            if (progress % Math.pow(10, magnitudeOrder - 1) == 0) {
+                                updateProgress(progress, local_words.length);
+                            }
+        
+                            if (isComplete) {
+                                hideProgress();
+                                // then apply the localization algorithm on those features
+                                const localConcepts = extractLocalFeatures(local_words, 
+                                                                "concept", 
+                                                                total_num_of_visible_dps);
+                                this.render_local_words(localConcepts, false, onClick);
+                                resolve(localConcepts);
+                            }
+                        });
+
                     });
-
-                    const magnitudeOrder = orderOfMagnitude(local_words.length);
-                    
-                    if (progress % Math.pow(10, magnitudeOrder - 1) == 0) {
-                        updateProgress(progress, local_words.length);
-                    }
-
-                    if (isComplete) {
-                        hideProgress();
-                        // then apply the localization algorithm on those features
-                        const localConcepts = extractLocalFeatures(local_words, 
-                                                        "concept", 
-                                                        total_num_of_visible_dps);
-                        this.render_local_words(localConcepts, false, onClick);
-                        resolve(localConcepts);
-                    }
                 });
-            });
-        })
+        });
     }
 
     getConcepts(word) {
         word = word.toLowerCase();
-    
         return new Promise((resolve, reject) => {
             if (!Object.hasOwn(this.#conceptCache, word)) {
                 console.log("getting concepts from ConceptNet");
