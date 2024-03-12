@@ -326,7 +326,7 @@ function renderRelTexts(
     const rect_class = "rect" + (is_left_col ? "_left" : "_right");
     const text_x = is_left_col ? 0 : chart_width;
     const rect_opacity = (d) =>
-        d.importance ? 0.5 * minmax(all_importance, Math.abs(d.importance)) : 0;
+        d.importance ? 0.5 * normalize(all_importance, Math.abs(d.importance)) : 0;
 
     let texts = relchart
         .selectAll("." + text_class)
@@ -429,7 +429,7 @@ function renderRelChart(res) {
     const x_middle = x_start + (x_end - x_start) / 2;
     
     const getHeight = (d) =>
-        10 * minmax(all_importance, Math.abs(d.importance));
+        10 * normalize(all_importance, Math.abs(d.importance));
 
     const pos_left = leftcol_data
         .filter((dp) => dp.importance > 0);
@@ -485,6 +485,7 @@ function renderRelChart(res) {
                         d.importance > 0 ? positives_so_far_sum : negatives_so_far_sum;
 
                     return {
+                        token: d.token,
                         pos: i,
                         source: {
                             x: x_start,
@@ -505,11 +506,11 @@ function renderRelChart(res) {
         .attr("fill", "none")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
         );
 
     const right_lines = relchart
@@ -537,6 +538,7 @@ function renderRelChart(res) {
                         d.importance > 0 ? positives_so_far_sum : negatives_so_far_sum;
 
                     return {
+                        token: d.token,
                         pos: i,
                         source: {
                             x: x_middle,
@@ -557,11 +559,11 @@ function renderRelChart(res) {
         .attr("fill", "none")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
         );
 
     // Add 2 similarity blocks
@@ -624,7 +626,7 @@ function renderRelChart(res) {
             d3.select("#rel_chart_tooltip")
                 .style("visibility", "visible")
                 .html(
-                    `Importance (integrated gradient): ${d.importance.toFixed(3)}`
+                    `Importance of ${d.token} (integrated gradient): ${d.importance.toFixed(3)}`
                 )
                 .style("top", event.pageY + 10 + "px")
                 .style("left", event.pageX + 10 + "px");
@@ -671,6 +673,11 @@ function renderSecondRelChart(res) {
         .concat(importance4)
         .map((i) => Math.abs(i));
 
+    const prev_importances = importance3
+        .concat(importance4)
+        .map((i) => Math.abs(i));
+    const prev_max_importance = Math.max(...prev_importances);
+
     const left_text_bboxes = renderRelTexts(
         "svg#rel_chart_left",
         leftcol_data,
@@ -691,7 +698,7 @@ function renderSecondRelChart(res) {
     const x_middle = x_start + (x_end - x_start) / 2;
     
     const getHeight = (d) =>
-        10 * minmax(all_importance, Math.abs(d.importance));
+        10 * d.importance / prev_max_importance;
 
     const pos_left = leftcol_data
         .filter((dp) => dp.importance > 0);
@@ -766,11 +773,11 @@ function renderSecondRelChart(res) {
         .attr("class", "rel_link left_links_contrast")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * d.importance / prev_max_importance : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * d.importance / prev_max_importance
         );
 
     const right_lines = relchart_left
@@ -817,11 +824,11 @@ function renderSecondRelChart(res) {
         .attr("class", "rel_link right_links_contrast")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * d.importance / prev_max_importance : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * d.importance / prev_max_importance
         );
 
     // Add 2 similarity blocks
@@ -882,11 +889,11 @@ function renderSecondRelChart(res) {
     // Recalculate stroke opacity for previously visible lines
     d3.selectAll(".left_links").style(
         "stroke-opacity",
-        (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+        (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
     );
     d3.selectAll(".right_links").style(
         "stroke-opacity",
-        (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+        (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
     );
 
     // Similarly, recalculate opacity of previously visible highlight rects
@@ -896,7 +903,7 @@ function renderSecondRelChart(res) {
         .selectAll(".right_rect")
         .attr("fill-opacity", (d) =>
             d.importance
-                ? 0.5 * minmax(all_importance, Math.abs(d.importance))
+                ? 0.5 * normalize(all_importance, Math.abs(d.importance))
                 : 0
         );
     // For the middle texts, highlight by contrastiveness
@@ -1056,11 +1063,11 @@ function renderTokenChart(res) {
         .style("stroke", "lightblue")
         .style(
             "stroke-width",
-            (d) => 10 * minmax(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => 10 * normalize(all_link_strengths, Math.abs(d.strength)) ** 3
         )
         .style(
             "stroke-opacity",
-            (d) => minmax(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => normalize(all_link_strengths, Math.abs(d.strength)) ** 3
         );
 }
 
@@ -1113,11 +1120,11 @@ function renderSecondTokenChart(res) {
         .style("stroke", "lightblue")
         .style(
             "stroke-width",
-            (d) => 10 * minmax(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => 10 * normalize(all_link_strengths, Math.abs(d.strength)) ** 3
         )
         .style(
             "stroke-opacity",
-            (d) => minmax(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => normalize(all_link_strengths, Math.abs(d.strength)) ** 3
         );
 
     d3.selectAll(".token_links, .token_links_contrast")
@@ -1188,21 +1195,20 @@ function updateTextSummary(d, closest_dp, dp2) {
         .html(`<span style="color: ${color}">(${d.prediction})</span>`);
 }
 
-
-function minmax(values, value) {
+function normalize(values, value) {
     if (value && !values.includes(value)) {
         throw new Error("value must be included in values");
     }
 
     values = values.filter((v) => !isNaN(v));
     const max_val = Math.max(...values);
-    const min_val = Math.min(...values);
+    const min_val = 0; // values are expected to be positive
     const val_range = max_val - min_val;
 
     if (value) {
-        return (value - min_val) / val_range;
+        return value / val_range;
     } else {
-        return values.map((val) => (value - min_val) / val_range);
+        return values.map((val) => val / val_range);
     }
 }
 
