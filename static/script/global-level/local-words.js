@@ -103,7 +103,7 @@ class LocalWordsView {
     
             let localised_words = extractLocalFeatures(
                 visibles.data(),
-                (feature_type == "concept")? "text":feature_type
+                (feature_type == "concept")? "text":feature_type, // for concepts and words, we need to find the local words first in any case
             );
             
             if (feature_type == "concept") {
@@ -571,8 +571,7 @@ function filterLocalWordsWithGaussianLocality(
         
         if (occurrences[0] && occurrences[0].frequency) {
             const occurrences_flat = occurrences.reduce((sum, x) => sum.concat(x.occurrences), []);
-            const occurrence_set = new Set(occurrences_flat);
-            weight = occurrence_set.size;
+            weight = occurrences_flat.length;
         } else {
             weight = occurrences.length;
         }

@@ -272,7 +272,7 @@ class ListView {
             if (!wordSet[word.word]) {
                 wordSet[word.word] = {
                     word: word.word,
-                    groupProb: -word.prob,
+                    groupProb: -word.prob, // groupProb is for calculating prob difference
                     prob: word.prob,
                     prob1: 0
                 };
