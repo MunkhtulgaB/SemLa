@@ -282,6 +282,8 @@ class LocalWordsView {
                     filter_name = "Local word";
                 } 
 
+                occurrences = Array.from(new Set(occurrences));
+
                 const idxs = occurrences.map(x => x.idx);
                 const goldLabels = occurrences.map(x => x.ground_truth);
                 const predictedLabels = occurrences.map(x => x.prediction);
@@ -571,7 +573,8 @@ function filterLocalWordsWithGaussianLocality(
         
         if (occurrences[0] && occurrences[0].frequency) {
             const occurrences_flat = occurrences.reduce((sum, x) => sum.concat(x.occurrences), []);
-            weight = occurrences_flat.length;
+            const occurrence_set = new Set(occurrences_flat); // this is necessary for probs to not exceed 100%
+            weight = occurrence_set.size;
         } else {
             weight = occurrences.length;
         }
