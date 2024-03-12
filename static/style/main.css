@@ -236,7 +236,7 @@ background-color: white;
 
 #super-container {
 position: relative;
-height: 1100px; 
+height: 1090px; 
 width: 1853px;
 margin: 0;
 }
@@ -244,7 +244,7 @@ margin: 0;
 #corpus-level {
 position: absolute;
 display: flex;
-top: 10px;
+top: 8px;
 height: 705px;
 left: 10px;
 background-color: white;
@@ -309,7 +309,7 @@ padding: 3px;
 #sample-level {
 position: absolute;
 overflow: hidden;
-top: 10px;
+top: 8px;
 left: 1030px;
 height: 705px; 
 width: 810px; 
