@@ -342,7 +342,18 @@ function initializeSystem(dataset_name, model) {
                                     dataset.predCounts,
                                     filterBySelectedConfusion);
 
-            const accuracy = 100 - (dataset.errors.length / data.length) * 100;
+           
+            const predictions = dataset.data.map(x => x.prediction);
+            const labels = dataset.data.map(x => x.ground_truth);
+
+            let count_correct = 0;
+            for (let i = 0; i < predictions.length; i++) {
+                if (predictions[i] == labels[i]) {
+                    count_correct++;
+                }
+            }
+            const accuracy = 100 * (count_correct / predictions.length);
+            // const accuracy = 100 - (dataset.errors.length / data.length) * 100;
             $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
             
             initializeRelChartControls();
