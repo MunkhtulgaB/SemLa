@@ -122,7 +122,7 @@ function populateLabelTable(cluster_to_label,
     });
 
     label_filter
-        .click(function() {
+        .change(function() {
             onChange(this);
         });
 }
