@@ -17,6 +17,15 @@ class LocalWordsView {
     #isAlreadyLoading;
     #forceSimulation;
 
+    #goldLabels;
+    #predictedLabels;
+
+    #filteredData;
+    #observers = [];
+
+    #local_words = [];
+    #local_concepts = [];
+
     constructor(mapViewId, width, height, dataset) {
         this.#mapViewId = mapViewId;
         this.#width = width;
@@ -27,32 +36,45 @@ class LocalWordsView {
         this.isAlreadyLoading = false;
     }
 
+    setLocalGoldLabels(goldLabels) {
+        this.#goldLabels = goldLabels;
+    }
+
+    setLocalPredictedLabels(predictedLabels) {
+        this.#predictedLabels = predictedLabels;
+    }
+
     update(isHighFrequencyCall) {
         const feature_type = $("#local-feature-type-select").val();
         if (isHighFrequencyCall == true && feature_type == "concept") {
             return;
         }
 
-        let onLocalWordClick = function(filter_name, idxs, words, concepts) {
-            const filter = new Filter(filter_name, "", idxs);
-            this.#dataset.addFilter(filter, true);
-            this.#dataset.setLocalWords(words);
-            this.#dataset.setLocalConcepts(concepts);
+        const dataset = this.#dataset;
+
+        let onLocalWordClick = function(filter_name, idxs, words, concepts, goldLabels, predictedLabels) {
+            const filter = new Filter(filter_name, "", idxs); // dummy filter to update the current filters
+            dataset.addFilter(filter, true, this.#mapViewId);
+            this.setLocalGoldLabels(goldLabels);
+            this.setLocalPredictedLabels(predictedLabels);
+            this.setLocalWords(words);
+            this.setLocalConcepts(concepts);
+            this.notifyObservers(idxs, this.#mapViewId, true);
         };
-        let [visibles, __, ___] = getVisibleDatapoints(this.#width, this.#height);
+        let [visibles, gold_labels, predicted_labels] = getVisibleDatapoints(
+                                    this.#width, 
+                                    this.#height,
+                                    this.#mapViewId);
         this.showLocalWords(visibles, 
                 isHighFrequencyCall, 
                 onLocalWordClick.bind(this)
             )
-            .then((local_words) => {
-                const feature_type = $("#local-feature-type-select").val();
-                if (feature_type == "concept") {
-                    this.#dataset.setLocalConcepts(local_words);
-                    this.#dataset.setLocalWords([]);
-                } else if (feature_type == "text") {
-                    this.#dataset.setLocalConcepts([]);
-                    this.#dataset.setLocalWords(local_words);
-                }
+            .then(([local_words, local_concepts]) => {
+                this.setLocalGoldLabels(gold_labels);
+                this.setLocalPredictedLabels(predicted_labels);
+                this.setLocalConcepts(local_concepts);
+                this.setLocalWords(local_words);
+                this.notifyObservers(null, this.#mapViewId, true);
             })
             .catch((e) => {
                 console.log(e)
@@ -81,63 +103,63 @@ class LocalWordsView {
     
             let localised_words = extractLocalFeatures(
                 visibles.data(),
-                (feature_type == "concept")? "text":feature_type
+                (feature_type == "concept")? "text":feature_type, // for concepts and words, we need to find the local words first in any case
             );
             
             if (feature_type == "concept") {
-                this.showLocalConcepts(localised_words, onClick)
-                    .then((local_concepts) => resolve(local_concepts));
+                this.showLocalConcepts(localised_words, onClick, visibles.data().length)
+                    .then((local_concepts) => resolve([localised_words, local_concepts]));
             } else {
                 this.render_local_words(localised_words, isHighFrequencyCall, onClick);
-                resolve(localised_words);
+                resolve([localised_words, []]);
             }
         });
     }
 
 
-    showLocalConcepts(local_words, onClick) {
+    showLocalConcepts(local_words, onClick, total_num_of_visible_dps) {
         return new Promise((resolve, reject) => {
             // characterize each word with various features
-            const local_concepts = [];
-
+            let progress = 0;
             showProgress(0, local_words.length);
-            local_words.forEach((word_data) => {   
-                this.loadConceptCache()
-                .then(() => this.getConcepts(word_data.word))
-                .then((edges) => {
-                    local_concepts.push(word_data.word);
-                    const [concepts, rels] = edges;           
-                    word_data["concepts"] = concepts;
-                    word_data["rels"] = rels;
 
-                    // check all words are processed
-                    let progress = 0;
-                    const isComplete = local_words.every((word_data, i) => {
-                        progress++;
-                        return local_concepts.includes(word_data.word);
+            this.loadConceptCache()
+                .then(() => {
+                    local_words.forEach((word_data) => {
+                        
+                        this.getConcepts(word_data.word)
+                        .then((edges) => {
+                            const [concepts, rels] = edges;           
+                            word_data["concepts"] = concepts;
+                            word_data["rels"] = rels;
+                            progress++;
+
+                            // check all words are processed
+                            const isComplete = progress == local_words.length;        
+                            const magnitudeOrder = orderOfMagnitude(local_words.length);
+
+                            if (progress % Math.pow(10, magnitudeOrder - 1) == 0) {
+                                updateProgress(progress, local_words.length);
+                            }
+        
+                            if (isComplete) {
+                                hideProgress();
+                                // then apply the localization algorithm on those features
+                                const localConcepts = extractLocalFeatures(local_words, 
+                                                                "concept", 
+                                                                total_num_of_visible_dps);
+                                this.render_local_words(localConcepts, false, onClick);
+                                resolve(localConcepts);
+                            }
+                        });
+
                     });
-
-                    const magnitudeOrder = orderOfMagnitude(local_words.length);
-                    
-                    if (progress % Math.pow(10, magnitudeOrder - 1) == 0) {
-                        updateProgress(progress, local_words.length);
-                    }
-
-                    if (isComplete) {
-                        hideProgress();
-                        // then apply the localization algorithm on those features
-                        const localConcepts = extractLocalFeatures(local_words, "concept");
-                        this.render_local_words(localConcepts, false, onClick);
-                        resolve(localConcepts);
-                    }
                 });
-            });
-        })
+        });
     }
 
     getConcepts(word) {
         word = word.toLowerCase();
-    
         return new Promise((resolve, reject) => {
             if (!Object.hasOwn(this.#conceptCache, word)) {
                 console.log("getting concepts from ConceptNet");
@@ -213,7 +235,6 @@ class LocalWordsView {
     render_local_words(localised_words, 
                         isHighFrequencyCall, 
                         onLocalWordClick) {
-        console.log(`#${this.#mapViewId} .scatter`);
         d3.selectAll(`#${this.#mapViewId} .local_word`).remove();
         d3.select(`#${this.#mapViewId} .scatter`)
             .selectAll("text")
@@ -259,12 +280,26 @@ class LocalWordsView {
                     filter_name = "Local word";
                 } 
 
+                occurrences = Array.from(new Set(occurrences));
+
                 const idxs = occurrences.map(x => x.idx);
+                const goldLabels = occurrences.map(x => x.ground_truth);
+                const predictedLabels = occurrences.map(x => x.prediction);
+
+                // update the probs
+                related_words.forEach(word => {
+                    word.prob = word.weight / idxs.length;
+                })
+                d.prob = d.weight / idxs.length;
+
+               
                 onLocalWordClick(
                     filter_name, 
                     idxs, 
                     (isConcept) ? related_words : [d], 
-                    (isConcept) ? [d]: []
+                    (isConcept) ? [d]: [],
+                    goldLabels,
+                    predictedLabels
                 );
                 this.render_local_words(related_words.concat(d), false, onLocalWordClick);
             }.bind(this));
@@ -287,6 +322,45 @@ class LocalWordsView {
                         });
                 });
         }
+    }
+
+    notifyObservers(dataIdxs, msg, doNotUpdateLocalWords) {
+        this.#observers.forEach((observer) => 
+            observer.update(dataIdxs, 
+                            msg,
+                            doNotUpdateLocalWords));
+    }
+
+    addObserver(observer) {
+        this.#observers.push(observer);
+    } 
+
+    setLocalWords(local_words) {
+        this.#local_words = local_words;
+    }
+
+    setLocalConcepts(local_concepts) {
+        this.#local_concepts = local_concepts;
+    }
+
+    get local_words() {
+        return this.#local_words;
+    }
+
+    get local_concepts() {
+        return this.#local_concepts;
+    }
+
+    get filteredData() {
+        return this.#filteredData;
+    }  
+
+    get goldLabels() {
+        return this.#goldLabels;
+    }
+
+    get predictedLabels() {
+        return this.#predictedLabels;
     }
 
 }
@@ -340,8 +414,8 @@ function hideProgress() {
 }
 
 
-function extractLocalFeatures(visible_dps, feature) {
-    const is_to_ignore_stopwords = $("#ignore-stopwords").is(":checked");
+function extractLocalFeatures(visible_dps, feature, total_num_of_leaf_visible_dps) {
+    const show_stopwords = $("#show-stopwords").is(":checked");
     const invert = $("#invert").is(":checked");
     const n_grams = $("#how-many-grams").val();
     const locality_threshold = $("#localAreaThreshold").val();
@@ -363,7 +437,7 @@ function extractLocalFeatures(visible_dps, feature) {
         if (words) {
             words.forEach(function (word) {
                 if (!word) return;
-                if (is_to_ignore_stopwords
+                if (!show_stopwords
                    && STOP_WORDS.includes(word.toLowerCase()))
                     return;
 
@@ -391,6 +465,7 @@ function extractLocalFeatures(visible_dps, feature) {
         freq_threshold_upper,
         (feature == "concept") ? locality_threshold / 2 : locality_threshold,
         invert,
+        (feature == "concept") ? total_num_of_leaf_visible_dps : visible_dps.length
     );
     return localised_words;
 }
@@ -401,7 +476,8 @@ function filterLocalWordsWithSquareLocality(
     freq_threshold_lower,
     freq_threshold_upper,
     locality_threshold,
-    invert
+    invert,
+    total_num_of_visible_dps
 ) {
     const localised_words = [];
     word_occurrences.forEach(function (entry) {
@@ -427,11 +503,13 @@ function filterLocalWordsWithSquareLocality(
 
         const condition = is_within_frequency_threshold && is_within_locality_threshold;
         const inverted_condition = is_within_frequency_threshold && !is_within_locality_threshold;
+        const weight = occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0);
         if ((invert) ? inverted_condition : condition) {
             localised_words.push({
                 word: word,
                 frequency: count,
-                weight: occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0),
+                weight: weight,
+                prob: weight / total_num_of_visible_dps,
                 x: min_x + x_range / 2,
                 y: min_y + y_range / 2,
                 occurrences: occurrences,
@@ -447,7 +525,8 @@ function filterLocalWordsWithGaussianLocality(
     freq_threshold_lower,
     freq_threshold_upper,
     locality_threshold,
-    invert
+    invert,
+    total_num_of_visible_dps
 ) {
     // Assume the positions are normally distributed
     let get_mean = function (samples) {
@@ -488,13 +567,24 @@ function filterLocalWordsWithGaussianLocality(
 
         const condition = is_within_frequency_threshold && is_within_locality_threshold;
         const inverted_condition = is_within_frequency_threshold && !is_within_locality_threshold;
+        let weight;
+        
+        if (occurrences[0] && occurrences[0].frequency) {
+            const occurrences_flat = occurrences.reduce((sum, x) => sum.concat(x.occurrences), []);
+            const occurrence_set = new Set(occurrences_flat); // this is necessary for probs to not exceed 100%
+            weight = occurrence_set.size;
+        } else {
+            weight = occurrences.length;
+        }
+
         // if the word is frequent enough and
         // if 2*std is in locality threshold
         if ((invert) ? inverted_condition: condition) {
             localised_words.push({
                 word: word,
                 frequency: count,
-                weight: occurrences.reduce((sum, x) => sum + (x.frequency || 1), 0),
+                weight: weight,
+                prob: weight / total_num_of_visible_dps,
                 x: mean_x,
                 y: mean_y,
                 occurrences: occurrences,
@@ -541,7 +631,7 @@ function bucketNumber(num) {
 
 function fontSize(d) {
     const weight = (d.frequency != d.weight)? d.weight : d.frequency;
-    return Math.min(15 + weight * 0.2, 80);
+    return Math.min(20 + weight * 0.8, 100);
 }
 
 function forceCollide() {

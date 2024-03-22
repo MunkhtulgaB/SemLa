@@ -3,11 +3,13 @@ class Filter {
     #type;
     #value;
     #idxs;
+    #isImportant;
     
-    constructor(type, value, idxs) {
+    constructor(type, value, idxs, isImportant) {
         this.#type = type;
         this.#value = value;
         this.#idxs = idxs;
+        this.#isImportant = isImportant;
     }
 
     get type() {
@@ -22,6 +24,10 @@ class Filter {
         return this.#idxs;
     }
 
+    get isImportant() {
+        return this.#isImportant;
+    }
+
 }
 
 
@@ -32,44 +38,41 @@ class Dataset {
     #errors;
     #errors_idxs
     #confusions;
-    #cluster_to_intent;
-    #intent_to_cluster;
+    #cluster_to_label;
+    #label_to_cluster;
     #gt_counts;
     #pred_counts;
     #filteredData;
     #observers = [];
     #filters = {};
 
-    #local_words = [];
-    #local_concepts = [];
-
     constructor(data) {
         this.#data = data;
         this.#filteredData = data;
-        this.initIntentClusterMaps(data);
+        this.initLabelClusterMaps(data);
         this.initErrorAndConfusionLists(data);
     }
 
-    initIntentClusterMaps(data) {
-        const cluster_to_intent = {};
-        const intent_to_cluster = {};
+    initLabelClusterMaps(data) {
+        const cluster_to_label = {};
+        const label_to_cluster = {};
 
         data.forEach(function (d) {
             const label_cluster = (d.label_cluster != undefined)? d.label_cluster : d.intent_cluster;
         
-            if (!cluster_to_intent[label_cluster]) {
-                cluster_to_intent[label_cluster] = new Set([d.prediction]);
+            if (!cluster_to_label[label_cluster]) {
+                cluster_to_label[label_cluster] = new Set([d.prediction]);
             } else {
-                cluster_to_intent[label_cluster].add(d.prediction);
+                cluster_to_label[label_cluster].add(d.prediction);
             }
 
-            if (!intent_to_cluster[d.prediction]) {
-                intent_to_cluster[d.prediction] = label_cluster;
+            if (!label_to_cluster[d.prediction]) {
+                label_to_cluster[d.prediction] = label_cluster;
             }
         });
 
-        this.#cluster_to_intent = cluster_to_intent;
-        this.#intent_to_cluster = intent_to_cluster;
+        this.#cluster_to_label = cluster_to_label;
+        this.#label_to_cluster = label_to_cluster;
     }
 
     initErrorAndConfusionLists(data) {
@@ -116,17 +119,31 @@ class Dataset {
         this.#pred_counts = pred_counts;
     }
 
-    addFilter(newFilter, doNotUpdateLocalWords) {
+    addFilter(newFilter, doNotUpdateLocalWords, observerId) {
         if (!this.#filters[newFilter.type]) {
             this.#filters[newFilter.type] = newFilter;
-            this.#filteredData = this.#filteredData.filter((d) => {
-                return newFilter.idxs.includes(d.idx);
-            });
+            if (newFilter.idxs) {
+                this.#filteredData = this.#filteredData.filter((d) => {
+                    return newFilter.idxs.includes(d.idx);
+                });
+
+                if (newFilter.isImportant) {
+                    const must_have_data = this.#data.filter(d => 
+                        newFilter.idxs.includes(d.idx));
+                    
+                    this.#filteredData = Array.from(
+                        new Set(this.#filteredData
+                                .concat(must_have_data))
+                    );
+                }
+            }
         } else {
             this.#filters[newFilter.type] = newFilter;
-            this.#filteredData = this.refilterData();
+            if (newFilter.idxs) {
+                this.#filteredData = this.refilterData();
+            }
         }
-        this.notifyObservers(this.#filters, doNotUpdateLocalWords);
+        this.notifyObservers(this.#filters, doNotUpdateLocalWords, observerId);
     }
 
     removeFilter(filterType) {
@@ -138,15 +155,25 @@ class Dataset {
     refilterData() {
         const filters = Object.values(this.#filters);
         if (filters.length == 0) return this.#data;
-        const idxs = filters.map(filter => filter.idxs);
-        let idxs_intersection = idxs[0];
-        const other_idxs = idxs.slice(1,);
+        let idxs_intersection = filters[0].idxs;
+        const other_filters = filters.slice(1,);
         
-        other_idxs.forEach((other_idxs) => {
+        other_filters.forEach((other_filter) => {
             idxs_intersection = idxs_intersection.filter((idx) =>
-                other_idxs.includes(idx)
+                other_filter.idxs.includes(idx)
             )
         });
+
+        // if there are any important filters,
+        // add their idxs in any case
+        filters.filter(x => x.isImportant).forEach((filter) => {
+            idxs_intersection = Array.from(
+                new Set(idxs_intersection
+                            .concat(filter.idxs)
+                        )
+            );
+        })
+
         return this.#data.filter((d) => idxs_intersection.includes(d.idx));
     }
 
@@ -156,33 +183,20 @@ class Dataset {
         this.notifyObservers("clear");
     }
 
-    notifyObservers(msg, doNotUpdateLocalWords) {
+    notifyObservers(msg, doNotUpdateLocalWords, observerId) {
         this.#observers.forEach((observer) => 
-            observer.update(this.filteredData, 
+            observer.update(this.filteredData.map(d => d.idx), 
                             msg,
-                            doNotUpdateLocalWords));
+                            doNotUpdateLocalWords,
+                            observerId));
     }
 
     addObserver(observer) {
         this.#observers.push(observer);
     } 
 
-    setLocalWords(local_words) {
-        this.#local_words = local_words;
-        this.notifyObservers(this.#filters, true);
-    }
-
-    setLocalConcepts(local_concepts) {
-        this.#local_concepts = local_concepts;
-        this.notifyObservers(this.#filters, true);
-    }
-
-    get local_words() {
-        return this.#local_words;
-    }
-
-    get local_concepts() {
-        return this.#local_concepts;
+    get filters() {
+        return this.#filters;
     }
 
     get filteredData() {
@@ -217,12 +231,12 @@ class Dataset {
         return this.#pred_counts;
     }
 
-    get clusterToIntent() {
-        return this.#cluster_to_intent;
+    get clusterToLabel() {
+        return this.#cluster_to_label;
     }
 
-    get intentToCluster() {
-        return this.#intent_to_cluster;
+    get labelToCluster() {
+        return this.#label_to_cluster;
     }
 }
 

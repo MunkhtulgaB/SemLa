@@ -21,29 +21,50 @@
   <body>
     <div id="super-container">
       <div id="corpus-level" class="widget super-widget">
-        <div id="corpus-lvl-title" style="justify-self: flex-end;">
-          <div class="widget_title">Map view</div>
-        </div>
+        <p class="widget_title super_widget_title">
+          Map view
+          <span class="info-sign" id="info-map-header">&#9432;</span>
+        </p>
 
         <div id="container">
-          
-          <svg id="semantic_landscape">
-          <g>
-          </g>
-          </svg>
-        </div>
+          <div class="comparison-group">
+            <div class="map-view-header" style="color: blue;">Group 1</div>
+            <svg id="semantic_landscape">
+            <g>
+            </g>
+            </svg>
+            <div class="filter-container">
+              <!-- <p class="widget_title">Filters</p> -->
+              Current filters:
+              <button id="clear-filter" class="badge text-bg-light">Clear</button>
+              <span id="current-filters"></span>
+            </div>
 
-        <div class="mx-5" id="filter-container">
-          <!-- <p class="widget_title">Filters</p> -->
-          Current filters: 
-          <span id="current-filters"></span>
-          <button id="clear-filter" class="badge text-bg-light">Clear</button>
+          </div>
+
+          <div class="comparison-group">
+            <div class="map-view-header" style="color: orange;">Group 2</div>
+            <svg id="semantic_landscape-mirror">
+              <g>
+              </g>
+            </svg>
+            <div id="filter-container-1" class="filter-container">
+              <!-- <p class="widget_title">Filters</p> -->
+              Current filters:
+              <button id="clear-filter" class="badge text-bg-light">Clear</button>
+              <span id="current-filters-1"></span>
+            </div>        
+          </div>
         </div>
         
-        <div id="corpus-widget-container">
+        <div class="corpus-widget-container">
 
           <div class="widget" id="filter-options">
-            <p class="widget_title">Filter options</p>
+            <p class="widget_title">
+              Filter options
+              <span class="info-sign" id="info-filter-options">&#9432;</span>
+              <span class="advanced-option-toggle" value="hide">&#x25BC;</span>
+            </p>
             <div class="widget_content">
 
               
@@ -57,11 +78,11 @@
               </div>
 
               <div>
-                <label for="filter">Filter datapoints by substrings</label>
-                <input name="filter" id="filter" style="width: 120px"></input>
+                <label for="filter">Filter by substrings</label>
+                <input name="filter" id="filter"></input>
               </div>
 
-              <div>
+              <div class="advanced-option">
                 <label for="group-by">Upon selecting a node, filter:</label>
                 <div>
                   <input type="radio" name="filter-by" value="support_set" checked>Support set</input>
@@ -73,7 +94,11 @@
           </div>
 
           <div class="widget" id="local-words">
-            <p class="widget_title">Localized features options</p>
+            <p class="widget_title">
+              Localized features options
+              <span class="info-sign" id="info-local-words">&#9432;</span>
+              <span class="advanced-option-toggle" value="hide">&#x25BC;</span>
+            </p>
             <div class="widget_content">
               <div>
                 <label for="show-local-words">Show </label>
@@ -88,56 +113,64 @@
                   <option value="word_len">Length in words</option>
                   <option value="char_len">Length in characters</option>
                 </select>
-                <label class="word-only-option" for="how-many-grams">| </label>
-                <input class="word-only-option" type="number" id="how-many-grams" name="how-many-grams" min="1" value=1>
-                <span class="word-only-option">-gram(s)</span>
+
+                <label class="word-only-option" for="show-stopwords">| Stopwords</label>
+                <input class="word-only-option" type="checkbox" id="show-stopwords" checked name="show-stopwords">
+
+                <span class="word-only-option">| </span>
+                <input class="word-only-option" style="width: 35px;" type="number" id="how-many-grams" name="how-many-grams" min="1" value=1>
+                <label class="word-only-option" for="how-many-grams">-gram(s)</label>
               </div>
               <div>
                 
               </div>
 
               <div>
-                <label for="freqThreshold">Frequency thresholds</label>
-                <input type="number" class="freqThreshold" data-index="0" value="20" min="0"/>
+                <b>Thresholds:</b>
+                <label for="freqThreshold">Freq.</label>
+                <input type="number" class="freqThreshold" data-index="0" value="30" min="0"/>
                 <input type="number" class="freqThreshold" data-index="1" value="1000"/>
+                
+                <label for="localAreaThreshold">Locality</label>
+                <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="0" max="1000" value=100 step="10">
               </div>
               <div id="concept-freqThreshold" class="d-none">
-                <label for="freqThreshold-concept">Frequency thresholds (concept)</label>
+                <label for="freqThreshold-concept">Freq. (concept)</label>
                 <input type="number" class="freqThreshold-concept" data-index="0" value="2" min="0"/>
                 <input type="number" class="freqThreshold-concept" data-index="1" value="1000"/>
               </div>
-              <div>
-                <label for="localAreaThreshold">Locality threshold</label>
-                <input type="range" id="localAreaThreshold" name="localAreaThreshold" min="0" max="1200" value=300 step="10">
-              </div>
 
-              <div>
+              <div class="advanced-option">
                 <label for="locality-shape">Locality shape</label>
                 <select id="locality-shape" name="locality-shape" class="mb-1 form-select-sm inline-select">
                   <option value="gaussian" selected>Gaussian</option>
                   <option value="square">Square</option>
                 </select>
-                <label class="word-only-option" for="ignore-stopwords">| Hide stopwords</label>
-                <input class="word-only-option" type="checkbox" id="ignore-stopwords" name="ignore-stopwords">
-              </div>
-
-              <div>
                 </div>
             </div>
           </div>
 
           <div class="widget" id="map_options">
-            <p class="widget_title">Map view options</p>
+            <p class="widget_title">
+              Map view options
+              <span class="info-sign" id="info-map-options">&#9432;</span>
+              <span class="advanced-option-toggle" value="hide">&#x25BC;</span>
+            </p>
+            
             <div class="widget_content">
               <div>
                 Model
                 <select id="model-select" class="mb-1 form-select-sm inline-select">
                   <option value="bert">BERT</option>
+                  <option value="bert-60">BERT-60%</option>
+                  <option value="bert-40">BERT-40%</option>
+                  <option value="bert-20">BERT-20%</option>
+                  <option value="bert-0">BERT-0%</option>
+
                   <option value="gpt">GPT-3</option>
                   <option value="roberta">RoBERTa</option>
                 </select>
-              </div>
-              <div>
+
                 Dataset
                 <select id="dataset-select" class="form-select-sm inline-select">
                   <option value="banking" selected>BANKING</option>
@@ -147,18 +180,20 @@
                   <option value="sst5" disabled>SST-5</option>
                   <option value="medical-bios" disabled>medical-bios</option>
                 </select>
-              </div>
-              <div>
                 Accuracy: <span id="accuracy"></span>%
+                <br>
+                <label for="compare-mode">Comparison mode </label>
+                <input type="checkbox" id="compare-mode" name="compare-mode">
+
+                <label for="group-by"> | Confidence mode</label>
+                <input type="checkbox" id="show-confidence" name="show-confidence">
               </div>
-              <div>
+
+              <div class="advanced-option">
                 <label for="dim-reduction">Dimension reduction</label>
                 <input type="radio" name="dim-reduction" value="tsne" checked>t-sne</input>
                 <input type="radio" name="dim-reduction" value="umap">umap</input>
               </div>
-
-              <label for="group-by">Confidence heatmap</label>
-              <input type="checkbox" id="show-confidence" name="show-confidence">
 
             </div>
           </div>
@@ -167,95 +202,209 @@
 
       </div>
 
-
-      <div id="intent-level" class="widget super-widget">
-        <div id="label-clusters" class="widget intent-clusters">
-          <p class="widget_title">Labels &amp; Clusters</p>
-          <div id="label-filter-control">
-            <label for="show-label-group">Select label(s) to show on the map view:</label>
-            <div>
-              <input type="checkbox" class="show-label-group" name="show-label-group" value="predictedLabelHull" checked>Predicted group</input>
-              <input type="checkbox" class="show-label-group" name="show-label-group" value="goldLabelHull">Ground-truth group</input>
+      <div id="list-view" class="widget super-widget">
+        <p class="widget_title super_widget_title">
+          List view
+          <span class="info-sign" id="info-list-view">&#9432;</span>
+        </p>
+        <div id="list-view-container">
+          <div class="map-list-view">
+            <div class="widget list_view">
+              <p class="widget_title">
+                Concepts
+                <span class="info-sign" id="info-local-concepts">&#9432;</span>
+                <span id="concept-toggle" class="full-list-toggle" value="hide">&#x25BC;</span>
+              </p>
+              <div id="concepts-list" class="widget_content">  
+                <div class="contrastive-bar-chart" size="8" name="current-list-concept" id="current-list-concept" multiple>
+                </div>
+              </div>
             </div>
-          </div>
+            <div class="widget list_view">
+              <p class="widget_title">
+                Words
+                <span class="info-sign" id="info-local-words-list">&#9432;</span>
+                <span id="word-toggle" class="full-list-toggle" value="hide">&#x25BC;</span>
+              </p>
+              <div id="words-list" class="widget_content">  
+                <div class="contrastive-bar-chart" size="8" name="current-list-word" id="current-list-word" multiple>
+                </div>
+              </div>
+            </div>
+            <div class="widget list_view">
+              <p class="widget_title">
+                Gold label
+                <span class="info-sign" id="info-local-gold-labels">&#9432;</span>
+                <span id="gold-label-toggle" class="full-list-toggle" value="hide">&#x25BC;</span>
+              </p>
+              <div id="gold-label-list" class="widget_content">  
+                <div class="contrastive-bar-chart" size="8" name="current-list-gold-label" id="current-list-gold-label" multiple>
+                </div>
+              </div>
+            </div>
 
-          <div id="label-cluster-table-content" class="widget_content label-cluster-table-content">  
-            <select style="width: 100%; height: 100%" size="8" class="label_filter" id="label_filter" multiple>
-              <option value=""></option>
-            </select>
+            <div class="widget list_view">
+              <p class="widget_title">
+                Predicted label
+                <span class="info-sign" id="info-local-predicted-labels">&#9432;</span>
+                <span id="predicted-label-toggle" class="full-list-toggle" value="hide">&#x25BC;</span>
+              </p>
+              <div id="predicted-label-list" class="widget_content">  
+                <div class="contrastive-bar-chart" size="8" name="current-list-predicted-label" id="current-list-predicted-label" multiple>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div id="confusions" class="widget">
+      
+      <div id="label-level" class="widget super-widget">
+        <p class="widget_title super_widget_title">
+          Label level
+          <span class="info-sign" id="info-label-level">&#9432;</span>
+        </p>
+        <div id="label-level-row-container">
+          <div id="label-clusters" class="widget label-clusters">
             <p class="widget_title">
-              Confusions
+              Labels &amp; Clusters
+              <span class="info-sign" id="info-labels-clusters">&#9432;</span>            
             </p>
-            <div class="widget_content" style="overflow-y: scroll; overflow-x: hidden; margin: 10px;">
-              <table id="confusion-table">
-                <tr>
-                  <th column_type="gt" sort_dir="desc" class="sortable-column-header small_td">Ground truth <span class="sort-arrow">&darr;</span></th>
-                  <th column_type="pred" sort_dir="desc"  class="sortable-column-header small_td">Prediction <span class="sort-arrow">&darr;</span></th>
-                  <th column_type="num_confusions" sort_dir="desc" class="sortable-column-header xs_td"># confusions <span class="sort-arrow">&darr;</span></th>
-                </tr>
-              </table>
+
+            <div id="label-cluster-table-content" class="widget_content label-cluster-table-content">  
+              <select style="width: 100%; height: 100%" size="8" class="label_filter" id="label_filter" multiple>
+                <option value=""></option>
+              </select>
             </div>
+          </div>
+
+          <div id="confusions" class="widget">
+              <p class="widget_title">
+                Confusions
+                <span class="info-sign" id="info-confusions">&#9432;</span> 
+              </p>
+              <div class="widget_content">
+                <table id="confusion-table">
+                  <thead>
+                    <tr>
+                      <th column_type="gt" sort_dir="desc" class="sortable-column-header small_td">Ground truth <span class="sort-arrow">&darr;</span></th>
+                      <th column_type="pred" sort_dir="desc"  class="sortable-column-header small_td">Prediction <span class="sort-arrow">&darr;</span></th>
+                      <th column_type="num_confusions" sort_dir="desc" class="sortable-column-header xs_td"># confusions <span class="sort-arrow">&darr;</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  </tbody>
+                </table>
+              </div>
+          </div>
         </div>
       </div>
 
       <div id="rel_chart_tooltip" style="z-index: 1000; visibility: hidden; position: absolute; padding: 5px; border-radius: 5px; font-weight: bold; font-size: 12px; background-color: black; opacity: 0.8; color: white"></div>
       
       <div id="sample-level" class="widget super-widget">
-        
-        <div id="summary-container" class="widget sample-lvl-viz">
-          <p class="widget_title">
-            Sample summary
-          </p>
-          <div class="widget_content sample-lvl-content" style="overflow: auto">
-            <div id="summary">
-              <div class="instance-level-placeholder">
-                Click on a node on the map view to start.
+        <p class="widget_title super_widget_title">
+          Sample level
+          <span class="info-sign" id="info-sample-level">&#9432;</span>
+        </p>
+        <div id="sample-level-container">
+          <div id="summary-container" class="widget sample-lvl-viz">
+            <p class="widget_title">
+              Sample summary
+              <span class="info-sign" id="info-sample-summary">&#9432;</span>
+            </p>
+            <div class="widget_content sample-lvl-content" style="overflow: auto">
+              <div id="summary">
+                <div class="instance-level-placeholder">
+                  Click on a node on the map view to start.
+                  <br/>
+                  (Note: The instance-level explanations are available for only some models in this demo)
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="widget sample-lvl-viz" style="background-color: white;" >
-          <p class="widget_title">
-            Relation (token-to-similarity)
-          </p>
-          <div id="relchart-container" class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
-              <div id="rel_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
-                <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
+          <div id="importance-container" class="widget sample-lvl-viz">
+            <p class="widget_title">
+              Importance
+              <span class="info-sign" id="info-feature-importance">&#9432;</span>
+            </p>
+            <div id="importance-chart-container" class="widget_content sample-lvl-content">
+              <canvas id="importance_chart"></canvas>
+            </div>
+          </div>    
+          
+
+          <div class="widget sample-lvl-viz" style="background-color: white;" >
+            <p class="widget_title">
+              Relation (token-to-token)
+              <span class="info-sign" id="info-tokenchart">&#9432;</span>
+            </p>
+            <div class="relchart-control">
+              Showing top-<input type="number" id="topk_tokenchart" name="topk_tokenchart" min="1" value=3> important links per side...
+            </div>
+            <div class="relchart-header">
+              <div>
+                Contrast sample
+                <br>
+                <span class="contrast-label-instance"></span>
               </div>
-              <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
-                <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
+              <div>
+                Selected sample
+                <br>
+                <span class="predicted-label-instance"></span>
               </div>
+              <div>
+                Closest sample
+                <br>
+                <span class="predicted-label-instance"></span>
+              </div>
+            </div>
+            <div id="tokenchart-container" class="rel-container widget_content sample-lvl-content" style="display: flex; padding: 10px">
+                <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
+                  <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
+                </div>
+                <div id="token_chart_right_container" class="rel_chart_right" style="height: 100%;">
+                  <svg id="token_chart" style="height: 100%; width: 100%"></svg>
+                </div>
+            </div>
+          </div>
+
+          <div class="widget sample-lvl-viz" style="background-color: white;" >
+            <p class="widget_title">
+              Relation (token-to-similarity)
+              <span class="info-sign" id="info-relchart">&#9432;</span>
+            </p>
+            <div class="relchart-control">
+              Showing top-<input type="number" id="topk_relchart" name="topk_relchart" min="1" value=3> important links per sample...
+            </div>
+            <div class="relchart-header">
+              <div>
+                Contrast sample
+                <br>
+                <span class="contrast-label-instance"></span>
+              </div>
+              <div>
+                Selected sample
+                <br>
+                <span class="predicted-label-instance"></span>
+              </div>
+              <div>
+                Closest sample
+                <br>
+                <span class="predicted-label-instance"></span>
+              </div>
+            </div>
+            <div id="relchart-container" class="rel-container widget_content sample-lvl-content" style="display: flex; padding: 10px">
+              <div id="rel_chart_left_container" class="rel_chart_left" style="height: 100%; width: 0px; display: inline-block;"> 
+                  <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
+                </div>
+                <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
+                  <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
+                </div>
+            </div>
           </div>
         </div>
-
-        <div id="importance-container" class="widget sample-lvl-viz">
-          <p class="widget_title">
-            Importance
-          </p>
-          <div id="importance-chart-container" class="widget_content sample-lvl-content">
-            <canvas id="importance_chart"></canvas>
-          </div>
-        </div>
-
-        <div class="widget sample-lvl-viz" style="background-color: white;" >
-          <p class="widget_title">
-            Relation (token-to-token)
-          </p>
-          <div id="tokenchart-container" class="widget_content sample-lvl-content" style="display: flex; padding: 10px">
-              <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
-                <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
-              </div>
-              <div id="token_chart_right_container" class="rel_chart_right" style="height: 100%;">
-                <svg id="token_chart" style="height: 100%; width: 100%"></svg>
-              </div>
-          </div>
-        </div>
-        
         
       </div>
     </div>

@@ -70,7 +70,7 @@ function populateConfusionTable(confusions,
 }
 
 function populate_html_confusion_table(data, onClick) {
-    $("#confusion-table tr").not(":first").remove();
+    $("#confusion-table tbody").empty();
     let html = "";
     data.forEach(function (row) {
         const [gt, pred, num_confusions] = row;
@@ -80,7 +80,7 @@ function populate_html_confusion_table(data, onClick) {
             <td class="xs_td">${num_confusions}</td>
         </tr>`;
     });
-    $("#confusion-table tr").first().after(html);
+    $("#confusion-table tbody").html(html);
     // Add click event to rows
     $(".error_tr").click(onClick);
 };
@@ -99,22 +99,22 @@ function toggleSortDirection(headerElem) {
 }
 
 
-function populateIntentTable(cluster_to_intent, 
+function populateLabelTable(cluster_to_label, 
                             cluster_to_color,
                             onChange) {                         
     const label_filter = $("#label_filter");
     label_filter.empty();
 
-    Object.entries(cluster_to_intent).forEach(function (entry) {
+    Object.entries(cluster_to_label).forEach(function (entry) {
         const [cluster, labels] = entry;
-        const intent_set = new Set(labels);
+        const label_set = new Set(labels);
         let color = cluster_to_color[cluster];
         color = d3.color(color).brighter(0.2);
 
         let optgroup_content = "";
-        intent_set.forEach(
-            (intent) =>
-                (optgroup_content += `<option value="${intent}" style="background-color: ${color}">${intent}</option>`)
+        label_set.forEach(
+            (label) =>
+                (optgroup_content += `<option value="${label}" style="background-color: ${color}">${label}</option>`)
         );
         label_filter.append(
             `<optgroup label="Cluster #${cluster}">${optgroup_content}</optgroup>`
@@ -127,4 +127,4 @@ function populateIntentTable(cluster_to_intent,
         });
 }
 
-export { populateConfusionTable, populateIntentTable }
+export { populateConfusionTable, populateLabelTable }

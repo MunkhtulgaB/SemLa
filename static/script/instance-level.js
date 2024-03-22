@@ -1,4 +1,4 @@
-const RELCHART_LEFT_WIDTH = 255;
+const RELCHART_LEFT_WIDTH = 45; // in percents
 
 
 // Importance
@@ -55,11 +55,14 @@ function updateImportanceChart(d, dataset_name) {
 function createImportanceChart(container_id, data) {
     const ctx = document.getElementById(container_id);
 
-    Chart.defaults.font.size = 15;
+    Chart.defaults.font.size = 12;
     const config = {
         type: "bar",
         data: data,
         options: {
+            layout: {
+                padding: 0,
+            },
             categoryPercentage: 0.9,
             barPercentage: 1,
             maintainAspectRatio: false,
@@ -75,6 +78,13 @@ function createImportanceChart(container_id, data) {
             plugins: {
                 legend: {
                     position: "bottom",
+                    labels: {
+                        font: {
+                            size: 12
+                        },
+                        boxWidth: 18,
+                        padding: 5,
+                    }
                 },
             },
             scales: {
@@ -149,6 +159,10 @@ function formatImportanceData(res) {
 let relChart1;
 let relChart2;
 
+function emptyImportanceChart() {
+    d3.selectAll("#importance_chart > *").remove();
+}
+
 function emptyRelationChart() {
     d3.selectAll("svg#rel_chart > *").remove();
     d3.selectAll("svg#rel_chart_left > *").remove();
@@ -169,7 +183,7 @@ function updateRelationChartFromCache(res) {
     
     if (current_tokens1.join(" ") == tokens1.join(" ")) {
         $("#rel_chart_left_container").animate({
-            width: RELCHART_LEFT_WIDTH + "px",
+            width: RELCHART_LEFT_WIDTH + "%",
         });
         d3.selectAll("svg#rel_chart_left > *").remove();
         renderSecondRelChart(res);
@@ -200,7 +214,7 @@ function updateTokenChartFromCache(res) {
     const tokens1 = res.tokens1;
     if (current_tokens1.join(" ") == tokens1.join(" ")) {
         $("#token_chart_left_container").animate({
-            width: RELCHART_LEFT_WIDTH + "px",
+            width: RELCHART_LEFT_WIDTH + "%",
         });
         d3.selectAll("svg#token_chart_left > *").remove();
         renderSecondTokenChart(res);
@@ -232,7 +246,7 @@ function updateRelationChart(idx1, idx2, dataset_name) {
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
                     $("#rel_chart_left_container").animate({
-                        width: RELCHART_LEFT_WIDTH + "px",
+                        width: RELCHART_LEFT_WIDTH + "%",
                     });
                     d3.selectAll("svg#rel_chart_left > *").remove();
                     renderSecondRelChart(res);
@@ -270,7 +284,7 @@ function updateTokenChart(idx1, idx2, dataset_name) {
                 const tokens1 = res.tokens1;
                 if (current_tokens1.join(" ") == tokens1.join(" ")) {
                     $("#token_chart_left_container").animate({
-                        width: RELCHART_LEFT_WIDTH + "px",
+                        width: RELCHART_LEFT_WIDTH + "%",
                     });
                     d3.selectAll("svg#token_chart_left > *").remove();
                     renderSecondTokenChart(res);
@@ -305,14 +319,14 @@ function renderRelTexts(
     const chart_height = relchart.node().clientHeight;
     const chart_width = relchart.node().clientWidth;
     const spacing =
-        (chart_height - data.length * fontsize) / (data.length - 1);
+        (chart_height - data.length * fontsize) / ((data.length - 1) || 1);
 
     const text_anchor = is_left_col ? "start" : "end";
     const text_class = "text" + (is_left_col ? "_left" : "_right");
     const rect_class = "rect" + (is_left_col ? "_left" : "_right");
     const text_x = is_left_col ? 0 : chart_width;
     const rect_opacity = (d) =>
-        d.importance ? 0.5 * minmax(all_importance, Math.abs(d.importance)) : 0;
+        d.importance ? 0.5 * normalize(all_importance, Math.abs(d.importance)) : 0;
 
     let texts = relchart
         .selectAll("." + text_class)
@@ -324,7 +338,9 @@ function renderRelTexts(
         .text((d) => d.token)
         .style("font-size", fontsize + "px")
         .attr("x", text_x + "px")
-        .attr("y", (d) => (d.pos + 1) * fontsize + d.pos * spacing);
+        .attr("y", (d) => {
+            return (d.pos + 1) * fontsize + d.pos * spacing;
+        });
     const bboxes = [];
     texts.each(function (d) {
         bboxes.push(this.getBBox());
@@ -378,10 +394,10 @@ function renderRelChart(res) {
     const chart_width = relchart.node().clientWidth;
     const spacing_left_col =
         (chart_height - res.tokens1.length * fontsize) /
-        (res.tokens1.length - 1);
+        ((res.tokens1.length - 1) || 1);
     const spacing_right_col =
         (chart_height - res.tokens2.length * fontsize) /
-        (res.tokens2.length - 1);
+        ((res.tokens2.length - 1) || 1);
     const all_importance = res.importance1
         .concat(res.importance2)
         .map((i) => Math.abs(i));
@@ -408,41 +424,38 @@ function renderRelChart(res) {
     );
 
     // Draw links
-    const getWidth = (d) =>
-        10 * minmax(all_importance, Math.abs(d.importance));
+    const x_start = Math.max(...left_text_bboxes.map((b) => b.width)) + 5;
+    const x_end = chart_width - (Math.max(...right_text_bboxes.map((b) => b.width)) + 5);
+    const x_middle = x_start + (x_end - x_start) / 2;
+    
+    const getHeight = (d) =>
+        10 * normalize(all_importance, Math.abs(d.importance));
 
     const pos_left = leftcol_data
-        .filter((dp) => dp.importance > 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance > 0);
     const neg_left = leftcol_data
-        .filter((dp) => dp.importance < 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance < 0);
     const pos_right = rightcol_data
-        .filter((dp) => dp.importance > 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance > 0);
     const neg_right = rightcol_data
-        .filter((dp) => dp.importance < 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance < 0);
 
-    const max_pos =
-        pos_left.reduce((a, b) => a + b, 0) >
-            pos_right.reduce((a, b) => a + b, 0)
-            ? pos_left
-            : pos_right;
-    const max_neg =
-        neg_left.reduce((a, b) => a + b, 0) >
-            neg_right.reduce((a, b) => a + b, 0)
-            ? neg_left
-            : neg_right;
-    const total_width = max_pos.concat(max_neg).reduce((a, b) => a + b, 0);
+    const pos_height = pos_left.concat(pos_right)
+                        .map(getHeight)
+                        .reduce((a, b) => a + b, 0);
+
+    const neg_height = neg_left.concat(neg_right)
+                        .map(getHeight)
+                        .reduce((a, b) => a + b, 0);
+    const total_height = pos_height + neg_height;
 
     const PAD = 0;
-    const start_line_pos = chart_height / 2 - total_width / 2;
+    const start_line_pos = chart_height / 2 - total_height / 2;
     const start_line_neg =
         PAD +
         chart_height / 2 +
-        total_width / 2 -
-        max_neg.reduce((a, b) => a + b, 0);
+        total_height / 2 -
+        neg_height;
 
     let linkGenerator = d3
         .linkHorizontal()
@@ -458,12 +471,12 @@ function renderRelChart(res) {
                     const positives_so_far_sum = leftcol_data
                         .slice(0, i)
                         .filter((dp) => dp.importance > 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
                     const negatives_so_far_sum = leftcol_data
                         .slice(0, i)
                         .filter((dp) => dp.importance < 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
                     const y_start_line =
@@ -472,14 +485,15 @@ function renderRelChart(res) {
                         d.importance > 0 ? positives_so_far_sum : negatives_so_far_sum;
 
                     return {
+                        token: d.token,
                         pos: i,
                         source: {
-                            x: Math.max(...left_text_bboxes.map((b) => b.width)) + 5,
+                            x: x_start,
                             y: (d.pos + 1) * fontsize + d.pos * spacing_left_col,
                         },
                         target: {
-                            x: chart_width / 2,
-                            y: y_start_line + y_offset + getWidth(d) / 2,
+                            x: x_middle,
+                            y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         importance: d.importance,
                     };
@@ -492,11 +506,11 @@ function renderRelChart(res) {
         .attr("fill", "none")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
         );
 
     const right_lines = relchart
@@ -507,13 +521,15 @@ function renderRelChart(res) {
                 .map(function (d, i) {
                     const positives_so_far_sum = rightcol_data
                         .slice(0, i)
+                        .concat(leftcol_data)
                         .filter((dp) => dp.importance > 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
                     const negatives_so_far_sum = rightcol_data
                         .slice(0, i)
+                        .concat(leftcol_data)
                         .filter((dp) => dp.importance < 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
                     const y_start_line =
@@ -522,15 +538,14 @@ function renderRelChart(res) {
                         d.importance > 0 ? positives_so_far_sum : negatives_so_far_sum;
 
                     return {
+                        token: d.token,
                         pos: i,
                         source: {
-                            x: chart_width / 2,
-                            y: y_start_line + y_offset + getWidth(d) / 2,
+                            x: x_middle,
+                            y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         target: {
-                            x:
-                                chart_width -
-                                (Math.max(...right_text_bboxes.map((b) => b.width)) + 5),
+                            x: x_end,
                             y: (d.pos + 1) * fontsize + d.pos * spacing_right_col,
                         },
                         importance: d.importance,
@@ -544,11 +559,11 @@ function renderRelChart(res) {
         .attr("fill", "none")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
         );
 
     // Add 2 similarity blocks
@@ -560,14 +575,14 @@ function renderRelChart(res) {
                 sign: 1,
                 fill: "skyblue",
                 stroke: "blue",
-                height: max_pos.reduce((a, b) => a + b, 0),
+                height: pos_height,
                 y: start_line_pos,
             },
             {
                 sign: -1,
                 fill: "pink",
                 stroke: "red",
-                height: max_neg.reduce((a, b) => a + b, 0),
+                height: neg_height,
                 y: start_line_neg,
             },
         ])
@@ -575,7 +590,7 @@ function renderRelChart(res) {
         .append("rect")
         .attr("fill", (d) => d.fill)
         .attr("stroke", (d) => d.stroke)
-        .attr("x", chart_width / 2 - block_width / 2)
+        .attr("x", x_middle - block_width / 2)
         .attr("y", (d) => d.y)
         .attr("height", (d) => d.height)
         .attr("width", block_width)
@@ -588,25 +603,13 @@ function renderRelChart(res) {
                 .style("visibility", "visible")
                 .html(
                     `Total ${d.sign > 0 ? "positive" : "negative"} gradients:
-            ${d.sign > 0
-                        ? leftcol_data
-                            .map((dp) => dp.importance)
-                            .filter((imp) => imp > 0)
-                            .concat(
-                                rightcol_data
-                                    .map((dp) => dp.importance)
-                                    .filter((imp) => imp > 0)
-                            )
+                    ${d.sign > 0 ? 
+                        pos_left.concat(pos_right)
+                            .map(d => d.importance)
                             .reduce((a, b) => a + b, 0)
-                            .toFixed(1)
-                        : leftcol_data
-                            .map((dp) => dp.importance)
-                            .filter((imp) => imp < 0)
-                            .concat(
-                                rightcol_data
-                                    .map((dp) => dp.importance)
-                                    .filter((imp) => imp < 0)
-                            )
+                            .toFixed(1): 
+                        neg_left.concat(neg_right)
+                            .map(d => d.importance)
                             .reduce((a, b) => a + b, 0)
                             .toFixed(1)
                     }`
@@ -615,9 +618,7 @@ function renderRelChart(res) {
                 .style("left", event.pageX + 10 + "px");
         })
         .on("mouseout", function (d) {
-            d3.selectAll(".rel_link")
-                .filter((dp) => dp.importance > 0 != d.sign > 0)
-                .style("visibility", "visible");
+            updateRelLinks();
         });
 
     d3.selectAll(".rel_link")
@@ -625,7 +626,7 @@ function renderRelChart(res) {
             d3.select("#rel_chart_tooltip")
                 .style("visibility", "visible")
                 .html(
-                    `Importance (integrated gradient): ${d.importance.toFixed(3)}`
+                    `Importance of ${d.token} (integrated gradient): ${d.importance.toFixed(3)}`
                 )
                 .style("top", event.pageY + 10 + "px")
                 .style("left", event.pageX + 10 + "px");
@@ -642,10 +643,10 @@ function renderSecondRelChart(res) {
     const chart_height = relchart_left.node().clientHeight;
     const spacing_left_col =
         (chart_height - res.tokens2.length * fontsize) /
-        (res.tokens2.length - 1);
+        ((res.tokens2.length - 1) || 1);
     const spacing_right_col =
         (chart_height - res.tokens1.length * fontsize) /
-        (res.tokens1.length - 1);
+        ((res.tokens1.length - 1) || 1);
 
     const rightcol_data = res.tokens1.map((t, i) => ({
         token: t,
@@ -672,6 +673,11 @@ function renderSecondRelChart(res) {
         .concat(importance4)
         .map((i) => Math.abs(i));
 
+    const prev_importances = importance3
+        .concat(importance4)
+        .map((i) => Math.abs(i));
+    const prev_max_importance = Math.max(...prev_importances);
+
     const left_text_bboxes = renderRelTexts(
         "svg#rel_chart_left",
         leftcol_data,
@@ -684,48 +690,47 @@ function renderSecondRelChart(res) {
     );
 
     // Render links
-    const getWidth = (d) =>
-        10 * minmax(all_importance, Math.abs(d.importance));
+    const chart_width = d3.select("#rel_chart_left_container")
+        .node().parentNode.clientWidth * (RELCHART_LEFT_WIDTH/100);
+
+    const x_start = Math.max(...left_text_bboxes.map((b) => b.width)) + 5;
+    const x_end = chart_width * 0.9;
+    const x_middle = x_start + (x_end - x_start) / 2;
+    
+    const getHeight = (d) =>
+        10 * d.importance / prev_max_importance;
 
     const pos_left = leftcol_data
-        .filter((dp) => dp.importance > 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance > 0);
     const neg_left = leftcol_data
-        .filter((dp) => dp.importance < 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance < 0);
     const pos_right = rightcol_data
-        .filter((dp) => dp.importance > 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance > 0);
     const neg_right = rightcol_data
-        .filter((dp) => dp.importance < 0)
-        .map(getWidth);
+        .filter((dp) => dp.importance < 0);
 
-    const max_pos =
-        pos_left.reduce((a, b) => a + b, 0) >
-            pos_right.reduce((a, b) => a + b, 0)
-            ? pos_left
-            : pos_right;
-    const max_neg =
-        neg_left.reduce((a, b) => a + b, 0) >
-            neg_right.reduce((a, b) => a + b, 0)
-            ? neg_left
-            : neg_right;
-    const total_width = max_pos.concat(max_neg).reduce((a, b) => a + b, 0);
+    const pos_height = pos_left.concat(pos_right)
+                        .map(getHeight)
+                        .reduce((a, b) => a + b, 0);
+    const neg_height = neg_left.concat(neg_right)
+                        .map(getHeight)
+                        .reduce((a, b) => a + b, 0);
+
+    const total_height = pos_height + neg_height;
 
     const PAD = 0;
-    const start_line_pos = chart_height / 2 - total_width / 2;
+    const start_line_pos = chart_height / 2 - total_height / 2;
     const start_line_neg =
         PAD +
         chart_height / 2 +
-        total_width / 2 -
-        max_neg.reduce((a, b) => a + b, 0);
+        total_height / 2 -
+        neg_height;
 
     let linkGenerator = d3
         .linkHorizontal()
         .x((d) => d.x)
         .y((d) => d.y);
 
-    const chart_width = RELCHART_LEFT_WIDTH;
     const left_lines = relchart_left
         .selectAll(".left_links_contrast")
         .data(
@@ -735,12 +740,12 @@ function renderSecondRelChart(res) {
                     const positives_so_far_sum = leftcol_data
                         .slice(0, i)
                         .filter((dp) => dp.importance > 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
                     const negatives_so_far_sum = leftcol_data
                         .slice(0, i)
                         .filter((dp) => dp.importance < 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
                     const y_start_line =
@@ -750,12 +755,12 @@ function renderSecondRelChart(res) {
 
                     return {
                         source: {
-                            x: Math.max(...left_text_bboxes.map((b) => b.width)) + 5,
+                            x: x_start,
                             y: (d.pos + 1) * fontsize + d.pos * spacing_left_col,
                         },
                         target: {
-                            x: chart_width / 2,
-                            y: y_start_line + y_offset + getWidth(d) / 2,
+                            x: x_middle,
+                            y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         importance: d.importance,
                     };
@@ -768,11 +773,11 @@ function renderSecondRelChart(res) {
         .attr("class", "rel_link left_links_contrast")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * d.importance / prev_max_importance : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * d.importance / prev_max_importance
         );
 
     const right_lines = relchart_left
@@ -783,13 +788,15 @@ function renderSecondRelChart(res) {
                 .map(function (d, i) {
                     const positives_so_far_sum = rightcol_data
                         .slice(0, i)
+                        .concat(leftcol_data)
                         .filter((dp) => dp.importance > 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
                     const negatives_so_far_sum = rightcol_data
                         .slice(0, i)
+                        .concat(leftcol_data)
                         .filter((dp) => dp.importance < 0)
-                        .map(getWidth)
+                        .map(getHeight)
                         .reduce((a, b) => a + b, 0);
 
                     const y_start_line =
@@ -799,11 +806,11 @@ function renderSecondRelChart(res) {
 
                     return {
                         source: {
-                            x: chart_width / 2,
-                            y: y_start_line + y_offset + getWidth(d) / 2,
+                            x: x_middle,
+                            y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         target: {
-                            x: chart_width * 0.9,
+                            x: x_end,
                             y: (d.pos + 1) * fontsize + d.pos * spacing_right_col,
                         },
                         importance: d.importance,
@@ -817,11 +824,11 @@ function renderSecondRelChart(res) {
         .attr("class", "rel_link right_links_contrast")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * minmax(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * d.importance / prev_max_importance : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * d.importance / prev_max_importance
         );
 
     // Add 2 similarity blocks
@@ -833,14 +840,14 @@ function renderSecondRelChart(res) {
                 sign: 1,
                 fill: "skyblue",
                 stroke: "blue",
-                height: max_pos.reduce((a, b) => a + b, 0),
+                height: pos_height,
                 y: start_line_pos,
             },
             {
                 sign: -1,
                 fill: "pink",
                 stroke: "red",
-                height: max_neg.reduce((a, b) => a + b, 0),
+                height: neg_height,
                 y: start_line_neg,
             },
         ])
@@ -848,7 +855,7 @@ function renderSecondRelChart(res) {
         .append("rect")
         .attr("fill", (d) => d.fill)
         .attr("stroke", (d) => d.stroke)
-        .attr("x", chart_width / 2 - block_width / 2)
+        .attr("x", x_middle - block_width / 2)
         .attr("y", (d) => d.y)
         .attr("height", (d) => d.height)
         .attr("width", block_width)
@@ -861,25 +868,13 @@ function renderSecondRelChart(res) {
                 .style("visibility", "visible")
                 .html(
                     `Total ${d.sign > 0 ? "positive" : "negative"} gradients:
-            ${d.sign > 0
-                        ? leftcol_data
-                            .map((dp) => dp.importance)
-                            .filter((imp) => imp > 0)
-                            .concat(
-                                rightcol_data
-                                    .map((dp) => dp.importance)
-                                    .filter((imp) => imp > 0)
-                            )
+                    ${d.sign > 0 ? 
+                        pos_left.concat(pos_right)
+                            .map(d => d.importance)
                             .reduce((a, b) => a + b, 0)
-                            .toFixed(1)
-                        : leftcol_data
-                            .map((dp) => dp.importance)
-                            .filter((imp) => imp < 0)
-                            .concat(
-                                rightcol_data
-                                    .map((dp) => dp.importance)
-                                    .filter((imp) => imp < 0)
-                            )
+                            .toFixed(1): 
+                        neg_left.concat(neg_right)
+                            .map(d => d.importance)
                             .reduce((a, b) => a + b, 0)
                             .toFixed(1)
                     }`
@@ -888,19 +883,17 @@ function renderSecondRelChart(res) {
                 .style("left", event.pageX + 10 + "px");
         })
         .on("mouseout", function (d) {
-            d3.selectAll(".rel_link")
-                .filter((dp) => dp.importance > 0 != d.sign > 0)
-                .style("visibility", "visible");
+            updateRelLinks();
         });
 
     // Recalculate stroke opacity for previously visible lines
     d3.selectAll(".left_links").style(
         "stroke-opacity",
-        (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+        (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
     );
     d3.selectAll(".right_links").style(
         "stroke-opacity",
-        (d) => 0.2 + 0.8 * minmax(all_importance, Math.abs(d.importance))
+        (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
     );
 
     // Similarly, recalculate opacity of previously visible highlight rects
@@ -910,7 +903,7 @@ function renderSecondRelChart(res) {
         .selectAll(".right_rect")
         .attr("fill-opacity", (d) =>
             d.importance
-                ? 0.5 * minmax(all_importance, Math.abs(d.importance))
+                ? 0.5 * normalize(all_importance, Math.abs(d.importance))
                 : 0
         );
     // For the middle texts, highlight by contrastiveness
@@ -943,6 +936,8 @@ function renderSecondRelChart(res) {
         .on("mouseout", function (d) {
             d3.select("#rel_chart_tooltip").style("visibility", "hidden");
         });
+
+    updateRelLinks();
 }
 
 function onMouseOverRelChart(d) {
@@ -988,10 +983,7 @@ function onMouseOverLeftTokenInTokenChart(d) {
 }
 
 function onMouseOutInTokenChart(d) {
-    d3.selectAll(".token_links, .token_links_contrast").style(
-        "visibility",
-        "visible"
-    );
+    updateTokenLinks();
 }
 
 function renderTokenChart(res) {
@@ -1013,10 +1005,10 @@ function renderTokenChart(res) {
     const chart_width = tokenchart.node().clientWidth;
     const spacing_left_col =
         (chart_height - res.tokens1.length * fontsize) /
-        (res.tokens1.length - 1);
+        ((res.tokens1.length - 1) || 1);
     const spacing_right_col =
         (chart_height - res.tokens2.length * fontsize) /
-        (res.tokens2.length - 1);
+        ((res.tokens2.length - 1) || 1);
 
     let onMouseOver = function (d) {
         if (d.is_left) {
@@ -1071,11 +1063,11 @@ function renderTokenChart(res) {
         .style("stroke", "lightblue")
         .style(
             "stroke-width",
-            (d) => 10 * minmax(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => 10 * normalize(all_link_strengths, Math.abs(d.strength)) ** 3
         )
         .style(
             "stroke-opacity",
-            (d) => minmax(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => normalize(all_link_strengths, Math.abs(d.strength)) ** 3
         );
 }
 
@@ -1086,10 +1078,10 @@ function renderSecondTokenChart(res) {
     const chart_height = tokenchart_left.node().clientHeight;
     const spacing_left_col =
         (chart_height - res.tokens2.length * fontsize) /
-        (res.tokens2.length - 1);
+        ((res.tokens2.length - 1) || 1);
     const spacing_right_col =
         (chart_height - res.tokens1.length * fontsize) /
-        (res.tokens1.length - 1);
+        ((res.tokens1.length - 1) || 1);
 
     const rightcol_data = res.tokens1.map((t, i) => ({ token: t, pos: i }));
     const leftcol_data = res.tokens2.map((t, i) => ({ token: t, pos: i }));
@@ -1128,11 +1120,11 @@ function renderSecondTokenChart(res) {
         .style("stroke", "lightblue")
         .style(
             "stroke-width",
-            (d) => 10 * minmax(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => 10 * normalize(all_link_strengths, Math.abs(d.strength)) ** 3
         )
         .style(
             "stroke-opacity",
-            (d) => minmax(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => normalize(all_link_strengths, Math.abs(d.strength)) ** 3
         );
 
     d3.selectAll(".token_links, .token_links_contrast")
@@ -1146,21 +1138,28 @@ function renderSecondTokenChart(res) {
         .on("mouseout", function (d) {
             d3.select("#rel_chart_tooltip").style("visibility", "hidden");
         });
+
+    updateTokenLinks();
 }
 
 
 function updateTextSummary(d, closest_dp, dp2) {
     const is_prediction_correct = d.prediction == d.ground_truth;
+    const color = (is_prediction_correct)? "green": "#FF2400";
+    const contrast_color =  (is_prediction_correct)? "#FF2400": "green";
+
     const html = `<div>
             <p><b>Text: </b> ${d.text}<p>
-            <p><b>Predicted</b> intent was <b>${d.prediction}</b> ${is_prediction_correct
-                ? `(<span style="color: green">correct</span>)`
-                : `(<span style="color: red">wrong</span>)`
-            }
+            <p><b>Predicted</b> label was 
+                <b>
+                    <span style="color: ${color}">
+                    ${d.prediction}
+                    </span>
+                </b>
                 based on closest support example.
             </p>
             ${!is_prediction_correct
-                ? `<p><b>Ground-truth</b> intent is <b>${d.ground_truth}</b>.</p>`
+                ? `<p><b>Ground-truth</b> label is <b>${d.ground_truth}</b>.</p>`
                 : ""
             }
             </div>
@@ -1169,7 +1168,9 @@ function updateTextSummary(d, closest_dp, dp2) {
             <div>
             <div><b>Closest support example: </b></div>
             ${closest_dp.text}
-            (${closest_dp.ground_truth})
+            <span style="color: ${color}">
+                (<b>${closest_dp.ground_truth}</b>)
+            </span>
             </div>
 
             <hr>
@@ -1179,31 +1180,82 @@ function updateTextSummary(d, closest_dp, dp2) {
                 : "Correct support example:"
             }</b></div>
             ${dp2.text}
-            (${dp2.ground_truth})
-            </div>
-            
-            `;
+            <span style="color: ${contrast_color}">
+                (<b>${dp2.ground_truth}</b>)
+            </span>
+            </div>`;
+    
 
-    d3.select("#summary").html(html);
+    d3.select("#summary")
+        .html(html)
+    
+    d3.selectAll(".contrast-label-instance")
+        .html(`<span style="color: ${contrast_color}">(${dp2.ground_truth})</span>`);
+    d3.selectAll(".predicted-label-instance")
+        .html(`<span style="color: ${color}">(${d.prediction})</span>`);
 }
 
-
-function minmax(values, value) {
+function normalize(values, value) {
     if (value && !values.includes(value)) {
         throw new Error("value must be included in values");
     }
 
     values = values.filter((v) => !isNaN(v));
     const max_val = Math.max(...values);
-    const min_val = Math.min(...values);
+    const min_val = 0; // values are expected to be positive
     const val_range = max_val - min_val;
 
     if (value) {
-        return (value - min_val) / val_range;
+        return value / val_range;
     } else {
-        return values.map((val) => (value - min_val) / val_range);
+        return values.map((val) => val / val_range);
     }
 }
+
+
+function initializeRelChartControls() {
+    d3.select("#topk_relchart")
+        .on("change", function() {
+            updateRelLinks();
+        })
+    d3.select("#topk_tokenchart")
+        .on("change", function() {
+            updateTokenLinks();
+        })
+}
+
+function updateRelLinks() {
+    const topk = $("#topk_relchart").val();
+    filterRelLinks(".left_links", topk, "importance");
+    filterRelLinks(".right_links", topk, "importance");
+    filterRelLinks(".left_links_contrast", topk, "importance");
+    filterRelLinks(".right_links_contrast", topk, "importance");
+}
+
+function updateTokenLinks() {
+    const topk = $("#topk_tokenchart").val();
+    filterRelLinks(".token_links", topk, "strength");
+    filterRelLinks(".token_links_contrast", topk, "strength");
+}
+
+function filterRelLinks(linkSelector, topk, byAttr) {
+    const leftLinks = d3.selectAll(linkSelector).data()
+            .sort((a,b) => 
+                Math.abs(b[byAttr]) - Math.abs(a[byAttr])
+            );
+    d3.selectAll(linkSelector)
+        .style("visibility", function(d) {
+            
+            topk = Math.min(topk, leftLinks.length);
+            const topk_value = leftLinks[topk - 1][byAttr];
+            if (Math.abs(d[byAttr]) >= Math.abs(topk_value)) {
+                return "visible";
+            } else {
+                return "hidden";
+            }
+        });
+}
+
 
 export { updateRelationChartFromCache,
         updateImportanceChartFromCache,
@@ -1213,5 +1265,8 @@ export { updateRelationChartFromCache,
         updateTokenChart,
         updateTextSummary,
         loadingImportanceChart, 
+        emptyImportanceChart,
         emptyRelationChart,
-        emptyTokenChart }
+        emptyTokenChart,
+        initializeRelChartControls
+}
