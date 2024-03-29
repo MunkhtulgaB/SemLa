@@ -1048,7 +1048,7 @@ class MapView {
         } else {
             // Tell the user there is no explanation data for this model
             if (this.#alertCount == 0) {
-                alert("Instance-level explanation data for this model is currently unavailable. Only a simple summary will be shown.");
+                // alert("Instance-level explanation data for this model is currently unavailable. Only a simple summary will be shown.");
                 this.#alertCount++;
             }
         }

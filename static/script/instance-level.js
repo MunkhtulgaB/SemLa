@@ -46,7 +46,7 @@ function updateImportanceChart(d, dataset_name) {
                 resolve();
             })
             .fail(function () {
-                alert("error");
+                // alert("error");
                 reject();
             });
     });
@@ -260,7 +260,7 @@ function updateRelationChart(idx1, idx2, dataset_name) {
                 resolve();
             })
             .fail(function () {
-                alert("There is an issue at the moment. Please try again soon.");
+                // alert("There is an issue at the moment. Please try again soon.");
                 reject();
             });
     });
@@ -299,7 +299,7 @@ function updateTokenChart(idx1, idx2, dataset_name) {
                 resolve();
             })
             .fail(function () {
-                alert("There is an issue at the moment. Please try again soon.");
+                // alert("There is an issue at the moment. Please try again soon.");
                 reject();
             });
     });
