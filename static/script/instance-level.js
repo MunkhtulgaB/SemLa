@@ -326,7 +326,7 @@ function renderRelTexts(
     const rect_class = "rect" + (is_left_col ? "_left" : "_right");
     const text_x = is_left_col ? 0 : chart_width;
     const rect_opacity = (d) =>
-        d.importance ? 0.5 * normalize(all_importance, Math.abs(d.importance)) : 0;
+        d.importance ? 0.5 * normalize_magnitude(all_importance, Math.abs(d.importance)) : 0;
 
     let texts = relchart
         .selectAll("." + text_class)
@@ -429,7 +429,7 @@ function renderRelChart(res) {
     const x_middle = x_start + (x_end - x_start) / 2;
     
     const getHeight = (d) =>
-        10 * normalize(all_importance, Math.abs(d.importance));
+        10 * normalize_magnitude(all_importance, Math.abs(d.importance));
 
     const pos_left = leftcol_data
         .filter((dp) => dp.importance > 0);
@@ -506,11 +506,11 @@ function renderRelChart(res) {
         .attr("fill", "none")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * normalize_magnitude(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * normalize_magnitude(all_importance, Math.abs(d.importance))
         );
 
     const right_lines = relchart
@@ -559,11 +559,11 @@ function renderRelChart(res) {
         .attr("fill", "none")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * normalize_magnitude(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * normalize_magnitude(all_importance, Math.abs(d.importance))
         );
 
     // Add 2 similarity blocks
@@ -693,7 +693,7 @@ function renderSecondRelChart(res) {
     const x_middle = x_start + (x_end - x_start) / 2;
     
     const getHeight = (d) =>
-        10 * normalize(all_importance, Math.abs(d.importance));
+        10 * normalize_magnitude(all_importance, Math.abs(d.importance));
 
     const pos_left = leftcol_data
         .filter((dp) => dp.importance > 0);
@@ -768,11 +768,11 @@ function renderSecondRelChart(res) {
         .attr("class", "rel_link left_links_contrast")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * normalize_magnitude(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * normalize_magnitude(all_importance, Math.abs(d.importance))
         );
 
     const right_lines = relchart_left
@@ -819,11 +819,11 @@ function renderSecondRelChart(res) {
         .attr("class", "rel_link right_links_contrast")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
+            d.importance ? 10 * normalize_magnitude(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
+            (d) => 0.2 + 0.8 * normalize_magnitude(all_importance, Math.abs(d.importance))
         );
 
     // Add 2 similarity blocks
@@ -884,11 +884,11 @@ function renderSecondRelChart(res) {
     // Recalculate stroke opacity for previously visible lines
     d3.selectAll(".left_links").style(
         "stroke-opacity",
-        (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
+        (d) => 0.2 + 0.8 * normalize_magnitude(all_importance, Math.abs(d.importance))
     );
     d3.selectAll(".right_links").style(
         "stroke-opacity",
-        (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
+        (d) => 0.2 + 0.8 * normalize_magnitude(all_importance, Math.abs(d.importance))
     );
 
     // Similarly, recalculate opacity of previously visible highlight rects
@@ -898,7 +898,7 @@ function renderSecondRelChart(res) {
         .selectAll(".right_rect")
         .attr("fill-opacity", (d) =>
             d.importance
-                ? 0.5 * normalize(all_importance, Math.abs(d.importance))
+                ? 0.5 * normalize_magnitude(all_importance, Math.abs(d.importance))
                 : 0
         );
     // For the middle texts, highlight by contrastiveness
@@ -1055,14 +1055,14 @@ function renderTokenChart(res) {
             chart_width - (Math.max(...right_text_bboxes.map((b) => b.width)) + 5)
         )
         .attr("y2", (d) => (d.to + 1) * fontsize + d.to * spacing_right_col)
-        .style("stroke", "lightblue")
+        .style("stroke", (d) => (d.strength > 0 ? "skyblue" : "pink"))
         .style(
             "stroke-width",
-            (d) => 10 * normalize(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => 10 * normalize_magnitude(all_link_strengths, Math.abs(d.strength)) ** 3
         )
         .style(
             "stroke-opacity",
-            (d) => normalize(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => normalize_magnitude(all_link_strengths, Math.abs(d.strength)) ** 3
         );
 }
 
@@ -1112,14 +1112,25 @@ function renderSecondTokenChart(res) {
         .attr("y1", (d) => (d.from + 1) * fontsize + d.from * spacing_left_col)
         .attr("x2", "95%")
         .attr("y2", (d) => (d.to + 1) * fontsize + d.to * spacing_right_col)
-        .style("stroke", "lightblue")
+        .style("stroke", (d) => (d.strength > 0 ? "skyblue" : "pink"))
         .style(
             "stroke-width",
-            (d) => 10 * normalize(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => 2 + 10 * normalize_magnitude(all_link_strengths, Math.abs(d.strength)) ** 3
         )
         .style(
             "stroke-opacity",
-            (d) => normalize(all_link_strengths, Math.abs(d.strength)) ** 3
+            (d) => 0.1 + normalize_magnitude(all_link_strengths, Math.abs(d.strength)) ** 3
+        );
+    
+    // Recalculate the previous links' weights
+    d3.selectAll(".token_links")
+        .style(
+            "stroke-width",
+            (d) => 10 * normalize_magnitude(all_link_strengths, Math.abs(d.strength)) ** 3
+        )
+        .style(
+            "stroke-opacity",
+            (d) => normalize_magnitude(all_link_strengths, Math.abs(d.strength)) ** 3
         );
 
     d3.selectAll(".token_links, .token_links_contrast")
@@ -1190,14 +1201,16 @@ function updateTextSummary(d, closest_dp, dp2) {
         .html(`<span style="color: ${color}">(${d.prediction})</span>`);
 }
 
-function normalize(values, value) {
-    if (value && !values.includes(value)) {
+function normalize_magnitude(values, value) {
+    let abs_values = values.map(x => Math.abs(x));
+
+    if (value && !abs_values.includes(Math.abs(value))) {
         throw new Error("value must be included in values");
     }
 
-    values = values.filter((v) => !isNaN(v));
-    const max_val = Math.max(...values);
-    const min_val = 0; // values are expected to be positive
+    abs_values = abs_values.filter((v) => !isNaN(v));
+    const max_val = Math.max(...abs_values);
+    const min_val = 0; // smallest magnitude is zero
     const val_range = max_val - min_val;
 
     if (value) {
