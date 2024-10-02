@@ -11,8 +11,8 @@ import { ExplanationSet } from "./explanation.js";
 import { Dataset, Filter } from "./data.js"
 import { initializeTooltip, 
          showTooltip, 
-         moveTooltipToCursor,
-         hideTooltip } from "./global-level/tooltip.js";
+         moveTooltipsToCursor,
+         hideTooltips } from "./global-level/tooltip.js";
 import { ListView } from "./global-level/list-view.js";
 
 
@@ -34,13 +34,12 @@ let filterByConfidenceAndUpdate = function(data,
 }
 
 let addTooltip = function(selector, content) {
-    const selected_element = $(selector);
+    const selected_element = d3.select(selector);
     selected_element.on("mouseover", function() {
+        moveTooltipsToCursor();
         showTooltip("super-tooltip", content)
-        moveTooltipToCursor("#super-tooltip", 
-                                {X: 20, Y: 0});
     })
-    .on("mouseout", () => hideTooltip("#super-tooltip"));
+    .on("mouseout", () => hideTooltips());
 }
 
 let margin;
@@ -129,8 +128,7 @@ $(document)
     })
     
     initializeSystem(system_config.dataset, system_config.model);
-    initializeTooltip("super-tooltip", "super-container",
-        "black", "white", 0.95);
+    initializeTooltip("super-tooltip", "super-container");
     initializeHelpTooltips();
 });
 

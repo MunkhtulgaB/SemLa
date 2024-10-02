@@ -1,10 +1,12 @@
 import { getStopwords } from "./stopwords.js";
 import { getVisibleDatapoints } from "./filters.js"
 import { Filter } from "../data.js"
+import { initializeTooltip, showTooltip, moveTooltipsToCursor, hideTooltips } from "./tooltip.js";
 
 
 const LIMIT_CONCEPTS = 10;
 const STOP_WORDS = getStopwords();
+const TOOLTIP_ID = "local-word-tooltip";
 
 
 class LocalWordsView {
@@ -34,6 +36,8 @@ class LocalWordsView {
 
         this.#conceptCache = {};
         this.isAlreadyLoading = false;
+        this.selectedLocalWord;
+        initializeTooltip(`${TOOLTIP_ID}`, "super-container");
     }
 
     setLocalGoldLabels(goldLabels) {
@@ -260,6 +264,33 @@ class LocalWordsView {
                 return "white";
             })
             .style("stroke-width", 0.4)
+            .on("mouseover", function (d) {
+                if (d.concepts) {
+                    const conceptualRelationIdx = d.concepts.indexOf(this.selectedLocalWord);
+                    if (conceptualRelationIdx != -1) {
+                        const conceptualRelation = d.rels[conceptualRelationIdx];
+                        const tooltip_html = `
+                            <table>
+                                <tr>
+                                    <td class="tooltip-table-cell"><b>Word</b></th>
+                                    <td class="tooltip-table-cell">${d.word}</th>
+                                </tr>
+                                <tr>
+                                    <td class="tooltip-table-cell"><b>Relation:</b></th>
+                                    <td class="tooltip-table-cell">${conceptualRelation}</th>
+                                </tr>
+                                <tr>
+                                    <td class="tooltip-table-cell"><b>Related concept:</b></td>
+                                    <td class="tooltip-table-cell">${this.selectedLocalWord}</td>
+                                </tr>
+                            </table>
+                        `;
+                        showTooltip(TOOLTIP_ID, tooltip_html);
+                    }
+                }
+            }.bind(this))
+            .on("mousemove", () => moveTooltipsToCursor())
+            .on("mouseout", () => hideTooltips())
             .on("click", function(d) {
                 let occurrences;
                 let related_words = [];
@@ -270,8 +301,11 @@ class LocalWordsView {
                     occurrences = [];
                     d.occurrences.forEach(local_word => {
                         occurrences = occurrences.concat(local_word.occurrences);
+
+                        // Add extra information to the related words to show the user
                         local_word.fill = "dimgrey";
                         local_word.stroke = "black";
+
                         related_words.push(local_word);
                     });
                     filter_name = "Local concept";
@@ -302,6 +336,7 @@ class LocalWordsView {
                     predictedLabels
                 );
                 this.render_local_words(related_words.concat(d), false, onLocalWordClick);
+                this.selectedLocalWord = d.word;
             }.bind(this));
 
         if (isHighFrequencyCall != true) {

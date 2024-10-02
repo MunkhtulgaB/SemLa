@@ -461,10 +461,47 @@ height: 20px;
     cursor: pointer;
 }
 
+/* default tooltip style; overriden with specific tooltip ids*/
+.semla_tooltip {
+    max-width: 300px;
+    position: absolute;
+    visibility: hidden;
+    background-color: #141414;
+    border-radius: 5px;
+    opacity: 1;
+    border: 2px solid black;
+    padding: 10px;
+    z-index: 1000;
+    color: white;
+    box-shadow: 1px 1px 10px grey;
+    font-size: 15px
+}
+
 #super-tooltip {
     background-color: whitesmoke !important;
+    color: black;
+}
+
+#sample-tooltip {
+    opacity: 0.9;
+    border: none;
+}
+
+#local-word-tooltip {
+    background-color: #7851A9 !important;
+    border: none;
+    font-size: 20px;
+    width: fit-content;
     max-width: 500px;
-    box-shadow: 1px 1px 10px grey;
+}
+
+#local-word-tooltip > table {
+    width: 250px;
+    table-layout: fixed;
+}
+
+.tooltip-table-cell {
+    word-wrap: break-word;
 }
 
 .map-legend {

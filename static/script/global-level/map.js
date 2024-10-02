@@ -1,7 +1,7 @@
 import { initializeTooltip, 
-    hideTooltip, 
-    showMapTooltip,
-    moveTooltipToCursor } from "./tooltip.js";
+    hideTooltips, 
+    showTooltip,
+    moveTooltipsToCursor } from "./tooltip.js";
 import { filterByLabels, 
         filterByDatapoint,
         calculateConfidence } from "./filters.js";
@@ -16,6 +16,7 @@ import { updateTextSummary,
          updateTokenChartFromCache } from "../instance-level.js"; 
 
 
+const TOOLTIP_ID = "sample-tooltip";
 const symbolNames = [
     "Circle",
     "Cross",
@@ -130,8 +131,7 @@ class MapView {
         const [labels_to_points_tsne, 
             labels_to_points_umap] = this.initializeHulls(false); // hulls for predicted groups
         this.initializeHulls(true); // hulls for ground-truth groups
-        initializeTooltip("map-tooltip", "container");
-
+        initializeTooltip(`${TOOLTIP_ID}`, "super-container");
         
         this.#labels_to_points_tsne = labels_to_points_tsne;
         this.#labels_to_points_umap = labels_to_points_umap;
@@ -319,9 +319,19 @@ class MapView {
                 const translation = "translate(" + self.#xScale(x_pos) + "," + self.#yScale(y_pos) + ")";
                 return translation;
             })
-            .on("mouseover", showMapTooltip)
-            .on("mousemove", () => moveTooltipToCursor("#map-tooltip"))
-            .on("mouseout", () => hideTooltip("#map-tooltip"))
+            .on("mouseover", function(d) {
+                const color = (d.ground_truth == d.prediction) ? "#66FF00": "#FF2400";
+                const emoji = (d.ground_truth == d.prediction) ? "&#10004;&#65039;": "&#10060;";
+                const tooltip_html = `
+                    <p><b>idx: </b>${d.idx}</p>
+                    <p><b>text: </b>${d.text}</p>
+                    <p><b>prediction: </b><span style="color: ${color};"><b>${d.prediction}</b> ${emoji}</span></p>
+                    <p><b>ground_truth: </b>${d.ground_truth}</p>`;
+
+                showTooltip(TOOLTIP_ID, tooltip_html);
+            })
+            .on("mousemove", () => moveTooltipsToCursor())
+            .on("mouseout", () => hideTooltips())
             .on("click", function(d) {
                 self.selectNode(d.idx);
                 if (self.#parallelMap) 
