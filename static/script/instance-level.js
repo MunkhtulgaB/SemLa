@@ -673,11 +673,6 @@ function renderSecondRelChart(res) {
         .concat(importance4)
         .map((i) => Math.abs(i));
 
-    const prev_importances = importance3
-        .concat(importance4)
-        .map((i) => Math.abs(i));
-    const prev_max_importance = Math.max(...prev_importances);
-
     const left_text_bboxes = renderRelTexts(
         "svg#rel_chart_left",
         leftcol_data,
@@ -698,7 +693,7 @@ function renderSecondRelChart(res) {
     const x_middle = x_start + (x_end - x_start) / 2;
     
     const getHeight = (d) =>
-        10 * d.importance / prev_max_importance;
+        10 * normalize(all_importance, Math.abs(d.importance));
 
     const pos_left = leftcol_data
         .filter((dp) => dp.importance > 0);
@@ -773,11 +768,11 @@ function renderSecondRelChart(res) {
         .attr("class", "rel_link left_links_contrast")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * d.importance / prev_max_importance : 0
+            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * d.importance / prev_max_importance
+            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
         );
 
     const right_lines = relchart_left
@@ -824,11 +819,11 @@ function renderSecondRelChart(res) {
         .attr("class", "rel_link right_links_contrast")
         .style("stroke", (d) => (d.importance > 0 ? "skyblue" : "pink"))
         .style("stroke-width", (d) =>
-            d.importance ? 10 * d.importance / prev_max_importance : 0
+            d.importance ? 10 * normalize(all_importance, Math.abs(d.importance)) : 0
         )
         .style(
             "stroke-opacity",
-            (d) => 0.2 + 0.8 * d.importance / prev_max_importance
+            (d) => 0.2 + 0.8 * normalize(all_importance, Math.abs(d.importance))
         );
 
     // Add 2 similarity blocks
@@ -1245,6 +1240,7 @@ function filterRelLinks(linkSelector, topk, byAttr) {
             );
     d3.selectAll(linkSelector)
         .style("visibility", function(d) {
+            if (topk == null || topk == 0) return "hidden";
             
             topk = Math.min(topk, leftLinks.length);
             const topk_value = leftLinks[topk - 1][byAttr];
