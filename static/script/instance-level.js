@@ -320,7 +320,7 @@ function renderRelTexts(
     const chart_height = relchart.node().clientHeight;
     const chart_width = relchart.node().clientWidth;
     const spacing =
-        Math.max((chart_height - data.length * fontsize) / ((data.length - 1) || 1), MIN_TOKEN_SPACING);
+        Math.max(((chart_height-fontsize/2) - data.length * fontsize) / ((data.length - 1) || 1), MIN_TOKEN_SPACING);
 
     const text_anchor = is_left_col ? "start" : "end";
     const text_class = "text" + (is_left_col ? "_left" : "_right");
