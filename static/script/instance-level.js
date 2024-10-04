@@ -1,4 +1,5 @@
 const RELCHART_LEFT_WIDTH = 45; // in percents
+const MIN_TOKEN_SPACING = -5;
 
 
 // Importance
@@ -319,7 +320,7 @@ function renderRelTexts(
     const chart_height = relchart.node().clientHeight;
     const chart_width = relchart.node().clientWidth;
     const spacing =
-        (chart_height - data.length * fontsize) / ((data.length - 1) || 1);
+        Math.max((chart_height - data.length * fontsize) / ((data.length - 1) || 1), MIN_TOKEN_SPACING);
 
     const text_anchor = is_left_col ? "start" : "end";
     const text_class = "text" + (is_left_col ? "_left" : "_right");
@@ -372,13 +373,20 @@ function renderRelTexts(
         .style("fill", "black")
         .on("mouseover", onMouseOver || onMouseOverRelChart)
         .on("mouseout", onMouseOut || onMouseOutRelChart);
+
+    // Stretch the container to fit all words if they don't fit due to minimum spacing constraint
+    const height_with_min_spacing = spacing * ((data.length - 1) || 1) + data.length * fontsize
+    relchart.style("height", height_with_min_spacing);
     return bboxes;
 }
 
 function renderRelChart(res) {
+    // Reset the heights of the canvases in case they were stretched before
+    d3.selectAll(".rel-chart-half-canvas")
+        .style("height", "100%");
+
     // Draw texts
-    const fontsize = 13;
-    const relchart = d3.select("svg#rel_chart");
+    const relchart = d3.select("svg#rel_chart").attr("class", "rel-chart-half-canvas");
     const leftcol_data = res.tokens1.map((t, i) => ({
         token: t,
         pos: i,
@@ -392,12 +400,6 @@ function renderRelChart(res) {
 
     const chart_height = relchart.node().clientHeight;
     const chart_width = relchart.node().clientWidth;
-    const spacing_left_col =
-        (chart_height - res.tokens1.length * fontsize) /
-        ((res.tokens1.length - 1) || 1);
-    const spacing_right_col =
-        (chart_height - res.tokens2.length * fontsize) /
-        ((res.tokens2.length - 1) || 1);
     const all_importance = res.importance1
         .concat(res.importance2)
         .map((i) => Math.abs(i));
@@ -645,15 +647,8 @@ function renderSecondRelChart(res) {
     const right_col_heights = right_col_text_bboxes.nodes().map(bbox => parseFloat(bbox.getAttribute("height")));
 
     // Draw text
-    const fontsize = 13;
-    const relchart_left = d3.select("svg#rel_chart_left");
+    const relchart_left = d3.select("svg#rel_chart_left").attr("class", "rel-chart-half-canvas");
     const chart_height = relchart_left.node().clientHeight;
-    const spacing_left_col =
-        (chart_height - res.tokens2.length * fontsize) /
-        ((res.tokens2.length - 1) || 1);
-    const spacing_right_col =
-        (chart_height - res.tokens1.length * fontsize) /
-        ((res.tokens1.length - 1) || 1);
 
     const rightcol_data = res.tokens1.map((t, i) => ({
         token: t,
@@ -994,9 +989,15 @@ function onMouseOutInTokenChart(d) {
 }
 
 function renderTokenChart(res) {
+    const svg_canvas_selector = "svg#token_chart"; // hard-coded
+
+    // Reset the svg sizes in case they were stretched by the previous render call
+    d3.selectAll(".token-chart-half-canvas")
+        .style("height", "100%");
+
     // Draw texts
     const fontsize = 13;
-    const tokenchart = d3.select("svg#token_chart");
+    const tokenchart = d3.select(svg_canvas_selector).attr("class", "token-chart-half-canvas");
     const leftcol_data = res.tokens1.map((t, i) => ({
         token: t,
         pos: i,
@@ -1010,13 +1011,7 @@ function renderTokenChart(res) {
 
     const chart_height = tokenchart.node().clientHeight;
     const chart_width = tokenchart.node().clientWidth;
-    const spacing_left_col =
-        (chart_height - res.tokens1.length * fontsize) /
-        ((res.tokens1.length - 1) || 1);
-    const spacing_right_col =
-        (chart_height - res.tokens2.length * fontsize) /
-        ((res.tokens2.length - 1) || 1);
-
+    
     let onMouseOver = function (d) {
         if (d.is_left) {
             onMouseOverCenterTokenInTokenChart(d);
@@ -1088,17 +1083,8 @@ function renderSecondTokenChart(res) {
     const right_col_heights = right_col_text_bboxes.nodes().map(bbox => parseFloat(bbox.getAttribute("height")));
 
     // Draw text
-    const fontsize = 13;
-    const tokenchart_left = d3.select("svg#token_chart_left");
-    const chart_height = tokenchart_left.node().clientHeight;
-    const spacing_left_col =
-        (chart_height - res.tokens2.length * fontsize) /
-        ((res.tokens2.length - 1) || 1);
-    const spacing_right_col =
-        (chart_height - res.tokens1.length * fontsize) /
-        ((res.tokens1.length - 1) || 1);
-
-    const rightcol_data = res.tokens1.map((t, i) => ({ token: t, pos: i }));
+    const svg_canvas_selector = "svg#token_chart_left";
+    const tokenchart_left = d3.select(svg_canvas_selector).attr("class", "token-chart-half-canvas");
     const leftcol_data = res.tokens2.map((t, i) => ({ token: t, pos: i }));
 
     const left_text_bboxes = renderRelTexts(

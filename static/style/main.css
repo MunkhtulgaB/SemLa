@@ -349,7 +349,7 @@ max-height: 100%;
 flex: 1;
 overflow-y: auto;
 margin: 0;
-padding: 0 5px;
+padding: 0;
 }
 
 .rel_chart_left {
@@ -382,6 +382,7 @@ display: flex;
 display: flex;
 flex-direction: column;
 height: 100%;
+padding: 5px;
 }
 
 .instance-level-placeholder {
@@ -573,4 +574,14 @@ border-radius: 3px;
 
 #summary hr {
 margin: 0.1rem 0;
+}
+
+.rel-container {
+display: flex;
+overflow-y: scroll;
+height: 100%;
+}
+
+.padded-container {
+padding: 10px;
 }
