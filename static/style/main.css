@@ -548,7 +548,7 @@ color: dimgrey;
     width: 80px;
 }
 
-.lasso-tool-btn {
+#lasso-tool-btn {
 position: absolute;
 border: 1px solid grey;
 top: 455px;
@@ -559,7 +559,7 @@ padding: 5px;
 border-radius: 2px;
 }
 
-.lasso-tool-btn:hover {
+#lasso-tool-btn:hover {
 background-color: lightgrey;
 cursor: pointer;
 }

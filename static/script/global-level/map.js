@@ -1,4 +1,5 @@
 import { initializeTooltip, 
+    addTooltip,
     hideTooltips, 
     showTooltip,
     moveTooltipsToCursor } from "./tooltip.js";
@@ -146,17 +147,26 @@ class MapView {
     initializeLassoTool() {
         const parent = $(`#${this.#container_id}`).parent();
         const self = this;
+        const lasso_id = "lasso-tool-btn";
         parent.append(`
-            <div class="lasso-tool-btn">
+            <div id="${lasso_id}">
                 <div class="lasso-icon">
                 </div>
             </div>
         `)
 
-        parent.find(".lasso-tool-btn").click(function() {
+        parent.find(`#${lasso_id}`).click(function() {
             self.toggleLassoTool();
         })
         parent.css("cursor", "alias");
+        addTooltip(`#${lasso_id}`, `
+                        <div>
+                            <b>Click to (de)activate the lasso tool.</b>
+                        </div>
+                        <div>
+                            Freely select samples by hand-drawing the selection area.
+                        </div>
+                    `);
     }
 
     toggleLassoTool() {

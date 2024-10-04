@@ -9,10 +9,7 @@ import { hideProgress, LocalWordsView } from "./global-level/local-words.js";
 import { MapView } from "./global-level/map.js";
 import { ExplanationSet } from "./explanation.js";
 import { Dataset, Filter } from "./data.js"
-import { initializeTooltip, 
-         showTooltip, 
-         moveTooltipsToCursor,
-         hideTooltips } from "./global-level/tooltip.js";
+import { initializeTooltip, addTooltip } from "./global-level/tooltip.js";
 import { ListView } from "./global-level/list-view.js";
 
 
@@ -33,14 +30,6 @@ let filterByConfidenceAndUpdate = function(data,
     return filter;
 }
 
-let addTooltip = function(selector, content) {
-    const selected_element = d3.select(selector);
-    selected_element.on("mouseover", function() {
-        moveTooltipsToCursor();
-        showTooltip("super-tooltip", content)
-    })
-    .on("mouseout", () => hideTooltips());
-}
 
 let margin;
 let width;
@@ -565,7 +554,7 @@ function initializeHelpTooltips() {
                         versus in "Group 2".
                         </p>`);
     addTooltip(".full-list-toggle", `Click to expand/collapse list`);
-    addTooltip(".advanced-option-toggle", "Click to show/hide advanced options")   
+    addTooltip(".advanced-option-toggle", "Click to show/hide advanced options");
 }
 
 
