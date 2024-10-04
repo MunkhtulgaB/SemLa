@@ -489,7 +489,7 @@ function renderRelChart(res) {
                         pos: i,
                         source: {
                             x: x_start,
-                            y: (d.pos + 1) * fontsize + d.pos * spacing_left_col,
+                            y: left_text_bboxes[d.pos].y + left_text_bboxes[d.pos].height/2,
                         },
                         target: {
                             x: x_middle,
@@ -546,7 +546,7 @@ function renderRelChart(res) {
                         },
                         target: {
                             x: x_end,
-                            y: (d.pos + 1) * fontsize + d.pos * spacing_right_col,
+                            y: right_text_bboxes[d.pos].y + right_text_bboxes[d.pos].height/2,
                         },
                         importance: d.importance,
                     };
@@ -637,6 +637,13 @@ function renderRelChart(res) {
 }
 
 function renderSecondRelChart(res) {
+    // Get the right column spacing from the already rendered half of the relchart
+    const svg_canvas_selector_of_first_rel_chart_half = "svg#rel_chart";
+    const relchart_right = d3.select(svg_canvas_selector_of_first_rel_chart_half);
+    const right_col_text_bboxes = d3.selectAll(`${svg_canvas_selector_of_first_rel_chart_half} > .rect_left`);
+    const right_col_ys = right_col_text_bboxes.nodes().map(bbox => parseFloat(bbox.getAttribute("y")));
+    const right_col_heights = right_col_text_bboxes.nodes().map(bbox => parseFloat(bbox.getAttribute("height")));
+
     // Draw text
     const fontsize = 13;
     const relchart_left = d3.select("svg#rel_chart_left");
@@ -751,13 +758,14 @@ function renderSecondRelChart(res) {
                     return {
                         source: {
                             x: x_start,
-                            y: (d.pos + 1) * fontsize + d.pos * spacing_left_col,
+                            y: left_text_bboxes[d.pos].y + left_text_bboxes[d.pos].height/2,
                         },
                         target: {
                             x: x_middle,
                             y: y_start_line + y_offset + getHeight(d) / 2,
                         },
                         importance: d.importance,
+                        token: d.token,
                     };
                 })
         )
@@ -806,9 +814,10 @@ function renderSecondRelChart(res) {
                         },
                         target: {
                             x: x_end,
-                            y: (d.pos + 1) * fontsize + d.pos * spacing_right_col,
+                            y: right_col_ys[d.pos] + right_col_heights[d.pos]/2,
                         },
                         importance: d.importance,
+                        token: d.token,
                     };
                 })
         )
@@ -922,8 +931,11 @@ function renderSecondRelChart(res) {
             d3.select("#rel_chart_tooltip")
                 .style("visibility", "visible")
                 .html(
-                    `Importance (integrated gradient): ${d.importance ? d.importance.toFixed(3) : ""
-                    }`
+                    `
+                    <div>"${d.token}": ${d.importance ? d.importance.toFixed(3) : ""}</div>
+                    <div>(token, importance)</div>
+                    <div style="color:grey">Note: the importance is calculated with Integrated Gradient</div>
+                    `
                 )
                 .style("top", event.pageY + 10 + "px")
                 .style("left", event.pageX + 10 + "px");
@@ -1034,7 +1046,9 @@ function renderTokenChart(res) {
     const link_data = [];
     res.links.forEach(function (links, i) {
         links.forEach(function (link, j) {
-            link_data.push({ from: i, to: j, strength: link });
+            link_data.push({ from: i, to: j, 
+                from_token: res.tokens2[j], to_token: res.tokens1[i],
+                strength: link });
         });
     });
     const old_links_data = d3.selectAll(".token_links").data();
@@ -1049,12 +1063,12 @@ function renderTokenChart(res) {
         .append("line")
         .attr("class", "token_links")
         .attr("x1", Math.max(...left_text_bboxes.map((b) => b.width)) + 5)
-        .attr("y1", (d) => (d.from + 1) * fontsize + d.from * spacing_left_col)
+        .attr("y1", (d) => left_text_bboxes[d.from].y + left_text_bboxes[d.from].height/2)
         .attr(
             "x2",
             chart_width - (Math.max(...right_text_bboxes.map((b) => b.width)) + 5)
         )
-        .attr("y2", (d) => (d.to + 1) * fontsize + d.to * spacing_right_col)
+        .attr("y2", (d) => right_text_bboxes[d.to].y + right_text_bboxes[d.to].height/2)
         .style("stroke", (d) => (d.strength > 0 ? "skyblue" : "pink"))
         .style(
             "stroke-width",
@@ -1067,6 +1081,12 @@ function renderTokenChart(res) {
 }
 
 function renderSecondTokenChart(res) {
+    // Get the right column spacing from the already rendered half of the token chart
+    const svg_canvas_selector_of_first_token_chart_half = "svg#token_chart";
+    const right_col_text_bboxes = d3.selectAll(`${svg_canvas_selector_of_first_token_chart_half} > .rect_left`);
+    const right_col_ys = right_col_text_bboxes.nodes().map(bbox => parseFloat(bbox.getAttribute("y")));
+    const right_col_heights = right_col_text_bboxes.nodes().map(bbox => parseFloat(bbox.getAttribute("height")));
+
     // Draw text
     const fontsize = 13;
     const tokenchart_left = d3.select("svg#token_chart_left");
@@ -1094,7 +1114,9 @@ function renderSecondTokenChart(res) {
     const link_data = [];
     res.links.forEach(function (links, i) {
         links.forEach(function (link, j) {
-            link_data.push({ from: j, to: i, strength: link });
+            link_data.push({ from: j, to: i, 
+                from_token: res.tokens2[j], to_token: res.tokens1[i],
+                strength: link });
         });
     });
     const old_links_data = d3.selectAll(".token_links").data();
@@ -1109,9 +1131,9 @@ function renderSecondTokenChart(res) {
         .append("line")
         .attr("class", "token_links_contrast")
         .attr("x1", Math.max(...left_text_bboxes.map((b) => b.width)) + 5)
-        .attr("y1", (d) => (d.from + 1) * fontsize + d.from * spacing_left_col)
+        .attr("y1", (d) => left_text_bboxes[d.from].y + left_text_bboxes[d.from].height/2)
         .attr("x2", "95%")
-        .attr("y2", (d) => (d.to + 1) * fontsize + d.to * spacing_right_col)
+        .attr("y2", (d) => right_col_ys[d.to] + right_col_heights[d.to]/2)
         .style("stroke", (d) => (d.strength > 0 ? "skyblue" : "pink"))
         .style(
             "stroke-width",
@@ -1137,7 +1159,10 @@ function renderSecondTokenChart(res) {
         .on("mouseover", function (d) {
             d3.select("#rel_chart_tooltip")
                 .style("visibility", "visible")
-                .html(`Similarity (inner product): ${d.strength.toFixed(3)}`)
+                .html(`
+                    <div>Similarity between "${d.to_token}" and "${d.from_token}": ${d.strength.toFixed(3)}</div>
+                    <div style="color:grey">Note: Similarity was computed with inner (dot) product</div>
+                `)
                 .style("top", event.pageY + 10 + "px")
                 .style("left", event.pageX + 10 + "px");
         })
