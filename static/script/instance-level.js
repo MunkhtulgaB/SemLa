@@ -346,12 +346,12 @@ function renderRelTexts(
     texts.each(function (d) {
         bboxes.push(this.getBBox());
     });
-    relchart
+    const rects = relchart
         .selectAll("." + rect_class)
         .data(data)
         .enter()
         .append("rect")
-        .attr("class", rect_class)
+        .attr("class", `token_rect ${rect_class}`)
         .attr("width", (d) => bboxes[d.pos].width)
         .attr("height", (d) => bboxes[d.pos].height)
         .attr("x", (d) => bboxes[d.pos].x)
@@ -365,14 +365,59 @@ function renderRelTexts(
         .enter()
         .append("text")
         .attr("text-anchor", text_anchor)
-        .attr("class", text_class)
+        .attr("class", `text_token ${text_class}`)
         .text((d) => d.token)
         .style("font-size", fontsize + "px")
         .attr("x", text_x + "px")
         .attr("y", (d) => (d.pos + 1) * fontsize + d.pos * spacing)
         .style("fill", "black")
         .on("mouseover", onMouseOver || onMouseOverRelChart)
-        .on("mouseout", onMouseOut || onMouseOutRelChart);
+        .on("mouseout", onMouseOut || onMouseOutRelChart)
+        .on("click", function(d) {
+            // on click, toggle the textIsClicked state of the rect underneath
+            // if textIsClicked, disable all hover interactions of texts, else enable them back
+            let disableHoverListeners = function() {
+                d3.selectAll(".text_token")
+                    .each(function(d) {
+                        if (!d.disabledMouseover) d.disabledMouseover = d3.select(this).on("mouseover");
+                        if (!d.disabledMouseout) d.disabledMouseout = d3.select(this).on("mouseout");
+                    })
+                    .on("mouseover", null)
+                    .on("mouseout", null);
+            }
+
+            let reenableHoverListeners = function() {
+                // clear all strokes and set back all the handlers
+                d3.selectAll(".token_rect").attr("stroke", null);
+                d3.selectAll(".text_token").each(function(d) {
+                    d3.select(this)
+                        .on("mouseover", d.disabledMouseover)
+                        .on("mouseout",  d.disabledMouseout);
+                });
+            }
+
+            const thisTextRect = rects.filter((rect_d) => rect_d.pos == d.pos);
+
+            if (thisTextRect.attr("textIsClicked") != "true") {
+                d3.selectAll(".token_rect").attr("textIsClicked", "false");
+                thisTextRect.attr("textIsClicked", "true");
+
+                // draw a stroke around the clicked text (clear all previous ones first)
+                d3.selectAll(".token_rect").attr("stroke", null);
+                thisTextRect
+                    .attr("stroke", "red")
+                    .attr("stroke-width", 2);
+
+                // call the mouseover in case a user has clicked on another token without unclicking the first one
+                (onMouseOut || onMouseOutRelChart)(d);
+                (onMouseOver || onMouseOverRelChart)(d);
+
+                disableHoverListeners();
+            } else {
+                thisTextRect.attr("textIsClicked", "false");
+                reenableHoverListeners();
+            }
+        });
 
     // Stretch the container to fit all words if they don't fit due to minimum spacing constraint
     const height_with_min_spacing = spacing * ((data.length - 1) || 1) + data.length * fontsize
