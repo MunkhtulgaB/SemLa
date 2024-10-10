@@ -14,6 +14,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/sankey.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="static/style/main.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
@@ -301,7 +302,7 @@
         </div>
       </div>
 
-      <div id="rel_chart_tooltip" style="z-index: 1000; visibility: hidden; position: absolute; padding: 5px; border-radius: 5px; font-weight: bold; font-size: 12px; background-color: black; opacity: 0.8; color: white"></div>
+      <div id="rel_chart_tooltip"></div>
       
       <div id="sample-level" class="widget super-widget">
         <p class="widget_title super_widget_title">
@@ -329,6 +330,14 @@
             <p class="widget_title">
               Importance
               <span class="info-sign" id="info-feature-importance">&#9432;</span>
+              <i id="importance-chart-expand-btn" 
+                  class="fa-solid fa-up-right-and-down-left-from-center expand-icon"
+                  data-bs-toggle="modal"
+                  data-bs-target="#expandModal"
+                  data-bs-related-view-type="importance-chart"
+                  data-bs-orig-view-id="importance_chart"
+                  data-bs-modal-title="Feature Importance"
+                  ></i>
             </p>
             <div id="importance-chart-container" class="widget_content sample-lvl-content">
               <canvas id="importance_chart"></canvas>
@@ -340,79 +349,53 @@
             <p class="widget_title">
               Relation (token-to-token)
               <span class="info-sign" id="info-tokenchart">&#9432;</span>
+              <i id="token-chart-expand-btn"
+                  class="fa-solid fa-up-right-and-down-left-from-center expand-icon"
+                  data-bs-toggle="modal"
+                  data-bs-target="#expandModal"
+                  data-bs-related-view-type="token-chart"
+                  data-bs-orig-view-id="token-chart-container"
+                  data-bs-modal-title="Token-to-Token Relation"
+                  ></i>
             </p>
-            <div class="relchart-control">
-              Showing top-<input type="number" id="topk_tokenchart" name="topk_tokenchart" min="1" value=3> important links per side...
-            </div>
-            <div class="relchart-header">
-              <div>
-                Contrast sample
-                <br>
-                <span class="contrast-label-instance"></span>
-              </div>
-              <div>
-                Selected sample
-                <br>
-                <span class="predicted-label-instance"></span>
-              </div>
-              <div>
-                Closest sample
-                <br>
-                <span class="predicted-label-instance"></span>
-              </div>
-            </div>
-            <div class="padded-container sample-lvl-content">
-              <div id="tokenchart-container" class="rel-container widget_content">
-                  <div id="token_chart_left_container" class="rel-chart-half" style="width: 0px; display: inline-block;"> 
-                    <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
-                  </div>
-                  <div id="token_chart_right_container" class="rel_chart_right rel-chart-half">
-                    <svg id="token_chart" style="height: 100%; width: 100%"></svg>
-                  </div>
-              </div>
-            </div>
+            <div id="token-chart-container"></div>
           </div>
 
           <div class="widget sample-lvl-viz" style="background-color: white;" >
             <p class="widget_title">
               Relation (token-to-similarity)
               <span class="info-sign" id="info-relchart">&#9432;</span>
+              <i id="rel-chart-expand-btn" 
+                  class="fa-solid fa-up-right-and-down-left-from-center expand-icon"
+                  data-bs-toggle="modal"
+                  data-bs-target="#expandModal"
+                  data-bs-related-view-type="rel-chart"
+                  data-bs-orig-view-id="rel-chart-container"
+                  data-bs-modal-title="Token-to-Similarity Relation"
+                  ></i>
             </p>
-            <div class="relchart-control">
-              Showing top-<input type="number" id="topk_relchart" name="topk_relchart" min="1" value=3> important links per sample...
-            </div>
-            <div class="relchart-header">
-              <div>
-                Contrast sample
-                <br>
-                <span class="contrast-label-instance"></span>
-              </div>
-              <div>
-                Selected sample
-                <br>
-                <span class="predicted-label-instance"></span>
-              </div>
-              <div>
-                Closest sample
-                <br>
-                <span class="predicted-label-instance"></span>
-              </div>
-            </div>
-            <div class="padded-container sample-lvl-content">
-              <div id="relchart-container" class="rel-container widget_content">
-                <div id="rel_chart_left_container" class="rel_chart_left" style="height: 100%; width: 0px; display: inline-block;"> 
-                    <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
-                  </div>
-                  <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
-                    <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
-                  </div>
-              </div>
-            </div>
+            <div id="rel-chart-container"></div>
           </div>
         </div>
         
       </div>
     </div>
     <script type="module" src="static/script/main.js"></script>
+
+    <!-- Modal -->
+    <div class="modal fade" id="expandModal" tabindex="-1" aria-labelledby="ModalTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="ModalTitle">Modal title</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div style="height: 50vh;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

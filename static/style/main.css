@@ -354,6 +354,8 @@ padding: 0;
 
 .rel_chart_left {
 height: 100%;
+width: 0px; 
+display: inline-block;
 }
     
 .rel_chart_right {
@@ -475,7 +477,8 @@ height: 20px;
     z-index: 1000;
     color: white;
     box-shadow: 1px 1px 10px grey;
-    font-size: 15px
+    font-size: 15px;
+    word-wrap: break-word;
 }
 
 #super-tooltip {
@@ -499,6 +502,20 @@ height: 20px;
 #local-word-tooltip > table {
     width: 250px;
     table-layout: fixed;
+}
+
+/* Relation chart tooltip should appear even over the modal */
+#rel_chart_tooltip {
+    z-index: 2000;
+    visibility: hidden; 
+    position: absolute; 
+    padding: 5px; 
+    border-radius: 5px; 
+    font-weight: bold; 
+    font-size: 12px; 
+    background-color: black; 
+    opacity: 0.8; 
+    color: white
 }
 
 .tooltip-table-cell {
@@ -584,4 +601,91 @@ height: 100%;
 
 .padded-container {
 padding: 10px;
+}
+
+/* Expand icons */
+.expand-icon {
+float: inline-end;
+padding: 5px;
+}
+
+.expand-icon:hover {
+background-color: grey;
+}
+
+/* The expanded sample-level views must have minimum heights and fill their parents */
+#importance-chart-container-in-modal {
+width: 100%;
+min-height: 30vh;
+}
+
+#rel-chart-container {
+display: flex;
+flex-direction: column;
+height: 100%;
+}
+
+#rel-chart-container-in-modal {
+display: flex;
+flex-direction: column;
+min-height: 30vh;
+}
+
+#rel-chart-container-in-modal .rel-container {
+max-height: 100%;
+}
+
+#token-chart-container {
+display: flex;
+flex-direction: column;
+height: 100%;
+}
+
+#token-chart-container-in-modal {
+display: flex;
+flex-direction: column;
+min-height: 30vh;
+}
+
+#token-chart-container-in-modal .rel-container {
+max-height: 100%;
+}
+
+.rel-chart-half-canvas {
+width: 100%;
+height: 100%;
+}
+
+.token-chart-half-canvas {
+width: 100%;
+height: 100%;
+}
+
+/* Limits on the sizes of the column headers in relation graphs  */
+.contrast-label-instance {
+max-width: 150px;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+
+.predicted-label-instance {
+max-width: 150px;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+
+/* Different sizes for the modal body */
+.container-l {
+max-height: 100%;
+height: 85vh !important;
+}
+
+.container-m {
+max-height: 100%;
+height: 50vh !important;
+}
+
+.container-s {
+max-height: 100%;
+height: 30vh !important;
 }

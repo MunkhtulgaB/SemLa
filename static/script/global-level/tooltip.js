@@ -32,7 +32,6 @@ function hideTooltips() {
 let addTooltip = function(target_selector, content, tooltip_id) {
     const selected_element = d3.selectAll(target_selector);
     selected_element.on("mouseover", function() {
-        console.log(this)
         moveTooltipsToCursor();
         showTooltip(tooltip_id || "super-tooltip", content)
     })

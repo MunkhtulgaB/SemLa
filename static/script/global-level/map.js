@@ -8,13 +8,9 @@ import { filterByLabels,
         calculateConfidence } from "./filters.js";
 import { Filter } from "../data.js";
 import { updateTextSummary,
-         loadingImportanceChart,
-         emptyImportanceChart,
-         emptyRelationChart,
-         emptyTokenChart,
-         updateImportanceChartFromCache,
-         updateRelationChartFromCache,
-         updateTokenChartFromCache } from "../instance-level.js"; 
+         ImportanceView,
+         Token2SimilarityRelationView,
+         Token2TokenRelationView } from "../instance-level.js"; 
 
 
 const TOOLTIP_ID = "sample-tooltip";
@@ -93,7 +89,6 @@ class MapView {
                 label_to_cluster,
                 dim_reduction,
                 onUpdate,
-                onDragEnd,
                 dataset_name,
                 model_name,
                 num_clusters,
@@ -142,6 +137,13 @@ class MapView {
         this.#onUpdate();
         this.initializeLegend();
         this.initializeLassoTool();
+        this.initializeSampleLevelViews();
+    }
+    
+    initializeSampleLevelViews() {
+        this.importance_view = new ImportanceView("importance_chart");
+        this.relation_chart_view = new Token2SimilarityRelationView("rel-chart-container");
+        this.token_chart_view = new Token2TokenRelationView("token-chart-container");
     }
 
     initializeLassoTool() {
@@ -1051,20 +1053,14 @@ class MapView {
     }
     
     explainSample(d, closest_dp, dp2) {
-        updateTextSummary(d, closest_dp, dp2);
-        emptyImportanceChart();
-        emptyRelationChart();
-        emptyTokenChart();
-    
         if (this.#model_name == "bert") {
             const tok2sim_relations = this.#explanation_set.token2similarity_relations;
             const importances = this.#explanation_set.importances;
             const tok2token_relations =  this.#explanation_set.token2token_relations;
-            updateRelationChartFromCache(tok2sim_relations[d.idx].right);
-            updateRelationChartFromCache(tok2sim_relations[d.idx].left);
-            updateImportanceChartFromCache(importances[d.idx]);
-            updateTokenChartFromCache(tok2token_relations[d.idx].right);
-            updateTokenChartFromCache(tok2token_relations[d.idx].left);
+
+            this.importance_view.update(importances[d.idx]);
+            this.relation_chart_view.update(tok2sim_relations[d.idx].right, tok2sim_relations[d.idx].left);
+            this.token_chart_view.update(tok2token_relations[d.idx].right, tok2token_relations[d.idx].left);
         } else {
             // Tell the user there is no explanation data for this model
             if (this.#alertCount == 0) {
@@ -1072,6 +1068,7 @@ class MapView {
                 this.#alertCount++;
             }
         }
+        updateTextSummary(d, closest_dp, dp2);
     }
 
     drawDragLines(d, closest_dp, dp2) {

@@ -1,5 +1,6 @@
-import { updateRelationChart,
-        initializeRelChartControls } from "./instance-level.js";
+import { ImportanceView,
+         Token2SimilarityRelationView,
+         Token2TokenRelationView } from "./instance-level.js";
 import { populateConfusionTable,
         populateLabelTable } from "./label-level.js";
 import { filterBySubstring,
@@ -119,6 +120,7 @@ $(document)
     initializeSystem(system_config.dataset, system_config.model);
     initializeTooltip("super-tooltip", "super-container");
     initializeHelpTooltips();
+    initializeModal();
 });
 
 
@@ -147,22 +149,8 @@ function clearSystem() {
     $("#importance-chart-container").html(`
         <canvas id="importance_chart"></canvas>
     `);
-    $("#relchart-container").html(`
-        <div id="rel_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
-            <svg id="rel_chart_left" style="height: 100%; width: 100%"></svg>
-        </div>
-        <div id="rel_chart_right_container" class="rel_chart_right" style="height: 100%;">
-            <svg id="rel_chart" style="height: 100%; width: 100%"></svg>
-        </div>
-    `);
-    $("#tokenchart-container").html(`
-        <div id="token_chart_left_container" style="height: 100%; width: 0px; display: inline-block;"> 
-            <svg id="token_chart_left" style="height: 100%; width: 100%"></svg>
-        </div>
-        <div id="token_chart_right_container" class="rel_chart_right" style="height: 100%;">
-            <svg id="token_chart" style="height: 100%; width: 100%"></svg>
-        </div>
-    `);
+    $("#rel-chart-container").html("");
+    $("#token-chart-container").html("");
 }
 
 
@@ -257,7 +245,6 @@ function initializeSystem(dataset_name, model) {
                                     dataset.labelToCluster,
                                     dim_reduction,
                                     updateBothLocalWordViews,
-                                    updateRelationChart,
                                     dataset_name,
                                     model,
                                     NUM_CLUSTERS,
@@ -308,8 +295,7 @@ function initializeSystem(dataset_name, model) {
                                 cluster_to_color, 
                                 dataset.labelToCluster,
                                 dim_reduction,
-                                updateBothLocalWordViews,
-                                updateRelationChart,                             
+                                updateBothLocalWordViews,                         
                                 dataset_name,
                                 model,
                                 NUM_CLUSTERS,
@@ -343,7 +329,6 @@ function initializeSystem(dataset_name, model) {
             // const accuracy = 100 - (dataset.errors.length / data.length) * 100;
             $("#accuracy").html(`<b>${accuracy.toFixed(1)}</b>`);
             
-            initializeRelChartControls();
             initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color, local_words_view, local_words_view1, filter_view, filter_view1);
             initializeAdvancedOptionToggle();
         });
@@ -854,6 +839,87 @@ function initializeControlWidgets(dataset, dataset1, map, map1, cluster_to_color
     });
 }
 
+function initializeModal() {
+    const expandModal = document.getElementById('expandModal');
+    if (expandModal) {
+        const modalTitle = expandModal.querySelector('.modal-title');
+        const modalBody = expandModal.querySelector('.modal-body');
+
+        const modal_importance_view = new ImportanceView("importance_chart_in_modal", 18, 12);
+        const modal_relation_chart = new Token2SimilarityRelationView("rel-chart-container-in-modal", 18);
+        const modal_token_chart = new Token2TokenRelationView("token-chart-container-in-modal", 18);
+        
+        expandModal.addEventListener('show.bs.modal', (event) => {
+            const button = event.relatedTarget;
+            const orig_view_id = button.getAttribute('data-bs-orig-view-id');
+            const modal_title = button.getAttribute('data-bs-modal-title');
+            modalTitle.innerHTML = `${modal_title}`;
+
+            // adjust the height of the scrollable content based on number of tokens 
+            const size_m_threshold = 10
+            const size_l_threshold = 30;
+            const orig_view = d3.select(`#${orig_view_id}`);
+            const left_chart_container_selector =  `#${orig_view_id} .rel_chart_left`;
+            const right_chart_container_selector =  `#${orig_view_id} .rel_chart_right`;
+
+            const data_orig = orig_view.data()[0];
+            const data_left = d3.select(left_chart_container_selector).data()[0];
+            const data_right = d3.select(right_chart_container_selector).data()[0];
+
+            let max_length = 0;
+
+            if (data_orig) {
+                max_length = data_orig.labels.length;
+            } else if (data_left) {
+                const texts = [data_left.tokens1, data_left.tokens2, data_right.tokens1, data_right.tokens2]
+                const lengths = texts.map(text_tokens => text_tokens.length);
+                max_length = Math.max(...lengths);
+            }
+
+            modalBody.innerHTML = `<div class="container-in-modal"></div>`;
+            const container = $(".container-in-modal");
+            if (max_length > size_l_threshold) {
+                container.attr("class", "container-in-modal container-l");
+            } else if (max_length > size_m_threshold) {
+                container.attr("class", "container-in-modal container-m");
+            } else {
+                container.attr("class", "container-in-modal container-s");
+            }
+        });
+
+        expandModal.addEventListener('shown.bs.modal', event => {
+            const button = event.relatedTarget;
+            const view_type = button.getAttribute('data-bs-related-view-type');
+            const orig_view_id = button.getAttribute('data-bs-orig-view-id');
+            const orig_view = d3.select(`#${orig_view_id}`);
+
+            if (view_type == "importance-chart") {
+                const data = orig_view.data()[0];
+                $(".container-in-modal").attr("id", "importance-chart-container-in-modal");
+                $(".container-in-modal").html(`<canvas id="importance_chart_in_modal"></canvas>`);
+                modal_importance_view.update(data);
+            } else if (view_type == "rel-chart") {
+                const left_chart_container_selector =  `#${orig_view_id} .rel_chart_left`;
+                const right_chart_container_selector =  `#${orig_view_id} .rel_chart_right`;
+
+                const data_left = d3.select(left_chart_container_selector).data()[0];
+                const data_right = d3.select(right_chart_container_selector).data()[0];
+
+                $(".container-in-modal").attr("id", "rel-chart-container-in-modal");
+                modal_relation_chart.update(data_right, data_left);
+            } else if (view_type == "token-chart") {
+                const left_chart_container_selector =  `#${orig_view_id} .rel_chart_left`;
+                const right_chart_container_selector =  `#${orig_view_id} .rel_chart_right`;
+
+                const data_left = d3.select(left_chart_container_selector).data()[0];
+                const data_right = d3.select(right_chart_container_selector).data()[0];
+
+                $(".container-in-modal").attr("id", "token-chart-container-in-modal");
+                modal_token_chart.update(data_right, data_left);
+            }
+        })
+    }
+}
 
 function resetFilterControls() {
     $("#filter").val("");
